@@ -3,9 +3,9 @@ import { useAuth } from '../context/AuthContext';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { to: '/dashboard', label: 'Promises', icon: PromisesIcon },
+  { to: '/promises', label: 'Promises', icon: PromisesIcon },
   { to: '/team', label: 'Team', icon: TeamIcon },
-  { to: '/dashboard', label: 'Settings', icon: SettingsIcon },
+  { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 function DashboardIcon() {
