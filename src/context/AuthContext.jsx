@@ -9,6 +9,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  updateDoc,
   collection,
   addDoc,
   serverTimestamp,
@@ -29,7 +30,7 @@ export function AuthProvider({ children }) {
     return null;
   };
 
-  const signup = async (email, password, businessName) => {
+  const signup = async (email, password, businessName, phone) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
 
@@ -45,6 +46,7 @@ export function AuthProvider({ children }) {
     await setDoc(doc(db, 'users', uid), {
       uid,
       email,
+      phone,
       businessName,
       businessId: businessRef.id,
       role: 'owner',
@@ -54,9 +56,36 @@ export function AuthProvider({ children }) {
     setUser({
       uid,
       email,
+      phone,
       businessName,
       businessId: businessRef.id,
       role: 'owner',
+    });
+  };
+
+  const inviteSignup = async (email, password, phone, invite) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
+
+    await setDoc(doc(db, 'users', uid), {
+      uid,
+      email,
+      phone,
+      businessName: invite.businessName,
+      businessId: invite.businessId,
+      role: invite.role,
+      createdAt: serverTimestamp(),
+    });
+
+    await updateDoc(doc(db, 'invites', invite.id), { status: 'accepted' });
+
+    setUser({
+      uid,
+      email,
+      phone,
+      businessName: invite.businessName,
+      businessId: invite.businessId,
+      role: invite.role,
     });
   };
 
@@ -109,7 +138,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, login, signup, inviteSignup, logout }}>
       {children}
     </AuthContext.Provider>
   );

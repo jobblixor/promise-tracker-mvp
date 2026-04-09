@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/dashboard', label: 'Promises', icon: PromisesIcon },
-  { to: '/dashboard', label: 'Team', icon: TeamIcon },
+  { to: '/team', label: 'Team', icon: TeamIcon },
   { to: '/dashboard', label: 'Settings', icon: SettingsIcon },
 ];
 
@@ -70,8 +70,8 @@ export default function Layout({ children }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 space-y-0.5">
-          {navItems.map((item, i) => {
-            const isActive = i === 0 && location.pathname === '/dashboard';
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.to;
             return (
               <NavLink
                 key={item.label}
@@ -125,8 +125,8 @@ export default function Layout({ children }) {
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-card/90 backdrop-blur-xl border-t border-border/60 flex justify-around py-2.5 z-50">
-        {navItems.map((item, i) => {
-          const isActive = i === 0 && location.pathname === '/dashboard';
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.to;
           return (
             <NavLink
               key={item.label}

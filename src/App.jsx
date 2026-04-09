@@ -4,6 +4,7 @@ import { ToastProvider } from './context/ToastContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import DashboardPage from './pages/DashboardPage';
+import TeamPage from './pages/TeamPage';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </ToastProvider>

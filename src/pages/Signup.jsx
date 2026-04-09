@@ -1,22 +1,51 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
+  const [invite, setInvite] = useState(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const { signup, inviteSignup } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const inviteId = searchParams.get('invite');
+    if (!inviteId) return;
+    setInviteLoading(true);
+    getDoc(doc(db, 'invites', inviteId)).then((snap) => {
+      if (snap.exists() && snap.data().status === 'pending') {
+        setInvite({ id: snap.id, ...snap.data() });
+        setEmail(snap.data().email || '');
+        setPhone(snap.data().phone || '');
+      } else {
+        setError('This invite link is invalid or has already been used');
+      }
+      setInviteLoading(false);
+    }).catch(() => {
+      setError('Failed to load invite');
+      setInviteLoading(false);
+    });
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await signup(email, password, businessName);
+      if (invite) {
+        await inviteSignup(email, password, phone, invite);
+      } else {
+        await signup(email, password, businessName, phone);
+      }
       navigate('/dashboard');
     } catch {
       setError('Failed to create account');
@@ -29,8 +58,8 @@ export default function Signup() {
       <div className="w-full max-w-sm animate-fade-in-up">
         <div className="text-center mb-10">
           <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center text-white text-2xl font-black mx-auto mb-5 shadow-[0_0_30px_rgba(34,197,94,0.3)] transition-shadow duration-300 hover:shadow-[0_0_40px_rgba(34,197,94,0.45)]">P</div>
-          <h1 className="text-[26px] font-extrabold text-text-primary tracking-tight">Create your account</h1>
-          <p className="text-sm text-text-muted mt-1.5">Start tracking promises in minutes</p>
+          <h1 className="text-[26px] font-extrabold text-text-primary tracking-tight">{invite ? 'Join your team' : 'Create your account'}</h1>
+          <p className="text-sm text-text-muted mt-1.5">{invite ? 'Complete your account to get started' : 'Start tracking promises in minutes'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -40,14 +69,38 @@ export default function Signup() {
             </div>
           )}
 
+          {invite && (
+            <div className="bg-accent/5 border border-accent/20 rounded-xl px-4 py-3 text-sm text-accent animate-fade-in-up">
+              You've been invited to join <span className="font-semibold">{invite.businessName}</span> as a <span className="font-semibold capitalize">{invite.role}</span>
+            </div>
+          )}
+
+          {inviteLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : !invite && (
+            <div>
+              <label className="block text-sm font-semibold text-text-secondary mb-2">Business Name</label>
+              <input
+                type="text"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                required
+                placeholder="Your Company LLC"
+                className="w-full px-3.5 py-2.5 bg-bg-card border border-border rounded-[10px] text-sm text-text-secondary placeholder:text-text-muted/40 focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/10 focus:shadow-[0_0_0_3px_rgba(34,197,94,0.06)] transition-all duration-200"
+              />
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-semibold text-text-secondary mb-2">Business Name</label>
+            <label className="block text-sm font-semibold text-text-secondary mb-2">Phone Number</label>
             <input
-              type="text"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
-              placeholder="Your Company LLC"
+              placeholder="+1 (555) 123-4567"
               className="w-full px-3.5 py-2.5 bg-bg-card border border-border rounded-[10px] text-sm text-text-secondary placeholder:text-text-muted/40 focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/10 focus:shadow-[0_0_0_3px_rgba(34,197,94,0.06)] transition-all duration-200"
             />
           </div>
