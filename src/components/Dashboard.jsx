@@ -4,6 +4,7 @@ import {
   query,
   where,
   onSnapshot,
+  getDocs,
   doc,
   updateDoc,
   addDoc,
@@ -76,6 +77,7 @@ export default function Dashboard() {
   const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const tabsRef = useRef({});
+  const rawPromisesRef = useRef([]);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   // Update sliding indicator
@@ -108,10 +110,10 @@ export default function Dashboard() {
           return {
             ...raw,
             dueDate: raw.dueDate instanceof Timestamp ? raw.dueDate.toDate().toISOString() : raw.dueDate,
-            status: computeStatus(raw),
           };
         });
-        setPromises(data);
+        rawPromisesRef.current = data;
+        setPromises(data.map((p) => ({ ...p, status: computeStatus(p) })));
         setLoading(false);
       },
       () => {
@@ -119,6 +121,46 @@ export default function Dashboard() {
       },
     );
     return unsubscribe;
+  }, [user?.businessId]);
+
+  // Re-fetch on tab visibility change; recalculate statuses every 30s
+  useEffect(() => {
+    if (!user?.businessId) return;
+
+    const q = query(
+      collection(db, 'promises'),
+      where('businessId', '==', user.businessId),
+      orderBy('dueDate', 'asc'),
+    );
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        getDocs(q).then((snapshot) => {
+          const data = snapshot.docs.map((d) => {
+            const raw = { id: d.id, ...d.data() };
+            return {
+              ...raw,
+              dueDate: raw.dueDate instanceof Timestamp ? raw.dueDate.toDate().toISOString() : raw.dueDate,
+            };
+          });
+          rawPromisesRef.current = data;
+          setPromises(data.map((p) => ({ ...p, status: computeStatus(p) })));
+        });
+      }
+    };
+
+    const intervalId = setInterval(() => {
+      if (rawPromisesRef.current.length > 0) {
+        setPromises(rawPromisesRef.current.map((p) => ({ ...p, status: computeStatus(p) })));
+      }
+    }, 30000);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(intervalId);
+    };
   }, [user?.businessId]);
 
   const counts = {
