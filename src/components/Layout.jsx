@@ -62,7 +62,7 @@ export default function Layout({ children }) {
         {/* Brand */}
         <div className="p-6 pb-5">
           <h1 className="text-lg font-extrabold text-text-primary flex items-center gap-3 tracking-tight">
-            <Logo className="w-9 h-9" />
+            <Logo size={32} />
             Promise Tracker
           </h1>
           {user?.businessName && (

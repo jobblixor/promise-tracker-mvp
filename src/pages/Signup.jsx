@@ -58,7 +58,7 @@ export default function Signup() {
     <div className="min-h-screen bg-bg-primary flex items-center justify-center px-4">
       <div className="w-full max-w-sm animate-fade-in-up">
         <div className="text-center mb-10">
-          <div className="mx-auto mb-5"><Logo className="w-14 h-14" /></div>
+          <div className="mx-auto mb-5"><Logo size={56} /></div>
           <h1 className="text-[26px] font-extrabold text-text-primary tracking-tight">{invite ? 'Join your team' : 'Create your account'}</h1>
           <p className="text-sm text-text-muted mt-1.5">{invite ? 'Complete your account to get started' : 'Start tracking promises in minutes'}</p>
         </div>
