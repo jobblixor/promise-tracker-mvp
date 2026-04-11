@@ -1,4 +1,6 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall } = require("firebase-functions/v2/https");
+const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -218,3 +220,149 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
     console.log("checkPromises: finished run");
     return null;
   });
+
+// ─── Stripe Integration ──────────────────────────────────────────────
+
+function getStripe() {
+  const stripe = require("stripe");
+  return stripe(process.env.STRIPE_SECRET_KEY);
+}
+
+/**
+ * Callable function: creates a Stripe Checkout Session for subscription.
+ */
+exports.createCheckoutSession = onCall(async (request) => {
+  const { businessId, userId } = request.data;
+
+  if (!businessId || !userId) {
+    throw new Error("Missing businessId or userId");
+  }
+
+  // Look up the user's email
+  const userDoc = await db.collection("users").doc(userId).get();
+  if (!userDoc.exists) {
+    throw new Error("User not found");
+  }
+  const email = userDoc.data().email;
+
+  const stripe = getStripe();
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    line_items: [
+      {
+        price: process.env.STRIPE_PRICE_ID,
+        quantity: 1,
+      },
+    ],
+    success_url:
+      "https://promisetracker.app/success?session_id={CHECKOUT_SESSION_ID}",
+    cancel_url: "https://promisetracker.app/pricing",
+    client_reference_id: businessId,
+    customer_email: email,
+    metadata: {
+      businessId,
+      userId,
+    },
+  });
+
+  return { url: session.url };
+});
+
+/**
+ * HTTP endpoint: receives Stripe webhook events.
+ */
+exports.stripeWebhook = onRequest(async (req, res) => {
+  const stripe = getStripe();
+  const sig = req.headers["stripe-signature"];
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.rawBody,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET,
+    );
+  } catch (err) {
+    console.error("Webhook signature verification failed:", err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  console.log(`Stripe webhook received: ${event.type}`);
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object;
+        const businessId =
+          session.client_reference_id || session.metadata?.businessId;
+        if (businessId) {
+          await db
+            .collection("businesses")
+            .doc(businessId)
+            .update({
+              plan: "pro",
+              stripeCustomerId: session.customer,
+              stripeSubscriptionId: session.subscription,
+              paymentFailed: false,
+            });
+          console.log(`Business ${businessId} upgraded to pro`);
+        }
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object;
+        // Find business by stripeSubscriptionId
+        const snap = await db
+          .collection("businesses")
+          .where("stripeSubscriptionId", "==", subscription.id)
+          .get();
+        for (const doc of snap.docs) {
+          await doc.ref.update({ plan: "expired" });
+          console.log(`Business ${doc.id} plan set to expired`);
+        }
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const subscription = event.data.object;
+        const snap = await db
+          .collection("businesses")
+          .where("stripeSubscriptionId", "==", subscription.id)
+          .get();
+        for (const doc of snap.docs) {
+          const newPlan =
+            subscription.status === "active" ? "pro" : "expired";
+          await doc.ref.update({ plan: newPlan });
+          console.log(
+            `Business ${doc.id} subscription updated to ${newPlan}`,
+          );
+        }
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+        const snap = await db
+          .collection("businesses")
+          .where("stripeCustomerId", "==", customerId)
+          .get();
+        for (const doc of snap.docs) {
+          await doc.ref.update({ paymentFailed: true });
+          console.log(`Business ${doc.id} flagged with paymentFailed`);
+        }
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+  } catch (err) {
+    console.error(`Error handling ${event.type}:`, err.message);
+  }
+
+  res.status(200).json({ received: true });
+});

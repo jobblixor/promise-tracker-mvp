@@ -15,6 +15,7 @@ import {
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import PromiseCard from './PromiseCard';
 import PromiseForm from './PromiseForm';
 
@@ -72,6 +73,7 @@ function SkeletonCard() {
 export default function Dashboard() {
   const { user } = useAuth();
   const toast = useToast();
+  const { hasAccess, daysLeft, plan } = useSubscription();
   const [promises, setPromises] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -214,7 +216,46 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="p-5 md:p-10 max-w-5xl mx-auto">
+    <div className="p-5 md:p-10 max-w-5xl mx-auto relative">
+      {/* Trial expired overlay */}
+      {!hasAccess && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-bg-card border border-border rounded-2xl p-8 max-w-md w-full text-center animate-fade-in-up">
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-5">
+              <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-extrabold text-text-primary mb-2">Your free trial has ended</h2>
+            <p className="text-sm text-text-muted mb-6">Upgrade to Promise Tracker Pro for $39/month to continue tracking promises, sending reminders, and managing your team.</p>
+            <a
+              href="/pricing"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl text-base transition-all duration-200 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Upgrade Now
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Trial active banner */}
+      {hasAccess && plan === 'trial' && (
+        <div className="mb-6 bg-accent/5 border border-accent/20 rounded-xl px-5 py-3 flex items-center justify-between animate-fade-in-up">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-accent font-medium">Free trial: {daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining</span>
+          </div>
+          <a
+            href="/pricing"
+            className="text-xs font-semibold text-accent hover:text-accent-hover bg-accent/10 hover:bg-accent/20 px-3 py-1.5 rounded-lg transition-all duration-200"
+          >
+            Upgrade
+          </a>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10 animate-fade-in-up">
         <div>
@@ -223,8 +264,9 @@ export default function Dashboard() {
         </div>
         <button
           onClick={() => setFormOpen(true)}
-          className={`flex items-center gap-2.5 px-5 py-2.5 bg-accent hover:bg-accent-hover text-white font-semibold rounded-[10px] text-sm transition-all duration-200 hover:shadow-[0_0_20px_rgba(34,197,94,0.25)] hover:scale-[1.02] active:scale-[0.98] shrink-0 ${
-            promises.length === 0 && !loading ? 'animate-pulse-soft' : ''
+          disabled={!hasAccess}
+          className={`flex items-center gap-2.5 px-5 py-2.5 bg-accent hover:bg-accent-hover text-white font-semibold rounded-[10px] text-sm transition-all duration-200 hover:shadow-[0_0_20px_rgba(34,197,94,0.25)] hover:scale-[1.02] active:scale-[0.98] shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none ${
+            promises.length === 0 && !loading && hasAccess ? 'animate-pulse-soft' : ''
           }`}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -304,7 +346,7 @@ export default function Dashboard() {
           </div>
         ) : (
           filtered.map((promise) => (
-            <PromiseCard key={promise.id} promise={promise} onMarkDone={handleMarkDone} />
+            <PromiseCard key={promise.id} promise={promise} onMarkDone={handleMarkDone} disabled={!hasAccess} />
           ))
         )}
       </div>

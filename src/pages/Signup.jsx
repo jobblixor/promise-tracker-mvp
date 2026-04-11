@@ -47,8 +47,8 @@ export default function Signup() {
         await signup(email, password, businessName, phone);
       }
       navigate('/dashboard');
-    } catch {
-      setError('Failed to create account');
+    } catch (err) {
+      setError(err.message || 'Failed to create account');
     }
     setLoading(false);
   };

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function PromiseCard({ promise, onMarkDone }) {
+export default function PromiseCard({ promise, onMarkDone, disabled }) {
   const [completing, setCompleting] = useState(false);
 
   const statusConfig = {
@@ -89,7 +89,7 @@ export default function PromiseCard({ promise, onMarkDone }) {
           </div>
         </div>
 
-        {promise.status !== 'done' && !completing && (
+        {promise.status !== 'done' && !completing && !disabled && (
           <button
             onClick={handleMarkDone}
             className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 px-3.5 py-1.5 text-xs font-semibold rounded-[8px] bg-accent/10 text-accent hover:bg-accent/20 hover:scale-105 active:scale-95 border border-accent/20"
