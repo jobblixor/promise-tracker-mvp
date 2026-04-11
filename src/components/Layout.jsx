@@ -4,7 +4,7 @@ import { useSubscription } from '../context/SubscriptionContext';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { to: '/promises', label: 'Promises', icon: PromisesIcon },
+  // { to: '/promises', label: 'Promises', icon: PromisesIcon },
   { to: '/team', label: 'Team', icon: TeamIcon },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
