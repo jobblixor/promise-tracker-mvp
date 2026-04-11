@@ -8,8 +8,27 @@ export default function Logo({ size = 36, className = '' }) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <rect x="4" y="6" width="34" height="34" rx="7" stroke="white" strokeWidth="4.5" fill="none" />
-      <path d="M14 24l8 8L42 8" stroke="#22c55e" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <defs>
+        <linearGradient id="checkGrad" x1="13" y1="37" x2="46" y2="6" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#39a84a" />
+          <stop offset="100%" stopColor="#4ade5e" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M 33,5 L 12,5 Q 5,5 5,12 L 5,36 Q 5,43 12,43 L 36,43 Q 43,43 43,36 L 43,22"
+        stroke="white"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M 13,27 L 22,37 L 46,7"
+        stroke="url(#checkGrad)"
+        strokeWidth="5.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </svg>
   );
 }
