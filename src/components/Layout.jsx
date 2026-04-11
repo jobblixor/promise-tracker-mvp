@@ -1,6 +1,7 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
+import Logo from './Logo';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
@@ -61,9 +62,7 @@ export default function Layout({ children }) {
         {/* Brand */}
         <div className="p-6 pb-5">
           <h1 className="text-lg font-extrabold text-text-primary flex items-center gap-3 tracking-tight">
-            <span className="w-9 h-9 bg-accent rounded-[10px] flex items-center justify-center text-white text-sm font-black shadow-[0_0_20px_rgba(34,197,94,0.25)] transition-shadow duration-300 hover:shadow-[0_0_28px_rgba(34,197,94,0.4)]">
-              P
-            </span>
+            <Logo className="w-9 h-9" />
             Promise Tracker
           </h1>
           {user?.businessName && (

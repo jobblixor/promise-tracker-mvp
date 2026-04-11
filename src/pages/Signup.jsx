@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
+import Logo from '../components/Logo';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -57,7 +58,7 @@ export default function Signup() {
     <div className="min-h-screen bg-bg-primary flex items-center justify-center px-4">
       <div className="w-full max-w-sm animate-fade-in-up">
         <div className="text-center mb-10">
-          <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center text-white text-2xl font-black mx-auto mb-5 shadow-[0_0_30px_rgba(34,197,94,0.3)] transition-shadow duration-300 hover:shadow-[0_0_40px_rgba(34,197,94,0.45)]">P</div>
+          <div className="mx-auto mb-5"><Logo className="w-14 h-14" /></div>
           <h1 className="text-[26px] font-extrabold text-text-primary tracking-tight">{invite ? 'Join your team' : 'Create your account'}</h1>
           <p className="text-sm text-text-muted mt-1.5">{invite ? 'Complete your account to get started' : 'Start tracking promises in minutes'}</p>
         </div>
