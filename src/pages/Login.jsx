@@ -28,7 +28,7 @@ export default function Login() {
     <div className="min-h-screen bg-bg-primary flex items-center justify-center px-4">
       <div className="w-full max-w-sm animate-fade-in-up">
         <div className="text-center mb-10">
-          <div className="mx-auto mb-5"><Logo size={56} /></div>
+          <div className="flex justify-center mb-5"><Logo size={56} /></div>
           <h1 className="text-[26px] font-extrabold text-text-primary tracking-tight">Welcome back</h1>
           <p className="text-sm text-text-muted mt-1.5">Sign in to Promise Tracker</p>
         </div>
