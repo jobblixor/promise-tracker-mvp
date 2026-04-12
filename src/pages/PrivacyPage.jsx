@@ -45,6 +45,9 @@ export default function PrivacyPage() {
               <li><strong className="text-text-primary">Browser type and version</strong>, operating system, screen resolution, and language preferences.</li>
               <li><strong className="text-text-primary">Pages visited</strong>, features used, timestamps, and interaction patterns within the Service.</li>
             </ul>
+            <p className="mt-2">
+              We use this data to limit free trial eligibility to one trial per individual, regardless of the number of accounts created.
+            </p>
 
             <h3 className="text-base font-semibold text-text-primary mt-4 mb-2">Payment Information</h3>
             <p>
@@ -62,6 +65,7 @@ export default function PrivacyPage() {
               <li>To send SMS notifications and reminders related to your promises (via Twilio).</li>
               <li>To send transactional emails (account verification, password resets, billing receipts).</li>
               <li>To detect and prevent fraud, abuse, and unauthorized access using browser fingerprinting, IP address analysis, and device identification.</li>
+              <li>To enforce free trial limits and prevent abuse by tracking device, browser, and network identifiers across account registrations.</li>
               <li>To monitor and analyze usage patterns to improve the Service.</li>
               <li>To provide customer support.</li>
               <li>To comply with legal obligations.</li>
@@ -94,6 +98,9 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <strong className="text-text-primary">Cloudflare</strong> — Provides DNS management and email routing for our domain. See <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Cloudflare's Privacy Policy</a>.
+              </li>
+              <li>
+                <strong className="text-text-primary">Google / Gmail SMTP</strong> — Used to send email notifications, reminders, and escalation alerts via Gmail's SMTP service (through Nodemailer). Email addresses and message content are processed by Google. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Google's Privacy Policy</a>.
               </li>
               <li>
                 <strong className="text-text-primary">Vercel</strong> — Hosts and serves the web application. See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Vercel's Privacy Policy</a>.

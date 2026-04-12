@@ -45,6 +45,9 @@ export default function TermsPage() {
             <p>
               Promise Tracker offers a 21-day free trial for new accounts. The free trial provides full access to all features of the Service. No credit card is required to start a free trial. At the end of the 21-day trial period, you must subscribe to a paid plan to continue using the Service. We reserve the right to modify or discontinue the free trial offer at any time.
             </p>
+            <p className="mt-2">
+              Each individual is eligible for one free trial only. Additional accounts created by the same person will not receive a free trial and will require an active subscription.
+            </p>
           </section>
 
           <section>
@@ -105,7 +108,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-text-primary mb-3">10. Data Collection</h2>
             <p>
-              We collect and process certain data to provide and improve the Service, including personal information (email, phone number, business name), usage data, browser fingerprints, IP addresses, and device identifiers. Browser and device data is collected for fraud prevention, abuse detection, and account security purposes. For full details on how we handle your data, please see our{' '}
+              We collect and process certain data to provide and improve the Service, including personal information (email, phone number, business name), usage data, browser fingerprints, IP addresses, and device identifiers. Browser and device data is collected for fraud prevention, abuse detection, and account security purposes. We collect browser fingerprints, device identifiers, and IP addresses to prevent free trial abuse and ensure fair usage of the Service. For full details on how we handle your data, please see our{' '}
               <Link to="/privacy" className="text-accent hover:underline">Privacy Policy</Link>.
             </p>
           </section>

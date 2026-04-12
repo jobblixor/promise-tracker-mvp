@@ -2,9 +2,19 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const nodemailer = require("nodemailer");
 
 admin.initializeApp();
 const db = admin.firestore();
+
+// Initialize Gmail SMTP transporter
+const gmailTransporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
 // Initialize Twilio client using environment variables (.env file in functions/)
 function getTwilioClient() {
@@ -92,6 +102,138 @@ async function getCreatorPhone(createdBy) {
 }
 
 /**
+ * Look up the email address of the user who created the promise.
+ */
+async function getCreatorEmail(createdBy) {
+  try {
+    const userDoc = await db.collection("users").doc(createdBy).get();
+    if (!userDoc.exists) {
+      console.warn(`Creator user ${createdBy} not found`);
+      return null;
+    }
+    const email = userDoc.data().email;
+    if (!email) {
+      console.warn(`Creator ${createdBy} has no email`);
+      return null;
+    }
+    return email;
+  } catch (err) {
+    console.error(`Error fetching creator email for ${createdBy}:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Look up the business owner's email address for escalation.
+ */
+async function getBusinessOwnerEmail(businessId) {
+  try {
+    const businessDoc = await db.collection("businesses").doc(businessId).get();
+    if (!businessDoc.exists) {
+      console.warn(`Business ${businessId} not found`);
+      return null;
+    }
+    const ownerId = businessDoc.data().ownerId;
+    if (!ownerId) {
+      console.warn(`Business ${businessId} has no ownerId`);
+      return null;
+    }
+    const userDoc = await db.collection("users").doc(ownerId).get();
+    if (!userDoc.exists) {
+      console.warn(`Owner user ${ownerId} not found`);
+      return null;
+    }
+    const email = userDoc.data().email;
+    if (!email) {
+      console.warn(`Owner ${ownerId} has no email`);
+      return null;
+    }
+    return email;
+  } catch (err) {
+    console.error(`Error fetching owner email for business ${businessId}:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Send an email via Gmail SMTP. Logs and swallows errors so one failure
+ * doesn't stop processing the remaining promises.
+ */
+async function sendEmail(to, subject, htmlBody) {
+  try {
+    console.log(`Sending email to ${to}: ${subject}`);
+    const info = await gmailTransporter.sendMail({
+      from: '"Promise Tracker" <support@promisetracker.app>',
+      to,
+      subject,
+      html: htmlBody,
+    });
+    console.log(`Email sent successfully. Message ID: ${info.messageId}`);
+    return true;
+  } catch (err) {
+    console.error(`Failed to send email to ${to}:`, err.message);
+    return false;
+  }
+}
+
+/**
+ * Build a styled HTML email body.
+ */
+function buildEmailHTML(headline, bodyLines, ctaText) {
+  const linesHTML = bodyLines
+    .map((line) => `<p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#cbd5e1;">${line}</p>`)
+    .join("\n            ");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0f1a;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#111827;border-radius:12px;overflow:hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #1e293b;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:32px;height:32px;background-color:#22c55e;border-radius:8px;text-align:center;vertical-align:middle;">
+                    <span style="color:#0a0f1a;font-weight:800;font-size:16px;line-height:32px;">P</span>
+                  </td>
+                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#f1f5f9;">Promise Tracker</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#f1f5f9;">${headline}</h1>
+              ${linesHTML}
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px;">
+                <tr>
+                  <td style="background-color:#22c55e;border-radius:8px;">
+                    <a href="https://promisetracker.app/dashboard" target="_blank" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;color:#0a0f1a;text-decoration:none;">${ctaText || "View Dashboard"}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #1e293b;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#64748b;">Promise Tracker &mdash; <a href="mailto:support@promisetracker.app" style="color:#22c55e;text-decoration:none;">support@promisetracker.app</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+/**
  * Format a Firestore Timestamp into a human-readable string.
  */
 function formatDate(timestamp) {
@@ -154,6 +296,8 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
           !promise.reminderSent
         ) {
           console.log(`Promise ${promiseId}: sending 30-min reminder`);
+
+          // SMS to creator
           const creatorPhone = await getCreatorPhone(promise.createdBy);
           if (creatorPhone) {
             const msg =
@@ -161,8 +305,26 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
               ` by ${formattedDue}. Please handle it or mark it done in Promise Tracker.`;
             await sendSMS(creatorPhone, msg);
           }
+
+          // Email to creator
+          if (!promise.reminderEmailSent) {
+            const creatorEmail = await getCreatorEmail(promise.createdBy);
+            if (creatorEmail) {
+              const subject = `Reminder: Follow up with ${customerName}`;
+              const html = buildEmailHTML(
+                `Reminder: Follow up with ${customerName}`,
+                [
+                  `Hi, this is a reminder that you promised to <strong>${description}</strong> for <strong>${customerName}</strong> by <strong>${formattedDue}</strong>.`,
+                  `Please handle it or mark it done in Promise Tracker.`,
+                ],
+                "View Dashboard"
+              );
+              await sendEmail(creatorEmail, subject, html);
+            }
+          }
+
           updates.push(
-            docSnap.ref.update({ reminderSent: true })
+            docSnap.ref.update({ reminderSent: true, reminderEmailSent: true })
           );
         }
 
@@ -172,6 +334,8 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
           !promise.escalated
         ) {
           console.log(`Promise ${promiseId}: 1-hour escalation`);
+
+          // SMS to owner
           const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
           if (ownerPhone) {
             const msg =
@@ -179,8 +343,26 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
               ` by ${formattedDue} and nobody has handled it. Please check Promise Tracker.`;
             await sendSMS(ownerPhone, msg);
           }
+
+          // Email to owner
+          if (!promise.escalationEmailSent) {
+            const ownerEmail = await getBusinessOwnerEmail(promise.businessId);
+            if (ownerEmail) {
+              const subject = `ESCALATION: ${customerName} follow-up overdue`;
+              const html = buildEmailHTML(
+                `ESCALATION: ${customerName} follow-up overdue`,
+                [
+                  `A promise to <strong>${customerName}</strong> &mdash; <strong>${description}</strong> &mdash; was due at <strong>${formattedDue}</strong> and has not been completed.`,
+                  `This was created by <strong>${promise.createdBy}</strong>. Please check Promise Tracker immediately.`,
+                ],
+                "View Dashboard"
+              );
+              await sendEmail(ownerEmail, subject, html);
+            }
+          }
+
           updates.push(
-            docSnap.ref.update({ status: "overdue", escalated: true })
+            docSnap.ref.update({ status: "overdue", escalated: true, escalationEmailSent: true })
           );
         }
 
@@ -190,6 +372,8 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
           !promise.escalatedTwice
         ) {
           console.log(`Promise ${promiseId}: 24-hour second escalation`);
+
+          // SMS to owner
           const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
           if (ownerPhone) {
             const msg =
@@ -197,8 +381,27 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
               ` by ${formattedDue} and nobody has handled it. Please check Promise Tracker.`;
             await sendSMS(ownerPhone, msg);
           }
+
+          // Email to owner
+          if (!promise.escalationEmailSentTwice) {
+            const ownerEmail = await getBusinessOwnerEmail(promise.businessId);
+            if (ownerEmail) {
+              const subject = `URGENT: ${customerName} follow-up still unresolved (24+ hours)`;
+              const html = buildEmailHTML(
+                `URGENT: ${customerName} follow-up still unresolved`,
+                [
+                  `A promise to <strong>${customerName}</strong> has been overdue for more than 24 hours.`,
+                  `<strong>${description}</strong>. Created by <strong>${promise.createdBy}</strong>.`,
+                  `This requires immediate attention.`,
+                ],
+                "View Dashboard"
+              );
+              await sendEmail(ownerEmail, subject, html);
+            }
+          }
+
           updates.push(
-            docSnap.ref.update({ escalatedTwice: true })
+            docSnap.ref.update({ escalatedTwice: true, escalationEmailSentTwice: true })
           );
         }
       } catch (err) {
