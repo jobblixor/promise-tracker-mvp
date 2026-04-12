@@ -79,6 +79,12 @@ export default function Login() {
           Don&apos;t have an account?{' '}
           <Link to="/signup" className="text-accent hover:underline font-medium transition-colors duration-200">Sign up</Link>
         </p>
+
+        <div className="flex items-center justify-center gap-3 mt-6 text-xs text-text-muted">
+          <Link to="/terms" className="hover:text-accent transition-colors duration-200">Terms of Service</Link>
+          <span>·</span>
+          <Link to="/privacy" className="hover:text-accent transition-colors duration-200">Privacy Policy</Link>
+        </div>
       </div>
     </div>
   );

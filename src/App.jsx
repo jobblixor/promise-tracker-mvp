@@ -10,6 +10,8 @@ import PromisesPage from './pages/PromisesPage';
 import SettingsPage from './pages/SettingsPage';
 import PricingPage from './pages/PricingPage';
 import SuccessPage from './pages/SuccessPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -38,6 +40,8 @@ export default function App() {
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
               <Route path="/success" element={<ProtectedRoute><SuccessPage /></ProtectedRoute>} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </SubscriptionProvider>
