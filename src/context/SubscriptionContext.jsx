@@ -18,6 +18,10 @@ function checkAccess(business) {
     return { hasAccess: true, daysLeft: -1, plan: 'pro' };
   }
 
+  if (plan === 'trial_expired') {
+    return { hasAccess: false, daysLeft: 0, plan: 'trial_expired' };
+  }
+
   if (plan === 'trial') {
     const endDate = business.trialEndDate?.toDate
       ? business.trialEndDate.toDate()

@@ -226,8 +226,14 @@ export default function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
             </div>
-            <h2 className="text-xl font-extrabold text-text-primary mb-2">Your free trial has ended</h2>
-            <p className="text-sm text-text-muted mb-6">Upgrade to Promise Tracker Pro for $39/month to continue tracking promises, sending reminders, and managing your team.</p>
+            <h2 className="text-xl font-extrabold text-text-primary mb-2">
+              {plan === 'trial_expired' ? 'Free Trial Unavailable' : 'Your free trial has ended'}
+            </h2>
+            <p className="text-sm text-text-muted mb-6">
+              {plan === 'trial_expired'
+                ? 'A free trial has already been used with this account information. Subscribe to Promise Tracker Pro for $39/month to get started.'
+                : 'Your free trial has ended. Upgrade to Promise Tracker Pro for $39/month to continue.'}
+            </p>
             <a
               href="/pricing"
               className="inline-flex items-center gap-2 px-8 py-3 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl text-base transition-all duration-200 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:scale-[1.02] active:scale-[0.98]"

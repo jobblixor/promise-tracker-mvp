@@ -37,67 +37,59 @@ export function AuthProvider({ children }) {
 
   /**
    * Run anti-abuse fingerprint checks BEFORE creating the Firebase Auth account.
-   * Throws with a user-facing message if any check fails.
+   * Never blocks account creation — only determines free-trial eligibility.
    */
   const runAbuseChecks = async (phone) => {
-    // 1. Phone number check
-    const phoneSnap = await getDocs(
-      query(collection(db, 'registeredPhones'), where('phone', '==', phone))
-    );
-    if (!phoneSnap.empty) {
-      throw new Error('This phone number is already associated with an account');
-    }
-
-    // 2. Browser fingerprint check
     const fingerprint = getBrowserFingerprint();
-    const fpSnap = await getDocs(
-      query(collection(db, 'fingerprints'), where('browserFingerprint', '==', fingerprint))
+    const ip = await getIpAddress();
+    const deviceId = getDeviceId();
+    let eligibleForTrial = true;
+
+    // Check if phone was used by an account that had a trial
+    const phoneSnap = await getDocs(
+      query(collection(db, 'fingerprints'), where('phone', '==', phone))
     );
-    if (!fpSnap.empty) {
-      throw new Error('Unable to create account. Please contact support@promisetracker.app');
+    if (phoneSnap.docs.some((d) => d.data().trialUsed === true)) {
+      eligibleForTrial = false;
     }
 
-    // 3. IP address check (allow up to 3)
-    const ip = await getIpAddress();
-    if (ip) {
+    // Check browser fingerprint
+    if (eligibleForTrial) {
+      const fpSnap = await getDocs(
+        query(collection(db, 'fingerprints'), where('browserFingerprint', '==', fingerprint))
+      );
+      if (fpSnap.docs.some((d) => d.data().trialUsed === true)) {
+        eligibleForTrial = false;
+      }
+    }
+
+    // Check IP address
+    if (eligibleForTrial && ip) {
       const ipSnap = await getDocs(
         query(collection(db, 'fingerprints'), where('ipAddress', '==', ip))
       );
-      if (ipSnap.size >= 3) {
-        throw new Error('Unable to create account. Please contact support@promisetracker.app');
+      if (ipSnap.docs.some((d) => d.data().trialUsed === true)) {
+        eligibleForTrial = false;
       }
     }
 
-    // 4. Device ID check
-    const deviceId = getDeviceId();
-    const deviceSnap = await getDocs(
-      query(collection(db, 'fingerprints'), where('visitorId', '==', deviceId))
-    );
-    if (!deviceSnap.empty) {
-      // Check if the existing account's trial has expired
-      for (const d of deviceSnap.docs) {
-        const data = d.data();
-        if (data.businessId) {
-          const bizDoc = await getDoc(doc(db, 'businesses', data.businessId));
-          if (bizDoc.exists()) {
-            const biz = bizDoc.data();
-            const isPro = biz.plan === 'pro';
-            const trialActive = biz.plan === 'trial' && biz.trialEndDate?.toDate() > new Date();
-            if (!isPro && !trialActive) {
-              throw new Error('Unable to create account. Please contact support@promisetracker.app');
-            }
-          }
-        }
+    // Check device ID
+    if (eligibleForTrial) {
+      const deviceSnap = await getDocs(
+        query(collection(db, 'fingerprints'), where('visitorId', '==', deviceId))
+      );
+      if (deviceSnap.docs.some((d) => d.data().trialUsed === true)) {
+        eligibleForTrial = false;
       }
     }
 
-    return { fingerprint, ip, deviceId };
+    return { canCreateAccount: true, eligibleForTrial, fingerprint, ip, deviceId };
   };
 
   /**
    * Store fingerprint data and register the phone number after successful signup.
    */
-  const storeFingerprint = async ({ fingerprint, ip, deviceId, phone, email, userId, businessId }) => {
+  const storeFingerprint = async ({ fingerprint, ip, deviceId, phone, email, userId, businessId, trialUsed }) => {
     await addDoc(collection(db, 'fingerprints'), {
       visitorId: deviceId,
       browserFingerprint: fingerprint,
@@ -106,6 +98,7 @@ export function AuthProvider({ children }) {
       email,
       userId,
       businessId,
+      trialUsed,
       createdAt: serverTimestamp(),
     });
     await addDoc(collection(db, 'registeredPhones'), {
@@ -116,26 +109,33 @@ export function AuthProvider({ children }) {
   };
 
   const signup = async (email, password, businessName, phone) => {
-    // Run abuse checks BEFORE creating the auth account
-    const { fingerprint, ip, deviceId } = await runAbuseChecks(phone);
+    const { eligibleForTrial, fingerprint, ip, deviceId } = await runAbuseChecks(phone);
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
 
-    // Create the business doc with trial fields
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 21);
-
-    const businessRef = await addDoc(collection(db, 'businesses'), {
+    // Create the business doc — trial or trial_expired based on eligibility
+    const businessData = {
       name: businessName,
       ownerId: uid,
-      plan: 'trial',
-      trialStartDate: serverTimestamp(),
-      trialEndDate: Timestamp.fromDate(trialEnd),
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       createdAt: serverTimestamp(),
-    });
+    };
+
+    if (eligibleForTrial) {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 21);
+      businessData.plan = 'trial';
+      businessData.trialStartDate = serverTimestamp();
+      businessData.trialEndDate = Timestamp.fromDate(trialEnd);
+    } else {
+      businessData.plan = 'trial_expired';
+      businessData.trialStartDate = null;
+      businessData.trialEndDate = null;
+    }
+
+    const businessRef = await addDoc(collection(db, 'businesses'), businessData);
 
     // Create the user doc with businessId
     await setDoc(doc(db, 'users', uid), {
@@ -149,7 +149,11 @@ export function AuthProvider({ children }) {
     });
 
     // Store fingerprint data
-    await storeFingerprint({ fingerprint, ip, deviceId, phone, email, userId: uid, businessId: businessRef.id });
+    await storeFingerprint({
+      fingerprint, ip, deviceId, phone, email,
+      userId: uid, businessId: businessRef.id,
+      trialUsed: eligibleForTrial,
+    });
 
     setUser({
       uid,
@@ -162,8 +166,10 @@ export function AuthProvider({ children }) {
   };
 
   const inviteSignup = async (email, password, phone, invite) => {
-    // Run abuse checks BEFORE creating the auth account
-    const { fingerprint, ip, deviceId } = await runAbuseChecks(phone);
+    // Collect fingerprint data (no trial eligibility check needed for invite signups)
+    const fingerprint = getBrowserFingerprint();
+    const ip = await getIpAddress();
+    const deviceId = getDeviceId();
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
@@ -180,8 +186,12 @@ export function AuthProvider({ children }) {
 
     await updateDoc(doc(db, 'invites', invite.id), { status: 'accepted' });
 
-    // Store fingerprint data
-    await storeFingerprint({ fingerprint, ip, deviceId, phone, email, userId: uid, businessId: invite.businessId });
+    // Store fingerprint data (trialUsed false — invited user doesn't consume a trial)
+    await storeFingerprint({
+      fingerprint, ip, deviceId, phone, email,
+      userId: uid, businessId: invite.businessId,
+      trialUsed: false,
+    });
 
     setUser({
       uid,
