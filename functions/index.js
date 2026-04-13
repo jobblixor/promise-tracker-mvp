@@ -586,3 +586,79 @@ exports.stripeWebhook = onRequest(async (req, res) => {
 
   res.status(200).json({ received: true });
 });
+
+// ─── Email Verification ──────────────────────────────────────────────
+
+/**
+ * Callable function: generates a 6-digit verification code, stores it in Firestore,
+ * and sends it to the user's email via Gmail SMTP.
+ */
+exports.sendVerificationCode = onCall(async (request) => {
+  const { email, userId } = request.data;
+
+  if (!email || !userId) {
+    throw new Error("Missing email or userId");
+  }
+
+  // Generate a random 6-digit code
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
+
+  // Store the code in Firestore
+  await db.collection("verificationCodes").add({
+    code,
+    email,
+    userId,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+  });
+
+  // Send the email
+  const htmlBody = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0f1a;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#111827;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #1e293b;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:32px;height:32px;background-color:#22c55e;border-radius:8px;text-align:center;vertical-align:middle;">
+                    <span style="color:#0a0f1a;font-weight:800;font-size:16px;line-height:32px;">P</span>
+                  </td>
+                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#f1f5f9;">Promise Tracker</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;text-align:center;">
+              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#f1f5f9;">Verify your email</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#cbd5e1;">Enter this code in Promise Tracker to verify your email address:</p>
+              <div style="display:inline-block;padding:16px 40px;background-color:#0a0f1a;border-radius:12px;border:1px solid #1e293b;margin-bottom:24px;">
+                <span style="font-size:36px;font-weight:800;letter-spacing:8px;color:#22c55e;">${code}</span>
+              </div>
+              <p style="margin:0;font-size:13px;color:#64748b;">This code expires in 15 minutes.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #1e293b;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#64748b;">Promise Tracker &mdash; <a href="mailto:support@promisetracker.app" style="color:#22c55e;text-decoration:none;">support@promisetracker.app</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  await sendEmail(email, "Your Promise Tracker verification code", htmlBody);
+
+  return { success: true };
+});

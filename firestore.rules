@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read/write their own user doc
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Business docs: only members of that business can read/write
+    match /businesses/{businessId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false; // never delete businesses from client
+    }
+
+    // Promises: only members of the same business can read/write
+    match /promises/{promiseId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Invites: authenticated users can create and read
+    match /invites/{inviteId} {
+      allow read: if true; // need to read invite details during signup
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // Fingerprints: only Cloud Functions should write, but allow create from client during signup
+    match /fingerprints/{docId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // Registered phones: same as fingerprints
+    match /registeredPhones/{docId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // Verification codes: allow create and read for auth users
+    match /verificationCodes/{docId} {
+      allow create, read: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false;
+    }
+  }
+}

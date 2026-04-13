@@ -431,6 +431,11 @@ export default function SettingsPage() {
             Delete Account
           </button>
         </div>
+
+        <p className="text-center text-xs text-[#64748b] mt-8 pb-4">
+          Need help?{' '}
+          <a href="mailto:support@promisetracker.app" className="text-accent hover:underline">support@promisetracker.app</a>
+        </p>
       </div>
 
       <ConfirmModal

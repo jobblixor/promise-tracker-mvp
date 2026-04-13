@@ -18,7 +18,9 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 import { auth, db } from '../config/firebase';
+import app from '../config/firebase';
 import { getBrowserFingerprint, getDeviceId, getIpAddress } from '../utils/fingerprint';
 
 const AuthContext = createContext(null);
@@ -33,6 +35,22 @@ export function AuthProvider({ children }) {
       return userDoc.data();
     }
     return null;
+  };
+
+  const refreshUser = async () => {
+    if (!auth.currentUser) return;
+    const userData = await fetchUserData(auth.currentUser.uid);
+    if (userData) {
+      setUser({
+        uid: auth.currentUser.uid,
+        email: userData.email,
+        phone: userData.phone,
+        businessName: userData.businessName,
+        businessId: userData.businessId,
+        role: userData.role,
+        emailVerified: userData.emailVerified || false,
+      });
+    }
   };
 
   /**
@@ -156,6 +174,15 @@ export function AuthProvider({ children }) {
       trialUsed: eligibleForTrial,
     });
 
+    // Send verification code email
+    try {
+      const functions = getFunctions(app);
+      const sendVerificationCode = httpsCallable(functions, 'sendVerificationCode');
+      await sendVerificationCode({ email, userId: uid });
+    } catch (err) {
+      console.error('Failed to send verification code:', err);
+    }
+
     setUser({
       uid,
       email,
@@ -163,6 +190,7 @@ export function AuthProvider({ children }) {
       businessName,
       businessId: businessRef.id,
       role: 'owner',
+      emailVerified: false,
     });
   };
 
@@ -194,6 +222,15 @@ export function AuthProvider({ children }) {
       trialUsed: false,
     });
 
+    // Send verification code email
+    try {
+      const functions = getFunctions(app);
+      const sendVerificationCode = httpsCallable(functions, 'sendVerificationCode');
+      await sendVerificationCode({ email, userId: uid });
+    } catch (err) {
+      console.error('Failed to send verification code:', err);
+    }
+
     setUser({
       uid,
       email,
@@ -201,6 +238,7 @@ export function AuthProvider({ children }) {
       businessName: invite.businessName,
       businessId: invite.businessId,
       role: invite.role,
+      emailVerified: false,
     });
   };
 
@@ -214,6 +252,7 @@ export function AuthProvider({ children }) {
         businessName: userData.businessName,
         businessId: userData.businessId,
         role: userData.role,
+        emailVerified: userData.emailVerified || false,
       });
     }
   };
@@ -234,6 +273,7 @@ export function AuthProvider({ children }) {
             businessName: userData.businessName,
             businessId: userData.businessId,
             role: userData.role,
+            emailVerified: userData.emailVerified || false,
           });
         }
       } else {
@@ -253,7 +293,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, inviteSignup, logout }}>
+    <AuthContext.Provider value={{ user, login, signup, inviteSignup, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

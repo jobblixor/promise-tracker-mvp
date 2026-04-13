@@ -38,6 +38,11 @@ export default function PricingPage() {
           <button onClick={() => navigate('/dashboard')} className="px-6 py-2.5 bg-accent hover:bg-accent-hover text-white font-semibold rounded-xl text-sm transition-all duration-200">
             Back to Dashboard
           </button>
+
+          <p className="text-xs text-[#64748b] mt-8">
+            Questions? Email{' '}
+            <a href="mailto:support@promisetracker.app" className="text-accent hover:underline">support@promisetracker.app</a>
+          </p>
         </div>
       </Layout>
     );
@@ -110,6 +115,11 @@ export default function PricingPage() {
             )}
           </button>
         </div>
+
+        <p className="text-center text-xs text-[#64748b] mt-8">
+          Questions? Email{' '}
+          <a href="mailto:support@promisetracker.app" className="text-accent hover:underline">support@promisetracker.app</a>
+        </p>
       </div>
     </Layout>
   );

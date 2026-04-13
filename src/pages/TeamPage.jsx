@@ -442,6 +442,11 @@ export default function TeamPage() {
             </div>
           )}
         </div>
+
+        <p className="text-center text-xs text-[#64748b] mt-12 pb-4">
+          Need help?{' '}
+          <a href="mailto:support@promisetracker.app" className="text-accent hover:underline">support@promisetracker.app</a>
+        </p>
       </div>
     </Layout>
   );
