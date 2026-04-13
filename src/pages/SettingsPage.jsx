@@ -67,6 +67,57 @@ function ConfirmModal({ open, onClose, onConfirm, deleting }) {
   );
 }
 
+const FALLBACK_TIMEZONES = [
+  'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+  'America/Anchorage', 'Pacific/Honolulu', 'America/Toronto', 'America/Vancouver',
+  'America/Mexico_City', 'America/Sao_Paulo', 'Europe/London', 'Europe/Paris',
+  'Europe/Berlin', 'Europe/Moscow', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai',
+  'Asia/Tokyo', 'Asia/Seoul', 'Australia/Sydney', 'Australia/Perth',
+  'Pacific/Auckland', 'Africa/Lagos', 'Africa/Johannesburg',
+];
+
+function getTimezoneOptions() {
+  let tzList;
+  try {
+    tzList = Intl.supportedValuesOf('timeZone');
+  } catch {
+    tzList = FALLBACK_TIMEZONES;
+  }
+
+  const now = new Date();
+  const options = tzList.map((tz) => {
+    let offset;
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        timeZoneName: 'shortOffset',
+      }).formatToParts(now);
+      const tzPart = parts.find((p) => p.type === 'timeZoneName');
+      offset = tzPart ? tzPart.value : '';
+    } catch {
+      offset = '';
+    }
+
+    // Parse offset for sorting (e.g. "GMT+5:30" -> 330)
+    let offsetMinutes = 0;
+    const match = offset.match(/GMT([+-]?)(\d+):?(\d+)?/);
+    if (match) {
+      const sign = match[1] === '-' ? -1 : 1;
+      offsetMinutes = sign * (parseInt(match[2], 10) * 60 + parseInt(match[3] || '0', 10));
+    }
+
+    const friendly = tz.replace(/_/g, ' ').replace(/\//g, ' / ');
+    return {
+      value: tz,
+      label: `(${offset || 'UTC'}) ${friendly}`,
+      offsetMinutes,
+    };
+  });
+
+  options.sort((a, b) => a.offsetMinutes - b.offsetMinutes);
+  return options;
+}
+
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const toast = useToast();
@@ -75,6 +126,7 @@ export default function SettingsPage() {
   const [businessName, setBusinessName] = useState('');
   const [businessId, setBusinessId] = useState('');
   const [plan, setPlan] = useState('free');
+  const [timezone, setTimezone] = useState('');
   const [savingBusiness, setSavingBusiness] = useState(false);
 
   // Profile
@@ -122,6 +174,7 @@ export default function SettingsPage() {
             const bizData = bizSnap.data();
             setBusinessName(bizData.name || '');
             setPlan(bizData.plan || 'free');
+            setTimezone(bizData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York');
           }
         }
       } catch (err) {
@@ -142,6 +195,7 @@ export default function SettingsPage() {
     try {
       await updateDoc(doc(db, 'businesses', user.businessId), {
         name: businessName.trim(),
+        timezone,
       });
       toast.success('Business info saved');
     } catch (err) {
@@ -252,6 +306,19 @@ export default function SettingsPage() {
                   {plan}
                 </div>
               </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-muted mb-1.5">Timezone</label>
+              <select
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-border/40 text-sm text-text-primary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+              >
+                <option value="">Select timezone...</option>
+                {getTimezoneOptions().map((tz) => (
+                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                ))}
+              </select>
             </div>
             <div className="flex justify-end pt-1">
               <button

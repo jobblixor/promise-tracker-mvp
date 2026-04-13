@@ -234,11 +234,27 @@ function buildEmailHTML(headline, bodyLines, ctaText) {
 }
 
 /**
+ * Look up the business's timezone from Firestore.
+ */
+async function getBusinessTimezone(businessId) {
+  try {
+    const businessDoc = await db.collection("businesses").doc(businessId).get();
+    if (businessDoc.exists && businessDoc.data().timezone) {
+      return businessDoc.data().timezone;
+    }
+  } catch (err) {
+    console.error(`Error fetching timezone for business ${businessId}:`, err.message);
+  }
+  return "America/New_York";
+}
+
+/**
  * Format a Firestore Timestamp into a human-readable string.
  */
-function formatDate(timestamp) {
+function formatDate(timestamp, timezone) {
   if (!timestamp || !timestamp.toDate) return "unknown date";
   return timestamp.toDate().toLocaleString("en-US", {
+    timeZone: timezone || "America/New_York",
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -287,7 +303,8 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
         const msSinceDue = nowMs - dueDateMs;
         const description = promise.description || "something";
         const customerName = promise.customerName || "a customer";
-        const formattedDue = formatDate(dueDate);
+        const businessTimezone = await getBusinessTimezone(promise.businessId);
+        const formattedDue = formatDate(dueDate, businessTimezone);
 
         // ── 30-minute reminder (before due) ──────────────────────
         if (

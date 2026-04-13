@@ -42,10 +42,11 @@ export default function Signup() {
     setError('');
     setLoading(true);
     try {
+      const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (invite) {
         await inviteSignup(email, password, phone, invite);
       } else {
-        await signup(email, password, businessName, phone);
+        await signup(email, password, businessName, phone, detectedTimezone);
       }
       navigate('/dashboard');
     } catch (err) {

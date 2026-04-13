@@ -108,7 +108,7 @@ export function AuthProvider({ children }) {
     });
   };
 
-  const signup = async (email, password, businessName, phone) => {
+  const signup = async (email, password, businessName, phone, timezone) => {
     const { eligibleForTrial, fingerprint, ip, deviceId } = await runAbuseChecks(phone);
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -120,6 +120,7 @@ export function AuthProvider({ children }) {
       ownerId: uid,
       stripeCustomerId: null,
       stripeSubscriptionId: null,
+      timezone: timezone || 'America/New_York',
       createdAt: serverTimestamp(),
     };
 
