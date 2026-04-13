@@ -50,6 +50,7 @@ export default function Signup() {
       }
       navigate('/verify');
     } catch (err) {
+      console.error('[SIGNUP DEBUG] === SIGNUP FAILED ===', err.code, err.message, err);
       setError(err.message || 'Failed to create account');
     }
     setLoading(false);

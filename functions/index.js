@@ -197,8 +197,8 @@ function buildEmailHTML(headline, bodyLines, ctaText) {
             <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #1e293b;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="width:32px;height:32px;background-color:#22c55e;border-radius:8px;text-align:center;vertical-align:middle;">
-                    <span style="color:#0a0f1a;font-weight:800;font-size:16px;line-height:32px;">P</span>
+                  <td style="width:32px;height:32px;">
+                    <img src="https://promisetracker.app/logo.jpeg" alt="P" width="32" height="32" style="display:block;border-radius:8px;" />
                   </td>
                   <td style="padding-left:12px;font-size:18px;font-weight:700;color:#f1f5f9;">Promise Tracker</td>
                 </tr>
@@ -628,8 +628,8 @@ exports.sendVerificationCode = onCall(async (request) => {
             <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #1e293b;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="width:32px;height:32px;background-color:#22c55e;border-radius:8px;text-align:center;vertical-align:middle;">
-                    <span style="color:#0a0f1a;font-weight:800;font-size:16px;line-height:32px;">P</span>
+                  <td style="width:32px;height:32px;">
+                    <img src="https://promisetracker.app/logo.jpeg" alt="P" width="32" height="32" style="display:block;border-radius:8px;" />
                   </td>
                   <td style="padding-left:12px;font-size:18px;font-weight:700;color:#f1f5f9;">Promise Tracker</td>
                 </tr>

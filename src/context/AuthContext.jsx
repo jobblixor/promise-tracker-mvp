@@ -63,41 +63,68 @@ export function AuthProvider({ children }) {
     const deviceId = getDeviceId();
     let eligibleForTrial = true;
 
+    console.log('[SIGNUP DEBUG] runAbuseChecks - starting, auth uid:', auth.currentUser?.uid);
+
     // Check if phone was used by an account that had a trial
-    const phoneSnap = await getDocs(
-      query(collection(db, 'fingerprints'), where('phone', '==', phone))
-    );
-    if (phoneSnap.docs.some((d) => d.data().trialUsed === true)) {
-      eligibleForTrial = false;
+    try {
+      console.log('[SIGNUP DEBUG] querying fingerprints by phone...');
+      const phoneSnap = await getDocs(
+        query(collection(db, 'fingerprints'), where('phone', '==', phone))
+      );
+      console.log('[SIGNUP DEBUG] fingerprints by phone - OK, count:', phoneSnap.size);
+      if (phoneSnap.docs.some((d) => d.data().trialUsed === true)) {
+        eligibleForTrial = false;
+      }
+    } catch (err) {
+      console.error('[SIGNUP DEBUG] fingerprints by phone FAILED:', err.code, err.message);
+      // Don't block signup for abuse check failures
     }
 
     // Check browser fingerprint
     if (eligibleForTrial) {
-      const fpSnap = await getDocs(
-        query(collection(db, 'fingerprints'), where('browserFingerprint', '==', fingerprint))
-      );
-      if (fpSnap.docs.some((d) => d.data().trialUsed === true)) {
-        eligibleForTrial = false;
+      try {
+        console.log('[SIGNUP DEBUG] querying fingerprints by browserFingerprint...');
+        const fpSnap = await getDocs(
+          query(collection(db, 'fingerprints'), where('browserFingerprint', '==', fingerprint))
+        );
+        console.log('[SIGNUP DEBUG] fingerprints by browserFingerprint - OK, count:', fpSnap.size);
+        if (fpSnap.docs.some((d) => d.data().trialUsed === true)) {
+          eligibleForTrial = false;
+        }
+      } catch (err) {
+        console.error('[SIGNUP DEBUG] fingerprints by browserFingerprint FAILED:', err.code, err.message);
       }
     }
 
     // Check IP address
     if (eligibleForTrial && ip) {
-      const ipSnap = await getDocs(
-        query(collection(db, 'fingerprints'), where('ipAddress', '==', ip))
-      );
-      if (ipSnap.docs.some((d) => d.data().trialUsed === true)) {
-        eligibleForTrial = false;
+      try {
+        console.log('[SIGNUP DEBUG] querying fingerprints by ipAddress...');
+        const ipSnap = await getDocs(
+          query(collection(db, 'fingerprints'), where('ipAddress', '==', ip))
+        );
+        console.log('[SIGNUP DEBUG] fingerprints by ipAddress - OK, count:', ipSnap.size);
+        if (ipSnap.docs.some((d) => d.data().trialUsed === true)) {
+          eligibleForTrial = false;
+        }
+      } catch (err) {
+        console.error('[SIGNUP DEBUG] fingerprints by ipAddress FAILED:', err.code, err.message);
       }
     }
 
     // Check device ID
     if (eligibleForTrial) {
-      const deviceSnap = await getDocs(
-        query(collection(db, 'fingerprints'), where('visitorId', '==', deviceId))
-      );
-      if (deviceSnap.docs.some((d) => d.data().trialUsed === true)) {
-        eligibleForTrial = false;
+      try {
+        console.log('[SIGNUP DEBUG] querying fingerprints by visitorId...');
+        const deviceSnap = await getDocs(
+          query(collection(db, 'fingerprints'), where('visitorId', '==', deviceId))
+        );
+        console.log('[SIGNUP DEBUG] fingerprints by visitorId - OK, count:', deviceSnap.size);
+        if (deviceSnap.docs.some((d) => d.data().trialUsed === true)) {
+          eligibleForTrial = false;
+        }
+      } catch (err) {
+        console.error('[SIGNUP DEBUG] fingerprints by visitorId FAILED:', err.code, err.message);
       }
     }
 
@@ -108,6 +135,7 @@ export function AuthProvider({ children }) {
    * Store fingerprint data and register the phone number after successful signup.
    */
   const storeFingerprint = async ({ fingerprint, ip, deviceId, phone, email, userId, businessId, trialUsed }) => {
+    console.log('[SIGNUP DEBUG] storeFingerprint - addDoc to fingerprints...');
     await addDoc(collection(db, 'fingerprints'), {
       visitorId: deviceId,
       browserFingerprint: fingerprint,
@@ -119,18 +147,27 @@ export function AuthProvider({ children }) {
       trialUsed,
       createdAt: serverTimestamp(),
     });
+    console.log('[SIGNUP DEBUG] storeFingerprint - fingerprints doc OK, now addDoc to registeredPhones...');
     await addDoc(collection(db, 'registeredPhones'), {
       phone,
       userId,
       createdAt: serverTimestamp(),
     });
+    console.log('[SIGNUP DEBUG] storeFingerprint - registeredPhones doc OK');
   };
 
   const signup = async (email, password, businessName, phone, timezone) => {
-    const { eligibleForTrial, fingerprint, ip, deviceId } = await runAbuseChecks(phone);
-
+    console.log('[SIGNUP DEBUG] === SIGNUP START ===');
+    
+    // Create auth account FIRST so we're authenticated for Firestore queries
+    console.log('[SIGNUP DEBUG] Step 1: createUserWithEmailAndPassword...');
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
+    console.log('[SIGNUP DEBUG] Step 1 OK - uid:', uid, 'auth.currentUser:', auth.currentUser?.uid);
+
+    console.log('[SIGNUP DEBUG] Step 2: runAbuseChecks...');
+    const { eligibleForTrial, fingerprint, ip, deviceId } = await runAbuseChecks(phone);
+    console.log('[SIGNUP DEBUG] Step 2 OK - eligibleForTrial:', eligibleForTrial);
 
     // Create the business doc — trial or trial_expired based on eligibility
     const businessData = {
@@ -154,9 +191,12 @@ export function AuthProvider({ children }) {
       businessData.trialEndDate = null;
     }
 
+    console.log('[SIGNUP DEBUG] Step 3: addDoc to businesses...');
     const businessRef = await addDoc(collection(db, 'businesses'), businessData);
+    console.log('[SIGNUP DEBUG] Step 3 OK - businessId:', businessRef.id);
 
     // Create the user doc with businessId
+    console.log('[SIGNUP DEBUG] Step 4: setDoc to users/', uid);
     await setDoc(doc(db, 'users', uid), {
       uid,
       email,
@@ -166,15 +206,19 @@ export function AuthProvider({ children }) {
       role: 'owner',
       createdAt: serverTimestamp(),
     });
+    console.log('[SIGNUP DEBUG] Step 4 OK - user doc created');
 
     // Store fingerprint data
+    console.log('[SIGNUP DEBUG] Step 5: storeFingerprint...');
     await storeFingerprint({
       fingerprint, ip, deviceId, phone, email,
       userId: uid, businessId: businessRef.id,
       trialUsed: eligibleForTrial,
     });
+    console.log('[SIGNUP DEBUG] Step 5 OK - fingerprint stored');
 
     // Send verification code email
+    console.log('[SIGNUP DEBUG] Step 6: sendVerificationCode...');
     try {
       const functions = getFunctions(app);
       const sendVerificationCode = httpsCallable(functions, 'sendVerificationCode');
@@ -264,8 +308,10 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('[AUTH DEBUG] onAuthStateChanged fired - uid:', firebaseUser?.uid);
       if (firebaseUser) {
         const userData = await fetchUserData(firebaseUser.uid);
+        console.log('[AUTH DEBUG] fetchUserData result:', userData ? 'found' : 'not found');
         if (userData) {
           setUser({
             uid: firebaseUser.uid,

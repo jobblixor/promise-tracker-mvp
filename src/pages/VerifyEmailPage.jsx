@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db } from '../config/firebase';
 import app from '../config/firebase';
@@ -28,12 +28,10 @@ export default function VerifyEmailPage() {
     setError('');
     setLoading(true);
     try {
-      // Query for the latest verification code for this user
+      // Query for verification codes for this user (no orderBy to avoid index requirement)
       const q = query(
         collection(db, 'verificationCodes'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc'),
-        limit(1)
+        where('userId', '==', user.uid)
       );
       const snap = await getDocs(q);
       if (snap.empty) {
@@ -42,8 +40,11 @@ export default function VerifyEmailPage() {
         return;
       }
 
-      const codeDoc = snap.docs[0];
-      const data = codeDoc.data();
+      // Sort client-side to get the latest code
+      const sorted = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      const data = sorted[0];
 
       // Check expiry
       const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
@@ -66,6 +67,7 @@ export default function VerifyEmailPage() {
       toast.success('Email verified successfully!');
       navigate('/dashboard', { replace: true });
     } catch (err) {
+      console.error('[VERIFY DEBUG] Verification error:', err.code, err.message, err);
       setError('Verification failed. Please try again.');
     }
     setLoading(false);
