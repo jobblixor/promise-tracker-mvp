@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db, auth } from '../config/firebase';
+import app from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import { useToast } from '../context/ToastContext';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 
 function Toggle({ enabled, onChange, label }) {
@@ -67,6 +71,47 @@ function ConfirmModal({ open, onClose, onConfirm, deleting }) {
   );
 }
 
+function CancelSubModal({ open, onClose, onConfirm, cancelling }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-bg-card border border-border/60 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl shadow-black/40 animate-fade-in-up">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-text-primary">Cancel Subscription</h3>
+        </div>
+        <p className="text-sm text-text-secondary mb-6">
+          Are you sure you want to cancel? Your access will continue until the end of your current billing period.
+        </p>
+        <div className="flex items-center justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={cancelling}
+            className="px-4 py-2 text-sm font-medium text-text-secondary bg-white/[0.04] hover:bg-white/[0.08] border border-border/40 rounded-xl transition-all duration-200"
+          >
+            Keep Subscription
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={cancelling}
+            className="px-4 py-2 text-sm font-medium text-red-400 bg-red-500/[0.06] hover:bg-red-500/15 border border-red-500/20 hover:border-red-500/30 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+          >
+            {cancelling && (
+              <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+            )}
+            {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const FALLBACK_TIMEZONES = [
   'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
   'America/Anchorage', 'Pacific/Honolulu', 'America/Toronto', 'America/Vancouver',
@@ -120,7 +165,10 @@ function getTimezoneOptions() {
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
+  const { business: subBusiness, plan: subPlan } = useSubscription();
   const toast = useToast();
+  const navigate = useNavigate();
+  const functions = getFunctions(app);
 
   // Business info
   const [businessName, setBusinessName] = useState('');
@@ -144,6 +192,13 @@ export default function SettingsPage() {
   // Delete account
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Subscription management
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancellingSubscription, setCancellingSubscription] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [periodEndDate, setPeriodEndDate] = useState(null);
 
   // Loading
   const [loading, setLoading] = useState(true);
@@ -185,6 +240,13 @@ export default function SettingsPage() {
     };
     fetchData();
   }, [user]);
+
+  // Sync cancelAtPeriodEnd from the real-time subscription context
+  useEffect(() => {
+    if (subBusiness) {
+      setCancelAtPeriodEnd(!!subBusiness.cancelAtPeriodEnd);
+    }
+  }, [subBusiness]);
 
   const handleSaveBusiness = async () => {
     if (!businessName.trim()) {
@@ -231,6 +293,39 @@ export default function SettingsPage() {
       // Revert on failure
       setNotifications((prev) => ({ ...prev, [key]: !value }));
       toast.error('Failed to update notification preference');
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancellingSubscription(true);
+    try {
+      const cancelSubscription = httpsCallable(functions, 'cancelSubscription');
+      const result = await cancelSubscription();
+      setCancelAtPeriodEnd(true);
+      if (result.data.currentPeriodEnd) {
+        setPeriodEndDate(new Date(result.data.currentPeriodEnd * 1000));
+      }
+      setShowCancelModal(false);
+      toast.success('Subscription cancelled. You\'ll have access until the end of your billing period.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to cancel subscription');
+    } finally {
+      setCancellingSubscription(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    setReactivating(true);
+    try {
+      const reactivateSubscription = httpsCallable(functions, 'reactivateSubscription');
+      await reactivateSubscription();
+      setCancelAtPeriodEnd(false);
+      setPeriodEndDate(null);
+      toast.success('Subscription reactivated!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to reactivate subscription');
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -413,7 +508,127 @@ export default function SettingsPage() {
           <p className="text-[11px] text-text-muted mt-3">Changes are saved automatically.</p>
         </div>
 
-        {/* SECTION 4: Danger Zone */}
+        {/* SECTION 4: Subscription */}
+        <div className="bg-bg-card border border-border/40 rounded-2xl p-6 animate-fade-in-up">
+          <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+            </svg>
+            Subscription
+          </h2>
+
+          <div className="space-y-4">
+            {/* Plan status */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-text-muted">Status:</span>
+              {plan === 'pro' && !cancelAtPeriodEnd ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent/15 text-accent">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                  Active
+                </span>
+              ) : plan === 'pro' && cancelAtPeriodEnd ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-500/15 text-yellow-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                  Cancelling
+                </span>
+              ) : plan === 'trial' ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  Trial
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/15 text-red-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  Inactive
+                </span>
+              )}
+            </div>
+
+            {/* Plan details */}
+            {plan === 'pro' && !cancelAtPeriodEnd && (
+              <p className="text-sm text-text-secondary">
+                You&apos;re on the <strong className="text-text-primary">Pro</strong> plan at <strong className="text-text-primary">$39/month</strong>.
+              </p>
+            )}
+
+            {plan === 'pro' && cancelAtPeriodEnd && (
+              <div className="bg-yellow-500/[0.06] border border-yellow-500/20 rounded-xl px-4 py-3">
+                <p className="text-sm text-yellow-300">
+                  Your subscription will end on{' '}
+                  <strong>
+                    {periodEndDate
+                      ? periodEndDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                      : 'the end of your billing period'}
+                  </strong>.
+                  You&apos;ll have full access until then.
+                </p>
+              </div>
+            )}
+
+            {plan === 'trial' && subBusiness?.trialEndDate && (
+              <div className="text-sm text-text-secondary">
+                <p>
+                  Trial ends{' '}
+                  <strong className="text-text-primary">
+                    {(subBusiness.trialEndDate?.toDate
+                      ? subBusiness.trialEndDate.toDate()
+                      : new Date(subBusiness.trialEndDate)
+                    ).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </strong>
+                  {' '}—{' '}
+                  {(() => {
+                    const endDate = subBusiness.trialEndDate?.toDate
+                      ? subBusiness.trialEndDate.toDate()
+                      : new Date(subBusiness.trialEndDate);
+                    const daysLeft = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                    return <strong className="text-accent">{daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining</strong>;
+                  })()}
+                </p>
+              </div>
+            )}
+
+            {(plan === 'expired' || plan === 'trial_expired') && (
+              <div>
+                <p className="text-sm text-text-secondary mb-3">
+                  Your {plan === 'trial_expired' ? 'trial has' : 'subscription has'} expired. Upgrade to continue using Promise Tracker.
+                </p>
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-xl transition-all duration-200"
+                >
+                  Upgrade Now
+                </button>
+              </div>
+            )}
+
+            {/* Cancel / Reactivate buttons — owner only */}
+            {user?.role === 'owner' && plan === 'pro' && subBusiness?.stripeSubscriptionId && (
+              <div className="pt-2">
+                {cancelAtPeriodEnd ? (
+                  <button
+                    onClick={handleReactivateSubscription}
+                    disabled={reactivating}
+                    className="px-4 py-2 text-sm font-medium text-accent bg-accent/[0.06] hover:bg-accent/15 border border-accent/20 hover:border-accent/30 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {reactivating && (
+                      <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                    )}
+                    {reactivating ? 'Reactivating...' : 'Reactivate Subscription'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-red-400 bg-red-500/[0.06] hover:bg-red-500/15 border border-red-500/20 hover:border-red-500/30 rounded-xl transition-all duration-200"
+                  >
+                    Cancel Subscription
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* SECTION 5: Danger Zone */}
         <div className="bg-bg-card border border-red-500/20 rounded-2xl p-6 animate-fade-in-up">
           <h2 className="text-base font-semibold text-red-400 mb-2 flex items-center gap-2">
             <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -443,6 +658,12 @@ export default function SettingsPage() {
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteAccount}
         deleting={deleting}
+      />
+      <CancelSubModal
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancelSubscription}
+        cancelling={cancellingSubscription}
       />
     </Layout>
   );

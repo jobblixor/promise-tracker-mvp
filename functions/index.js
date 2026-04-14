@@ -590,6 +590,113 @@ exports.stripeWebhook = onRequest(async (req, res) => {
 // ─── Email Verification ──────────────────────────────────────────────
 
 /**
+ * Callable function: cancels a Stripe subscription at period end.
+ */
+exports.cancelSubscription = onCall(async (request) => {
+  if (!request.auth) {
+    throw new Error("Authentication required");
+  }
+
+  const uid = request.auth.uid;
+
+  // Look up user to get businessId
+  const userDoc = await db.collection("users").doc(uid).get();
+  if (!userDoc.exists) {
+    throw new Error("User not found");
+  }
+  const userData = userDoc.data();
+  const businessId = userData.businessId;
+  if (!businessId) {
+    throw new Error("No business associated with this user");
+  }
+
+  // Verify user is the owner
+  if (userData.role !== "owner") {
+    throw new Error("Only the business owner can cancel the subscription");
+  }
+
+  // Look up business doc
+  const bizDoc = await db.collection("businesses").doc(businessId).get();
+  if (!bizDoc.exists) {
+    throw new Error("Business not found");
+  }
+  const bizData = bizDoc.data();
+
+  if (!bizData.stripeSubscriptionId) {
+    throw new Error("No active subscription found");
+  }
+
+  const stripe = getStripe();
+
+  // Cancel at period end (don't cut off immediately)
+  const subscription = await stripe.subscriptions.update(bizData.stripeSubscriptionId, {
+    cancel_at_period_end: true,
+  });
+
+  // Update business doc
+  await db.collection("businesses").doc(businessId).update({
+    cancelAtPeriodEnd: true,
+  });
+
+  return {
+    success: true,
+    currentPeriodEnd: subscription.current_period_end,
+  };
+});
+
+/**
+ * Callable function: reactivates a Stripe subscription that was set to cancel at period end.
+ */
+exports.reactivateSubscription = onCall(async (request) => {
+  if (!request.auth) {
+    throw new Error("Authentication required");
+  }
+
+  const uid = request.auth.uid;
+
+  // Look up user to get businessId
+  const userDoc = await db.collection("users").doc(uid).get();
+  if (!userDoc.exists) {
+    throw new Error("User not found");
+  }
+  const userData = userDoc.data();
+  const businessId = userData.businessId;
+  if (!businessId) {
+    throw new Error("No business associated with this user");
+  }
+
+  // Verify user is the owner
+  if (userData.role !== "owner") {
+    throw new Error("Only the business owner can reactivate the subscription");
+  }
+
+  // Look up business doc
+  const bizDoc = await db.collection("businesses").doc(businessId).get();
+  if (!bizDoc.exists) {
+    throw new Error("Business not found");
+  }
+  const bizData = bizDoc.data();
+
+  if (!bizData.stripeSubscriptionId) {
+    throw new Error("No subscription found");
+  }
+
+  const stripe = getStripe();
+
+  // Reactivate by removing cancel_at_period_end
+  await stripe.subscriptions.update(bizData.stripeSubscriptionId, {
+    cancel_at_period_end: false,
+  });
+
+  // Update business doc
+  await db.collection("businesses").doc(businessId).update({
+    cancelAtPeriodEnd: false,
+  });
+
+  return { success: true };
+});
+
+/**
  * Callable function: generates a 6-digit verification code, stores it in Firestore,
  * and sends it to the user's email via Gmail SMTP.
  */
