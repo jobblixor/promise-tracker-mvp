@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db, auth } from '../config/firebase';
 import app from '../config/firebase';
@@ -332,7 +332,8 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
-      await deleteDoc(doc(db, 'users', user.uid));
+      const deleteAccount = httpsCallable(functions, 'deleteAccount');
+      await deleteAccount();
       await logout();
       toast.success('Account deleted');
     } catch (err) {

@@ -769,3 +769,27 @@ exports.sendVerificationCode = onCall(async (request) => {
 
   return { success: true };
 });
+
+/**
+ * Callable function: deletes the authenticated user's Firestore doc
+ * and their Firebase Auth account.
+ */
+exports.deleteAccount = onCall(async (request) => {
+  if (!request.auth) {
+    throw new Error("Authentication required");
+  }
+
+  const uid = request.auth.uid;
+
+  // Delete user doc from Firestore
+  const userRef = db.collection("users").doc(uid);
+  const userDoc = await userRef.get();
+  if (userDoc.exists) {
+    await userRef.delete();
+  }
+
+  // Delete user from Firebase Auth
+  await admin.auth().deleteUser(uid);
+
+  return { success: true };
+});
