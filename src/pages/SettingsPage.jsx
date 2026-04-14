@@ -314,9 +314,9 @@ export default function SettingsPage() {
                 onChange={(e) => setTimezone(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-border/40 text-sm text-text-primary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
               >
-                <option value="">Select timezone...</option>
+                <option value="" className="bg-[#111827] text-white">Select timezone...</option>
                 {getTimezoneOptions().map((tz) => (
-                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  <option key={tz.value} value={tz.value} className="bg-[#111827] text-white">{tz.label}</option>
                 ))}
               </select>
             </div>
