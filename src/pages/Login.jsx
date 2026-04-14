@@ -149,7 +149,16 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-text-secondary mb-2">Password</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-text-secondary">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => { setShowReset(true); setResetEmail(email); }}
+                    className="text-xs text-text-muted hover:text-accent font-medium transition-colors duration-200"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <input
                   type="password"
                   value={password}
@@ -158,13 +167,6 @@ export default function Login() {
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 bg-bg-card border border-border rounded-[10px] text-sm text-text-secondary placeholder:text-text-muted/40 focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/10 focus:shadow-[0_0_0_3px_rgba(34,197,94,0.06)] transition-all duration-200"
                 />
-                <button
-                  type="button"
-                  onClick={() => { setShowReset(true); setResetEmail(email); }}
-                  className="mt-2 text-sm text-accent hover:underline font-medium transition-colors duration-200"
-                >
-                  Forgot password?
-                </button>
               </div>
 
               <button
