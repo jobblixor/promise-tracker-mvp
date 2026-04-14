@@ -7,7 +7,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow create: if request.auth != null && request.auth.uid == userId;
       allow read: if request.auth != null;
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && (
+        request.auth.uid == userId ||
+        // Business owner can remove team members from their business
+        (resource.data.businessId != null &&
+         get(/databases/$(database)/documents/businesses/$(resource.data.businessId)).data.ownerId == request.auth.uid)
+      );
       allow update: if request.auth != null && (
         request.auth.uid == userId ||
         // Business owner can update only the role field for members in their business
