@@ -242,23 +242,33 @@ const OWNER_PHONE = process.env.OWNER_PHONE;
  * Failures are logged but never thrown so the caller is unaffected.
  */
 async function sendOwnerNotification(subject, body, smsText) {
+  console.log(`[OwnerNotify] START — subject="${subject}", smsText="${smsText}"`);
+
   // Email
   try {
     const html = buildOwnerEmailHTML(subject, body);
     await sendEmail(OWNER_EMAIL, subject, html);
+    console.log("[OwnerNotify] Email sent successfully");
   } catch (err) {
-    console.error("Owner notification email failed:", err.message);
+    console.error("[OwnerNotify] Email FAILED:", err.message);
   }
+
   // SMS
+  console.log(`[OwnerNotify] SMS section reached — OWNER_PHONE="${OWNER_PHONE}" (truthy: ${!!OWNER_PHONE})`);
   try {
     if (OWNER_PHONE) {
-      await sendSMS(OWNER_PHONE, smsText || subject);
+      const smsMessage = smsText || subject;
+      console.log(`[OwnerNotify] Calling sendSMS to ${OWNER_PHONE}: "${smsMessage}"`);
+      const smsResult = await sendSMS(OWNER_PHONE, smsMessage);
+      console.log(`[OwnerNotify] sendSMS returned: ${smsResult}`);
     } else {
-      console.warn("OWNER_PHONE not set — skipping owner SMS");
+      console.warn("[OwnerNotify] OWNER_PHONE not set — skipping owner SMS");
     }
   } catch (err) {
-    console.error("Owner notification SMS failed:", err.message);
+    console.error("[OwnerNotify] SMS FAILED with exception:", err.message);
   }
+
+  console.log("[OwnerNotify] END");
 }
 
 /**
@@ -604,9 +614,14 @@ exports.stripeWebhook = onRequest(async (req, res) => {
           try {
             const bizDoc = await db.collection("businesses").doc(businessId).get();
             const bizName = bizDoc.exists && bizDoc.data().name ? bizDoc.data().name : businessId;
+            let ownerEmail = "unknown";
+            if (bizDoc.exists && bizDoc.data().ownerId) {
+              const ownerDoc = await db.collection("users").doc(bizDoc.data().ownerId).get();
+              if (ownerDoc.exists && ownerDoc.data().email) ownerEmail = ownerDoc.data().email;
+            }
             await sendOwnerNotification(
               `New Subscriber: ${bizName}`,
-              `${bizName} just subscribed to Pro at $39/month`,
+              `${ownerEmail} (${bizName}) just subscribed to Pro at $39/month`,
               `New subscriber: ${bizName} - $39/mo`
             );
           } catch (err) {
@@ -630,9 +645,14 @@ exports.stripeWebhook = onRequest(async (req, res) => {
           // Notify app owner of cancellation
           try {
             const bizName = doc.data().name || doc.id;
+            let ownerEmail = "unknown";
+            if (doc.data().ownerId) {
+              const ownerDoc = await db.collection("users").doc(doc.data().ownerId).get();
+              if (ownerDoc.exists && ownerDoc.data().email) ownerEmail = ownerDoc.data().email;
+            }
             await sendOwnerNotification(
               `Subscription Cancelled: ${bizName}`,
-              `${bizName} cancelled their subscription`,
+              `${ownerEmail} (${bizName}) cancelled their subscription`,
               `Cancelled: ${bizName}`
             );
           } catch (err) {
@@ -737,9 +757,14 @@ exports.cancelSubscription = onCall(async (request) => {
   // Notify app owner of cancellation
   try {
     const bizName = bizData.name || businessId;
+    let ownerEmail = "unknown";
+    if (bizData.ownerId) {
+      const ownerDoc = await db.collection("users").doc(bizData.ownerId).get();
+      if (ownerDoc.exists && ownerDoc.data().email) ownerEmail = ownerDoc.data().email;
+    }
     await sendOwnerNotification(
       `Subscription Cancelled: ${bizName}`,
-      `${bizName} cancelled their subscription`,
+      `${ownerEmail} (${bizName}) cancelled their subscription`,
       `Cancelled: ${bizName}`
     );
   } catch (err) {
@@ -886,11 +911,13 @@ exports.sendVerificationCode = onCall(async (request) => {
       }
     }
     const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+    console.log(`[sendVerificationCode] About to call sendOwnerNotification for ${email}`);
     await sendOwnerNotification(
       `New Signup: ${email}`,
       `${email} just created an account for business '${businessName}' at ${timestamp}`,
-      `New signup: ${email} - ${businessName}`
+      `New signup: ${businessName}`
     );
+    console.log(`[sendVerificationCode] sendOwnerNotification completed for ${email}`);
   } catch (err) {
     console.error("Owner notification failed (new signup):", err.message);
   }
@@ -925,11 +952,13 @@ exports.deleteAccount = onCall(async (request) => {
   // Notify app owner of account deletion
   try {
     const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+    console.log(`[deleteAccount] About to call sendOwnerNotification for ${userEmail}`);
     await sendOwnerNotification(
       `Account Deleted: ${userEmail}`,
       `${userEmail} deleted their account at ${timestamp}`,
-      `Account deleted: ${userEmail}`
+      `Account deleted`
     );
+    console.log(`[deleteAccount] sendOwnerNotification completed for ${userEmail}`);
   } catch (err) {
     console.error("Owner notification failed (account deleted):", err.message);
   }
