@@ -3,6 +3,7 @@ const { onCall } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
+// SMS provider: Textbelt
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -16,30 +17,29 @@ const gmailTransporter = nodemailer.createTransport({
   },
 });
 
-// Initialize Twilio client using environment variables (.env file in functions/)
-function getTwilioClient() {
-  const accountSid = process.env.TWILIO_SID;
-  const authToken = process.env.TWILIO_TOKEN;
-  const twilio = require("twilio");
-  return twilio(accountSid, authToken);
-}
-
-function getTwilioPhone() {
-  return process.env.TWILIO_PHONE;
-}
-
 /**
- * Send an SMS via Twilio. Logs and swallows errors so one failure
+ * Send an SMS via Textbelt. Logs and swallows errors so one failure
  * doesn't stop processing the remaining promises.
  */
 async function sendSMS(to, body) {
   try {
-    const client = getTwilioClient();
-    const from = getTwilioPhone();
     console.log(`Sending SMS to ${to}: ${body}`);
-    const message = await client.messages.create({ body, from, to });
-    console.log(`SMS sent successfully. SID: ${message.sid}`);
-    return true;
+    const response = await fetch('https://textbelt.com/text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: to,
+        message: body,
+        key: process.env.TEXTBELT_KEY
+      })
+    });
+    const result = await response.json();
+    if (result.success) {
+      console.log(`SMS sent successfully via Textbelt. quotaRemaining: ${result.quotaRemaining}`);
+    } else {
+      console.log(`Textbelt SMS failed:`, result, `quotaRemaining: ${result.quotaRemaining}`);
+    }
+    return result.success;
   } catch (err) {
     console.error(`Failed to send SMS to ${to}:`, err.message);
     return false;
