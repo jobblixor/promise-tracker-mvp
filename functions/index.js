@@ -233,6 +233,77 @@ function buildEmailHTML(headline, bodyLines, ctaText) {
 </html>`;
 }
 
+// ─── Owner Notification Constants ────────────────────────────────────
+const OWNER_EMAIL = "promisetrackermvp@gmail.com";
+const OWNER_PHONE = process.env.OWNER_PHONE;
+
+/**
+ * Send a notification to the app owner (Zackary) via email + SMS.
+ * Failures are logged but never thrown so the caller is unaffected.
+ */
+async function sendOwnerNotification(subject, body, smsText) {
+  // Email
+  try {
+    const html = buildOwnerEmailHTML(subject, body);
+    await sendEmail(OWNER_EMAIL, subject, html);
+  } catch (err) {
+    console.error("Owner notification email failed:", err.message);
+  }
+  // SMS
+  try {
+    if (OWNER_PHONE) {
+      await sendSMS(OWNER_PHONE, smsText || subject);
+    } else {
+      console.warn("OWNER_PHONE not set — skipping owner SMS");
+    }
+  } catch (err) {
+    console.error("Owner notification SMS failed:", err.message);
+  }
+}
+
+/**
+ * Build a dark-themed HTML email for owner notifications.
+ */
+function buildOwnerEmailHTML(headline, bodyText) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0f1a;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#111827;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #1e293b;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:32px;height:32px;">
+                    <img src="https://promisetracker.app/logo.jpeg" alt="P" width="32" height="32" style="display:block;border-radius:8px;" />
+                  </td>
+                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#f1f5f9;">Promise Tracker — Owner Alert</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#22c55e;">${headline}</h1>
+              <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#cbd5e1;">${bodyText}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #1e293b;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#64748b;">Promise Tracker Owner Notification</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 /**
  * Look up the business's timezone from Firestore.
  */
@@ -528,6 +599,19 @@ exports.stripeWebhook = onRequest(async (req, res) => {
               paymentFailed: false,
             });
           console.log(`Business ${businessId} upgraded to pro`);
+
+          // Notify app owner of new subscriber
+          try {
+            const bizDoc = await db.collection("businesses").doc(businessId).get();
+            const bizName = bizDoc.exists && bizDoc.data().name ? bizDoc.data().name : businessId;
+            await sendOwnerNotification(
+              `New Subscriber: ${bizName}`,
+              `${bizName} just subscribed to Pro at $39/month`,
+              `New subscriber: ${bizName} - $39/mo`
+            );
+          } catch (err) {
+            console.error("Owner notification failed (new subscriber):", err.message);
+          }
         }
         break;
       }
@@ -542,6 +626,18 @@ exports.stripeWebhook = onRequest(async (req, res) => {
         for (const doc of snap.docs) {
           await doc.ref.update({ plan: "expired" });
           console.log(`Business ${doc.id} plan set to expired`);
+
+          // Notify app owner of cancellation
+          try {
+            const bizName = doc.data().name || doc.id;
+            await sendOwnerNotification(
+              `Subscription Cancelled: ${bizName}`,
+              `${bizName} cancelled their subscription`,
+              `Cancelled: ${bizName}`
+            );
+          } catch (err) {
+            console.error("Owner notification failed (subscription cancelled):", err.message);
+          }
         }
         break;
       }
@@ -637,6 +733,18 @@ exports.cancelSubscription = onCall(async (request) => {
   await db.collection("businesses").doc(businessId).update({
     cancelAtPeriodEnd: true,
   });
+
+  // Notify app owner of cancellation
+  try {
+    const bizName = bizData.name || businessId;
+    await sendOwnerNotification(
+      `Subscription Cancelled: ${bizName}`,
+      `${bizName} cancelled their subscription`,
+      `Cancelled: ${bizName}`
+    );
+  } catch (err) {
+    console.error("Owner notification failed (cancel subscription):", err.message);
+  }
 
   return {
     success: true,
@@ -767,6 +875,26 @@ exports.sendVerificationCode = onCall(async (request) => {
 
   await sendEmail(email, "Your Promise Tracker verification code", htmlBody);
 
+  // Notify app owner of new signup
+  try {
+    let businessName = "Unknown";
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (userDoc.exists && userDoc.data().businessId) {
+      const bizDoc = await db.collection("businesses").doc(userDoc.data().businessId).get();
+      if (bizDoc.exists && bizDoc.data().name) {
+        businessName = bizDoc.data().name;
+      }
+    }
+    const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+    await sendOwnerNotification(
+      `New Signup: ${email}`,
+      `${email} just created an account for business '${businessName}' at ${timestamp}`,
+      `New signup: ${email} - ${businessName}`
+    );
+  } catch (err) {
+    console.error("Owner notification failed (new signup):", err.message);
+  }
+
   return { success: true };
 });
 
@@ -781,15 +909,30 @@ exports.deleteAccount = onCall(async (request) => {
 
   const uid = request.auth.uid;
 
-  // Delete user doc from Firestore
+  // Look up user info before deletion for owner notification
   const userRef = db.collection("users").doc(uid);
   const userDoc = await userRef.get();
+  const userEmail = userDoc.exists ? userDoc.data().email || "unknown" : "unknown";
+
+  // Delete user doc from Firestore
   if (userDoc.exists) {
     await userRef.delete();
   }
 
   // Delete user from Firebase Auth
   await admin.auth().deleteUser(uid);
+
+  // Notify app owner of account deletion
+  try {
+    const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+    await sendOwnerNotification(
+      `Account Deleted: ${userEmail}`,
+      `${userEmail} deleted their account at ${timestamp}`,
+      `Account deleted: ${userEmail}`
+    );
+  } catch (err) {
+    console.error("Owner notification failed (account deleted):", err.message);
+  }
 
   return { success: true };
 });
