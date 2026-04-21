@@ -382,101 +382,33 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
         const dueDateMs = dueDate.toDate().getTime();
         const msUntilDue = dueDateMs - nowMs;
         const msSinceDue = nowMs - dueDateMs;
+        const minutesUntilDue = msUntilDue / (60 * 1000);
+        const minutesSinceDue = msSinceDue / (60 * 1000);
         const description = promise.description || "something";
         const customerName = promise.customerName || "a customer";
         const businessTimezone = await getBusinessTimezone(promise.businessId);
         const formattedDue = formatDate(dueDate, businessTimezone);
 
-        // ── 30-minute reminder (before due) ──────────────────────
-        if (
-          msUntilDue > 0 &&
-          msUntilDue <= 30 * 60 * 1000 &&
-          !promise.reminderSent
-        ) {
-          console.log(`Promise ${promiseId}: sending 30-min reminder`);
+        // Logging for debugging
+        console.log(`[Promise ${promiseId}] Current time: ${now.toISOString()}, Due: ${dueDate.toDate().toISOString()}`);
+        console.log(`[Promise ${promiseId}] Minutes until due: ${minutesUntilDue.toFixed(2)}, Minutes since due: ${minutesSinceDue.toFixed(2)}`);
+        console.log(`[Promise ${promiseId}] Flags - reminderSent: ${promise.reminderSent}, escalated: ${promise.escalated}, escalatedTwice: ${promise.escalatedTwice}`);
 
-          // SMS to creator
-          const creatorPhone = await getCreatorPhone(promise.createdBy);
-          if (creatorPhone) {
-            const msg =
-              `Reminder: You promised to ${description} for ${customerName}` +
-              ` by ${formattedDue}. Please handle it or mark it done in Promise Tracker.`;
-            await sendSMS(creatorPhone, msg);
-          }
+        // ── BUG FIX 2: Use else-if logic to prevent duplicate escalations ──
+        // Check most severe condition first (24-hour), then work down
 
-          // Email to creator
-          if (!promise.reminderEmailSent) {
-            const creatorEmail = await getCreatorEmail(promise.createdBy);
-            if (creatorEmail) {
-              const subject = `Reminder: Follow up with ${customerName}`;
-              const html = buildEmailHTML(
-                `Reminder: Follow up with ${customerName}`,
-                [
-                  `Hi, this is a reminder that you promised to <strong>${description}</strong> for <strong>${customerName}</strong> by <strong>${formattedDue}</strong>.`,
-                  `Please handle it or mark it done in Promise Tracker.`,
-                ],
-                "View Dashboard"
-              );
-              await sendEmail(creatorEmail, subject, html);
-            }
-          }
-
-          updates.push(
-            docSnap.ref.update({ reminderSent: true, reminderEmailSent: true })
-          );
-        }
-
-        // ── 1-hour escalation (after due) ────────────────────────
-        if (
-          msSinceDue >= 60 * 60 * 1000 &&
-          !promise.escalated
-        ) {
-          console.log(`Promise ${promiseId}: 1-hour escalation`);
-
-          // SMS to owner
-          const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
-          if (ownerPhone) {
-            const msg =
-              `ESCALATION: ${customerName} was promised ${description}` +
-              ` by ${formattedDue} and nobody has handled it. Please check Promise Tracker.`;
-            await sendSMS(ownerPhone, msg);
-          }
-
-          // Email to owner
-          if (!promise.escalationEmailSent) {
-            const ownerEmail = await getBusinessOwnerEmail(promise.businessId);
-            if (ownerEmail) {
-              const subject = `ESCALATION: ${customerName} follow-up overdue`;
-              const html = buildEmailHTML(
-                `ESCALATION: ${customerName} follow-up overdue`,
-                [
-                  `A promise to <strong>${customerName}</strong> &mdash; <strong>${description}</strong> &mdash; was due at <strong>${formattedDue}</strong> and has not been completed.`,
-                  `This was created by <strong>${promise.createdBy}</strong>. Please check Promise Tracker immediately.`,
-                ],
-                "View Dashboard"
-              );
-              await sendEmail(ownerEmail, subject, html);
-            }
-          }
-
-          updates.push(
-            docSnap.ref.update({ status: "overdue", escalated: true, escalationEmailSent: true })
-          );
-        }
-
-        // ── 24-hour second escalation ────────────────────────────
+        // ── 24-hour second escalation (URGENT) ────────────────────────────
         if (
           msSinceDue >= 24 * 60 * 60 * 1000 &&
-          !promise.escalatedTwice
+          promise.escalated === true &&
+          promise.escalatedTwice !== true
         ) {
-          console.log(`Promise ${promiseId}: 24-hour second escalation`);
+          console.log(`[Promise ${promiseId}] ✓ PASSED 24-hour escalation check (${minutesSinceDue.toFixed(2)} min overdue)`);
 
-          // SMS to owner
+          // SMS to owner with URGENT message (BUG FIX 3)
           const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
           if (ownerPhone) {
-            const msg =
-              `ESCALATION: ${customerName} was promised ${description}` +
-              ` by ${formattedDue} and nobody has handled it. Please check Promise Tracker.`;
+            const msg = `URGENT: ${customerName} promised ${description} is 24+ hrs overdue. Check Promise Tracker now.`;
             await sendSMS(ownerPhone, msg);
           }
 
@@ -501,6 +433,79 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
           updates.push(
             docSnap.ref.update({ escalatedTwice: true, escalationEmailSentTwice: true })
           );
+        }
+        // ── 1-hour escalation (after due) ────────────────────────
+        else if (
+          msSinceDue >= 60 * 60 * 1000 &&
+          promise.escalated !== true
+        ) {
+          console.log(`[Promise ${promiseId}] ✓ PASSED 1-hour escalation check (${minutesSinceDue.toFixed(2)} min overdue)`);
+
+          // SMS to owner with escalation message (BUG FIX 3)
+          const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
+          if (ownerPhone) {
+            const msg = `ESCALATION: ${customerName} was promised ${description} and it's overdue. Please check Promise Tracker.`;
+            await sendSMS(ownerPhone, msg);
+          }
+
+          // Email to owner
+          if (!promise.escalationEmailSent) {
+            const ownerEmail = await getBusinessOwnerEmail(promise.businessId);
+            if (ownerEmail) {
+              const subject = `ESCALATION: ${customerName} follow-up overdue`;
+              const html = buildEmailHTML(
+                `ESCALATION: ${customerName} follow-up overdue`,
+                [
+                  `A promise to <strong>${customerName}</strong> &mdash; <strong>${description}</strong> &mdash; was due at <strong>${formattedDue}</strong> and has not been completed.`,
+                  `This was created by <strong>${promise.createdBy}</strong>. Please check Promise Tracker immediately.`,
+                ],
+                "View Dashboard"
+              );
+              await sendEmail(ownerEmail, subject, html);
+            }
+          }
+
+          updates.push(
+            docSnap.ref.update({ status: "overdue", escalated: true, escalationEmailSent: true })
+          );
+        }
+        // ── 30-minute reminder (before due) ──────────────────────
+        else if (
+          msUntilDue > 0 &&
+          msUntilDue <= 30 * 60 * 1000 &&
+          promise.reminderSent !== true
+        ) {
+          console.log(`[Promise ${promiseId}] ✓ PASSED 30-min reminder check (${minutesUntilDue.toFixed(2)} min until due)`);
+
+          // SMS to creator with reminder message (BUG FIX 3)
+          const creatorPhone = await getCreatorPhone(promise.createdBy);
+          if (creatorPhone) {
+            const msg = `Reminder: ${customerName} is due for ${description} in 30 min. Handle it or mark done in Promise Tracker.`;
+            await sendSMS(creatorPhone, msg);
+          }
+
+          // Email to creator
+          if (!promise.reminderEmailSent) {
+            const creatorEmail = await getCreatorEmail(promise.createdBy);
+            if (creatorEmail) {
+              const subject = `Reminder: Follow up with ${customerName}`;
+              const html = buildEmailHTML(
+                `Reminder: Follow up with ${customerName}`,
+                [
+                  `Hi, this is a reminder that you promised to <strong>${description}</strong> for <strong>${customerName}</strong> by <strong>${formattedDue}</strong>.`,
+                  `Please handle it or mark it done in Promise Tracker.`,
+                ],
+                "View Dashboard"
+              );
+              await sendEmail(creatorEmail, subject, html);
+            }
+          }
+
+          updates.push(
+            docSnap.ref.update({ reminderSent: true, reminderEmailSent: true })
+          );
+        } else {
+          console.log(`[Promise ${promiseId}] ✗ FAILED all checks - no action taken`);
         }
       } catch (err) {
         console.error(`Error processing promise ${docSnap.id}:`, err.message);
