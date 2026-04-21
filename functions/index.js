@@ -414,7 +414,7 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
           // SMS to owner with URGENT message (BUG FIX 3)
           const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
           if (ownerPhone) {
-            const msg = `URGENT: ${customerName} promised ${description} is 24+ hrs overdue. Check Promise Tracker now.`;
+            const msg = `URGENT: The promise for ${customerName} to ${description} is now 24+ hours overdue. Please check Promise Tracker immediately.`;
             await sendSMS(ownerPhone, msg);
           }
 
@@ -450,7 +450,7 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
           // SMS to owner with escalation message (BUG FIX 3)
           const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
           if (ownerPhone) {
-            const msg = `ESCALATION: ${customerName} was promised ${description} and it's overdue. Please check Promise Tracker.`;
+            const msg = `ESCALATION: ${customerName} was promised ${description} by ${formattedDue} and it has not been handled. Please check Promise Tracker.`;
             await sendSMS(ownerPhone, msg);
           }
 
@@ -486,7 +486,7 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
           // SMS to creator with reminder message (BUG FIX 3)
           const creatorPhone = await getCreatorPhone(promise.createdBy);
           if (creatorPhone) {
-            const msg = `Reminder: ${customerName} is due for ${description} in 30 min. Handle it or mark done in Promise Tracker.`;
+            const msg = `Reminder: The promise for ${customerName} to ${description} is due in 30 minutes. Please check Promise Tracker.`;
             await sendSMS(creatorPhone, msg);
           }
 
