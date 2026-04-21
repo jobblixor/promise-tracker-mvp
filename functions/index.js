@@ -81,15 +81,18 @@ async function getBusinessOwnerPhone(businessId) {
 
 /**
  * Look up the phone number of the user who created the promise.
+ * createdBy is an email address, so we query by the email field.
  */
 async function getCreatorPhone(createdBy) {
   try {
-    const userDoc = await db.collection("users").doc(createdBy).get();
-    if (!userDoc.exists) {
-      console.warn(`Creator user ${createdBy} not found`);
+    console.log(`[getCreatorPhone] Querying users collection where email == "${createdBy}"`);
+    const userSnap = await db.collection("users").where("email", "==", createdBy).limit(1).get();
+    console.log(`[getCreatorPhone] Query returned ${userSnap.size} doc(s) for email "${createdBy}"`);
+    if (userSnap.empty) {
+      console.warn(`Creator user with email ${createdBy} not found`);
       return null;
     }
-    const phone = userDoc.data().phone;
+    const phone = userSnap.docs[0].data().phone;
     if (!phone) {
       console.warn(`Creator ${createdBy} has no phone number`);
       return null;
@@ -103,15 +106,18 @@ async function getCreatorPhone(createdBy) {
 
 /**
  * Look up the email address of the user who created the promise.
+ * createdBy is an email address, so we query by the email field.
  */
 async function getCreatorEmail(createdBy) {
   try {
-    const userDoc = await db.collection("users").doc(createdBy).get();
-    if (!userDoc.exists) {
-      console.warn(`Creator user ${createdBy} not found`);
+    console.log(`[getCreatorEmail] Querying users collection where email == "${createdBy}"`);
+    const userSnap = await db.collection("users").where("email", "==", createdBy).limit(1).get();
+    console.log(`[getCreatorEmail] Query returned ${userSnap.size} doc(s) for email "${createdBy}"`);
+    if (userSnap.empty) {
+      console.warn(`Creator user with email ${createdBy} not found`);
       return null;
     }
-    const email = userDoc.data().email;
+    const email = userSnap.docs[0].data().email;
     if (!email) {
       console.warn(`Creator ${createdBy} has no email`);
       return null;
