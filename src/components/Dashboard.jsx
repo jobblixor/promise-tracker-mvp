@@ -7,6 +7,7 @@ import {
   getDocs,
   doc,
   updateDoc,
+  deleteDoc,
   addDoc,
   serverTimestamp,
   Timestamp,
@@ -193,6 +194,15 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeletePromise = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'promises', id));
+      toast.success('Promise deleted');
+    } catch {
+      toast.error('Failed to delete promise');
+    }
+  };
+
   const handleAddPromise = async (formData) => {
     await addDoc(collection(db, 'promises'), {
       customerName: formData.customerName,
@@ -352,7 +362,14 @@ export default function Dashboard() {
           </div>
         ) : (
           filtered.map((promise) => (
-            <PromiseCard key={promise.id} promise={promise} onMarkDone={handleMarkDone} disabled={!hasAccess} />
+            <PromiseCard
+              key={promise.id}
+              promise={promise}
+              onMarkDone={handleMarkDone}
+              onDelete={handleDeletePromise}
+              canDelete={user?.role === 'owner' || user?.email === promise.createdBy}
+              disabled={!hasAccess}
+            />
           ))
         )}
       </div>

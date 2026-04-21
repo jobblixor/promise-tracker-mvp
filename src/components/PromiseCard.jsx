@@ -1,7 +1,9 @@
 import { useState } from 'react';
 
-export default function PromiseCard({ promise, onMarkDone, disabled }) {
+export default function PromiseCard({ promise, onMarkDone, onDelete, canDelete, disabled }) {
   const [completing, setCompleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const statusConfig = {
     overdue: { label: 'Overdue', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20', left: 'bg-red-500' },
@@ -50,11 +52,18 @@ export default function PromiseCard({ promise, onMarkDone, disabled }) {
     await onMarkDone(promise.id);
   };
 
+  const handleDeleteClick = () => setConfirmingDelete(true);
+  const handleDeleteCancel = () => setConfirmingDelete(false);
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    await onDelete(promise.id);
+  };
+
   const relativeTime = getRelativeTime(promise.dueDate);
 
   return (
     <div className={`relative bg-bg-card border ${status.border} rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-black/15 hover:-translate-y-[1px] hover:border-white/10 group animate-fade-in-up ${
-      completing ? 'opacity-60 scale-[0.98]' : ''
+      completing || deleting ? 'opacity-60 scale-[0.98]' : ''
     }`}>
       {/* Left accent border */}
       <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${status.left} rounded-l-xl`} />
@@ -102,6 +111,34 @@ export default function PromiseCard({ promise, onMarkDone, disabled }) {
             <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path className={completing ? 'animate-check-draw' : ''} strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
+          </div>
+        )}
+        {canDelete && !deleting && !confirmingDelete && (
+          <button
+            onClick={handleDeleteClick}
+            aria-label="Delete promise"
+            className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 p-1.5 rounded-[8px] text-red-400/60 hover:text-red-400 hover:bg-red-500/10 active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+            </svg>
+          </button>
+        )}
+        {canDelete && confirmingDelete && (
+          <div className="shrink-0 flex items-center gap-1.5 animate-fade-in-up">
+            <span className="text-xs text-text-muted whitespace-nowrap">Delete?</span>
+            <button
+              onClick={handleDeleteConfirm}
+              className="px-2.5 py-1 text-xs font-semibold rounded-[7px] bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20 transition-all duration-150 active:scale-95"
+            >
+              Yes
+            </button>
+            <button
+              onClick={handleDeleteCancel}
+              className="px-2.5 py-1 text-xs font-semibold rounded-[7px] bg-white/[0.06] text-text-muted hover:bg-white/[0.09] border border-white/[0.08] transition-all duration-150 active:scale-95"
+            >
+              No
+            </button>
           </div>
         )}
       </div>
