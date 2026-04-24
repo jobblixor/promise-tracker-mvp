@@ -510,6 +510,42 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
           updates.push(
             docSnap.ref.update({ reminderSent: true, reminderEmailSent: true })
           );
+        }
+        // ── Recurring daily escalation (every 24h after escalatedTwice) ──
+        else if (
+          msSinceDue > 0 &&
+          promise.escalatedTwice === true &&
+          (
+            !promise.lastRecurringEscalation ||
+            nowMs - promise.lastRecurringEscalation.toDate().getTime() >= 24 * 60 * 60 * 1000
+          )
+        ) {
+          const daysOverdue = Math.floor(msSinceDue / (24 * 60 * 60 * 1000));
+          console.log(`[Promise ${promiseId}] ✓ RECURRING escalation — ${customerName} is ${daysOverdue} day(s) overdue`);
+
+          const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
+          if (ownerPhone) {
+            const msg = `REMINDER: The promise for ${customerName} to ${description} is still unresolved (${daysOverdue} days overdue). Please check Promise Tracker.`;
+            await sendSMS(ownerPhone, msg);
+          }
+
+          const ownerEmail = await getBusinessOwnerEmail(promise.businessId);
+          if (ownerEmail) {
+            const subject = `ONGOING: ${customerName} follow-up still unresolved (${daysOverdue} days overdue)`;
+            const html = buildEmailHTML(
+              `ONGOING: ${customerName} follow-up still unresolved (${daysOverdue} days overdue)`,
+              [
+                `The promise for <strong>${customerName}</strong> to <strong>${description}</strong> is now <strong>${daysOverdue} days overdue</strong> and still has not been resolved.`,
+                `This is an automated daily reminder that will continue until the promise is marked as done.`,
+              ],
+              "View Dashboard"
+            );
+            await sendEmail(ownerEmail, subject, html);
+          }
+
+          updates.push(
+            docSnap.ref.update({ lastRecurringEscalation: admin.firestore.Timestamp.now() })
+          );
         } else {
           console.log(`[Promise ${promiseId}] ✗ FAILED all checks - no action taken`);
         }
