@@ -398,46 +398,44 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
         // Logging for debugging
         console.log(`[Promise ${promiseId}] Current time: ${now.toISOString()}, Due: ${dueDate.toDate().toISOString()}`);
         console.log(`[Promise ${promiseId}] Minutes until due: ${minutesUntilDue.toFixed(2)}, Minutes since due: ${minutesSinceDue.toFixed(2)}`);
-        console.log(`[Promise ${promiseId}] Flags - reminderSent: ${promise.reminderSent}, escalated: ${promise.escalated}, escalatedTwice: ${promise.escalatedTwice}`);
+        console.log(`[Promise ${promiseId}] Flags - reminderSent: ${promise.reminderSent}, escalated: ${promise.escalated}`);
 
-        // ── BUG FIX 2: Use else-if logic to prevent duplicate escalations ──
-        // Check most severe condition first (24-hour), then work down
+        // Check most severe condition first, then work down
 
-        // ── 24-hour second escalation (URGENT) ────────────────────────────
+        // ── Daily urgent reminder (24+ hours overdue, fires every 24h) ──────
         if (
           msSinceDue >= 24 * 60 * 60 * 1000 &&
           promise.escalated === true &&
-          promise.escalatedTwice !== true
+          (
+            !promise.lastRecurringEscalation ||
+            nowMs - promise.lastRecurringEscalation.toDate().getTime() >= 24 * 60 * 60 * 1000
+          )
         ) {
-          console.log(`[Promise ${promiseId}] ✓ PASSED 24-hour escalation check (${minutesSinceDue.toFixed(2)} min overdue)`);
+          const daysOverdue = Math.floor(msSinceDue / (24 * 60 * 60 * 1000));
+          console.log(`[Promise ${promiseId}] ✓ PASSED daily urgent check — ${customerName} is ${daysOverdue} day(s) overdue`);
 
-          // SMS to owner with URGENT message (BUG FIX 3)
           const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
           if (ownerPhone) {
-            const msg = `URGENT: The promise for ${customerName} to ${description} is now 24+ hours overdue. Please check Promise Tracker immediately.`;
+            const msg = `URGENT: The promise for ${customerName} to ${description} is still unresolved (${daysOverdue} days overdue). Please check Promise Tracker immediately.`;
             await sendSMS(ownerPhone, msg);
           }
 
-          // Email to owner
-          if (!promise.escalationEmailSentTwice) {
-            const ownerEmail = await getBusinessOwnerEmail(promise.businessId);
-            if (ownerEmail) {
-              const subject = `URGENT: ${customerName} follow-up still unresolved (24+ hours)`;
-              const html = buildEmailHTML(
-                `URGENT: ${customerName} follow-up still unresolved`,
-                [
-                  `A promise to <strong>${customerName}</strong> has been overdue for more than 24 hours.`,
-                  `<strong>${description}</strong>. Created by <strong>${promise.createdBy}</strong>.`,
-                  `This requires immediate attention.`,
-                ],
-                "View Dashboard"
-              );
-              await sendEmail(ownerEmail, subject, html);
-            }
+          const ownerEmail = await getBusinessOwnerEmail(promise.businessId);
+          if (ownerEmail) {
+            const subject = `URGENT: ${customerName} follow-up still unresolved (${daysOverdue} days overdue)`;
+            const html = buildEmailHTML(
+              `URGENT: ${customerName} follow-up still unresolved (${daysOverdue} days overdue)`,
+              [
+                `The promise for <strong>${customerName}</strong> to <strong>${description}</strong> is now <strong>${daysOverdue} days overdue</strong> and still has not been resolved.`,
+                `This is an automated daily reminder that will continue until the promise is marked as done.`,
+              ],
+              "View Dashboard"
+            );
+            await sendEmail(ownerEmail, subject, html);
           }
 
           updates.push(
-            docSnap.ref.update({ escalatedTwice: true, escalationEmailSentTwice: true })
+            docSnap.ref.update({ lastRecurringEscalation: admin.firestore.Timestamp.now() })
           );
         }
         // ── 1-hour escalation (after due) ────────────────────────
@@ -511,42 +509,7 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
             docSnap.ref.update({ reminderSent: true, reminderEmailSent: true })
           );
         }
-        // ── Recurring daily escalation (every 24h after escalatedTwice) ──
-        else if (
-          msSinceDue > 0 &&
-          promise.escalatedTwice === true &&
-          (
-            !promise.lastRecurringEscalation ||
-            nowMs - promise.lastRecurringEscalation.toDate().getTime() >= 24 * 60 * 60 * 1000
-          )
-        ) {
-          const daysOverdue = Math.floor(msSinceDue / (24 * 60 * 60 * 1000));
-          console.log(`[Promise ${promiseId}] ✓ RECURRING escalation — ${customerName} is ${daysOverdue} day(s) overdue`);
-
-          const ownerPhone = await getBusinessOwnerPhone(promise.businessId);
-          if (ownerPhone) {
-            const msg = `REMINDER: The promise for ${customerName} to ${description} is still unresolved (${daysOverdue} days overdue). Please check Promise Tracker.`;
-            await sendSMS(ownerPhone, msg);
-          }
-
-          const ownerEmail = await getBusinessOwnerEmail(promise.businessId);
-          if (ownerEmail) {
-            const subject = `ONGOING: ${customerName} follow-up still unresolved (${daysOverdue} days overdue)`;
-            const html = buildEmailHTML(
-              `ONGOING: ${customerName} follow-up still unresolved (${daysOverdue} days overdue)`,
-              [
-                `The promise for <strong>${customerName}</strong> to <strong>${description}</strong> is now <strong>${daysOverdue} days overdue</strong> and still has not been resolved.`,
-                `This is an automated daily reminder that will continue until the promise is marked as done.`,
-              ],
-              "View Dashboard"
-            );
-            await sendEmail(ownerEmail, subject, html);
-          }
-
-          updates.push(
-            docSnap.ref.update({ lastRecurringEscalation: admin.firestore.Timestamp.now() })
-          );
-        } else {
+        else {
           console.log(`[Promise ${promiseId}] ✗ FAILED all checks - no action taken`);
         }
       } catch (err) {
