@@ -146,7 +146,7 @@ export default function Signup() {
 
         <p className="text-center text-sm text-text-muted mt-8">
           Already have an account?{' '}
-          <Link to="/" className="text-accent hover:underline font-medium transition-colors duration-200">Sign in</Link>
+          <Link to="/login" className="text-accent hover:underline font-medium transition-colors duration-200">Sign in</Link>
         </p>
 
         <div className="flex items-center justify-center gap-3 mt-6 text-xs text-text-muted">

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { SubscriptionProvider } from './context/SubscriptionContext';
+import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerifyEmailPage from './pages/VerifyEmailPage';
@@ -17,7 +18,7 @@ import PrivacyPage from './pages/PrivacyPage';
 
 const INACTIVITY_LIMIT = 259200000; // 3 days in ms
 const ACTIVITY_KEY = 'pt_last_activity';
-const PUBLIC_PATHS = ['/', '/signup', '/terms', '/privacy'];
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/terms', '/privacy'];
 
 function ActivityTracker() {
   const { user, logout } = useAuth();
@@ -75,7 +76,8 @@ export default function App() {
           <SubscriptionProvider>
             <ActivityTracker />
             <Routes>
-              <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
               <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
               <Route path="/verify" element={<VerifyRoute><VerifyEmailPage /></VerifyRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
