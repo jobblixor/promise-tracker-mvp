@@ -101,8 +101,12 @@ export default function LandingPage() {
 
             {/* Card 1 */}
             <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
-              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center font-bold mb-5">
-                <span className="text-rose-400 text-2xl">✗</span>
+              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center mb-5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fb7185" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  <line x1="17" y1="1" x2="23" y2="7"/>
+                  <line x1="23" y1="1" x2="17" y2="7"/>
+                </svg>
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Forgotten Callback</h3>
               <p className="text-text-muted text-sm leading-relaxed">
@@ -112,8 +116,13 @@ export default function LandingPage() {
 
             {/* Card 2 */}
             <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
-              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center font-bold mb-5">
-                <span className="text-amber-400 text-2xl">!</span>
+              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center mb-5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                  <line x1="9" y1="10" x2="15" y2="10"/>
+                  <line x1="9" y1="14" x2="15" y2="14"/>
+                </svg>
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Sticky Note System</h3>
               <p className="text-text-muted text-sm leading-relaxed">
@@ -123,8 +132,13 @@ export default function LandingPage() {
 
             {/* Card 3 */}
             <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
-              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center font-bold mb-5">
-                <span className="text-orange-400 text-2xl">?</span>
+              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center mb-5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="17 1 21 5 17 9"/>
+                  <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                  <polyline points="7 23 3 19 7 15"/>
+                  <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                </svg>
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Blame Game</h3>
               <p className="text-text-muted text-sm leading-relaxed">
