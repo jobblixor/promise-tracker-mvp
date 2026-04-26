@@ -1,12 +1,38 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 
 export default function LandingPage() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-bg-primary text-text-secondary">
+    <div className="min-h-screen bg-[#0a0f1a] text-text-secondary">
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(24px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .hero-animate { animation: fadeInUp 0.7s ease forwards; }
+        .hero-delay-1 { animation-delay: 0.05s; opacity: 0; }
+        .hero-delay-2 { animation-delay: 0.18s; opacity: 0; }
+        .hero-delay-3 { animation-delay: 0.32s; opacity: 0; }
+        .hero-delay-4 { animation-delay: 0.46s; opacity: 0; }
+      `}</style>
 
       {/* ── NAV ─────────────────────────────────────────────────── */}
-      <nav className="border-b border-border">
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? 'bg-[#0a0f1a]/80 backdrop-blur-lg border-b border-[#1e293b]'
+            : 'border-b border-transparent'
+        }`}
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 text-text-primary font-bold text-lg">
             <Logo size={32} />
@@ -30,35 +56,51 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ────────────────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-20 text-center">
-        <div className="inline-block bg-bg-card border border-border text-accent text-xs font-semibold px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
-          21-Day Free Trial · No Credit Card Required
-        </div>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-text-primary leading-tight tracking-tight mb-6">
-          Your Team Promises to Call Back.{' '}
-          <span className="text-accent">Promise Tracker</span> Makes Sure They Do.
-        </h1>
-        <p className="text-lg sm:text-xl text-text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
-          The simple follow-up tool for service businesses. Log every customer promise. Get automatic reminders. Escalate when things slip. Nothing gets forgotten.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            to="/signup"
-            className="w-full sm:w-auto inline-block text-center bg-accent hover:bg-accent-hover text-white font-semibold px-8 py-3.5 rounded-xl text-base transition-colors duration-150"
-          >
-            Start Free Trial
-          </Link>
-          <Link
-            to="/login"
-            className="w-full sm:w-auto inline-block text-center border border-border hover:border-text-muted text-text-secondary hover:text-text-primary font-semibold px-8 py-3.5 rounded-xl text-base transition-colors duration-150"
-          >
-            Sign In
-          </Link>
+      <section className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-40 pb-32 text-center">
+        {/* Radial glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(34,197,94,0.08) 0%, transparent 70%)',
+          }}
+        />
+        <div className="relative">
+          <div className="hero-animate hero-delay-1 inline-block bg-bg-card border border-border text-accent text-xs font-semibold px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
+            21-Day Free Trial · No Credit Card Required
+          </div>
+          <h1 className="hero-animate hero-delay-2 text-5xl sm:text-6xl lg:text-7xl font-extrabold text-text-primary leading-tight tracking-tight mb-6">
+            Your Team Promises to Call Back.{' '}
+            <span
+              className="text-accent"
+              style={{ textShadow: '0 0 40px rgba(34,197,94,0.3)' }}
+            >
+              Promise Tracker
+            </span>{' '}
+            Makes Sure They Do.
+          </h1>
+          <p className="hero-animate hero-delay-3 text-lg sm:text-xl text-text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+            The simple follow-up tool for service businesses. Log every customer promise. Get automatic reminders. Escalate when things slip. Nothing gets forgotten.
+          </p>
+          <div className="hero-animate hero-delay-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/signup"
+              className="w-full sm:w-auto inline-block text-center bg-accent hover:bg-accent-hover text-white font-semibold px-8 py-4 rounded-xl text-lg transition-colors duration-150"
+            >
+              Start Free Trial
+            </Link>
+            <Link
+              to="/login"
+              className="w-full sm:w-auto inline-block text-center border border-border hover:border-text-muted text-text-secondary hover:text-text-primary font-semibold px-8 py-4 rounded-xl text-lg transition-colors duration-150"
+            >
+              Sign In
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* ── THE PROBLEM ─────────────────────────────────────────── */}
-      <section className="border-t border-border">
+      <section className="border-t border-[#1e293b]/50 bg-[#0d1117]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             Every Service Business Has This Problem
@@ -69,8 +111,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
             {/* Card 1 */}
-            <div className="bg-bg-card border border-border rounded-xl p-6">
-              <div className="text-2xl mb-4">📞</div>
+            <div className="bg-bg-card border border-border border-l-4 border-l-green-500 rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 hover:border-green-400">
+              <div className="text-4xl mb-5">📞</div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Forgotten Callback</h3>
               <p className="text-text-muted text-sm leading-relaxed">
                 A customer calls about a leaking pipe. Your receptionist says "we'll call you back with a quote." Three days later, they post a 1-star review because nobody ever called.
@@ -78,8 +120,8 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2 */}
-            <div className="bg-bg-card border border-border rounded-xl p-6">
-              <div className="text-2xl mb-4">📋</div>
+            <div className="bg-bg-card border border-border border-l-4 border-l-green-500 rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 hover:border-green-400">
+              <div className="text-4xl mb-5">📋</div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Sticky Note System</h3>
               <p className="text-text-muted text-sm leading-relaxed">
                 Your office tracks follow-ups on sticky notes, whiteboards, or memory. Things fall through the cracks every week, but nobody realizes until a customer complains.
@@ -87,8 +129,8 @@ export default function LandingPage() {
             </div>
 
             {/* Card 3 */}
-            <div className="bg-bg-card border border-border rounded-xl p-6">
-              <div className="text-2xl mb-4">🤷</div>
+            <div className="bg-bg-card border border-border border-l-4 border-l-green-500 rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 hover:border-green-400">
+              <div className="text-4xl mb-5">🤷</div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Blame Game</h3>
               <p className="text-text-muted text-sm leading-relaxed">
                 The receptionist thought the tech was handling it. The tech thought the office was handling it. The customer thought nobody cared.
@@ -96,17 +138,11 @@ export default function LandingPage() {
             </div>
 
           </div>
-
-          <p className="text-center text-text-muted text-sm mt-10">
-            <span className="text-text-primary font-semibold">100% hit rate</span> — this problem was found at{' '}
-            <span className="text-text-primary font-semibold">40 out of 40</span> companies researched across{' '}
-            <span className="text-text-primary font-semibold">11 industries</span>, including 4.9-star companies.
-          </p>
         </div>
       </section>
 
       {/* ── HOW IT WORKS ────────────────────────────────────────── */}
-      <section className="border-t border-border">
+      <section className="border-t border-[#1e293b]/50 bg-[#0a0f1a]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             Three Steps. Ten Seconds.
@@ -115,10 +151,20 @@ export default function LandingPage() {
             No training. No learning curve. Show your team once and they've got it.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Dashed connecting line on desktop */}
+            <div
+              className="hidden md:block absolute h-0 pointer-events-none"
+              style={{
+                top: '63px',
+                left: 'calc(16.66% + 28px)',
+                right: 'calc(16.66% + 28px)',
+                borderTop: '2px dashed rgba(34,197,94,0.2)',
+              }}
+            />
 
-            <div className="flex flex-col items-start">
-              <div className="w-10 h-10 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-lg mb-5 shrink-0">
+            <div className="bg-[#111827] border border-border border-l-4 border-l-green-500 rounded-xl p-8 flex flex-col items-start">
+              <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 1
               </div>
               <h3 className="text-text-primary font-bold text-base mb-2">Log the Promise</h3>
@@ -127,8 +173,8 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="flex flex-col items-start">
-              <div className="w-10 h-10 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-lg mb-5 shrink-0">
+            <div className="bg-[#111827] border border-border border-l-4 border-l-green-500 rounded-xl p-8 flex flex-col items-start">
+              <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 2
               </div>
               <h3 className="text-text-primary font-bold text-base mb-2">Automatic Reminders</h3>
@@ -137,8 +183,8 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="flex flex-col items-start">
-              <div className="w-10 h-10 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-lg mb-5 shrink-0">
+            <div className="bg-[#111827] border border-border border-l-4 border-l-green-500 rounded-xl p-8 flex flex-col items-start">
+              <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 3
               </div>
               <h3 className="text-text-primary font-bold text-base mb-2">Escalation</h3>
@@ -152,7 +198,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── NOT ANOTHER BLOATED PLATFORM ────────────────────────── */}
-      <section className="border-t border-border">
+      <section className="border-t border-[#1e293b]/50 bg-[#0d1117]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             Not Another Bloated Platform
@@ -168,7 +214,7 @@ export default function LandingPage() {
               <div className="px-6 py-4 text-center text-text-muted text-sm font-medium border-l border-border">
                 Jobber / Housecall Pro
               </div>
-              <div className="px-6 py-4 text-center text-accent text-sm font-bold border-l border-border">
+              <div className="px-6 py-4 text-center text-accent text-sm font-bold border-l border-border bg-green-500/10 border-t-2 border-t-green-500">
                 Promise Tracker
               </div>
             </div>
@@ -176,14 +222,14 @@ export default function LandingPage() {
             {[
               { label: 'Price', other: '$49–249/mo', us: '$39/mo' },
               { label: 'Setup time', other: 'Days to weeks', us: '5 minutes' },
-              { label: 'Features', other: '50+ you don\'t need', us: '1 that matters' },
+              { label: 'Features', other: "50+ you don't need", us: '1 that matters' },
               { label: 'Contracts', other: 'Annual', us: 'None' },
               { label: 'Learning curve', other: 'Hours of training', us: 'Show your team once' },
             ].map((row, i) => (
               <div key={i} className={`grid grid-cols-3 ${i < 4 ? 'border-b border-border' : ''}`}>
                 <div className="px-6 py-4 text-text-muted text-sm font-medium">{row.label}</div>
-                <div className="px-6 py-4 text-center text-text-muted text-sm border-l border-border">{row.other}</div>
-                <div className="px-6 py-4 text-center text-text-primary text-sm font-semibold border-l border-border">{row.us}</div>
+                <div className="px-6 py-4 text-center text-gray-500 text-sm border-l border-border">{row.other}</div>
+                <div className="px-6 py-4 text-center text-text-primary text-sm font-bold border-l border-border bg-green-500/5">{row.us}</div>
               </div>
             ))}
           </div>
@@ -191,8 +237,16 @@ export default function LandingPage() {
       </section>
 
       {/* ── PRICING ─────────────────────────────────────────────── */}
-      <section className="border-t border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
+      <section className="border-t border-[#1e293b]/50 bg-[#0a0f1a]">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
+          {/* Radial glow behind pricing card */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(ellipse 50% 60% at 50% 65%, rgba(34,197,94,0.06) 0%, transparent 70%)',
+            }}
+          />
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary mb-4 tracking-tight">
             Simple Pricing. No Surprises.
           </h2>
@@ -200,40 +254,50 @@ export default function LandingPage() {
             One plan. Everything included. Cancel anytime.
           </p>
 
-          <div className="max-w-sm mx-auto bg-bg-card border-2 border-accent/40 rounded-2xl p-8">
-            <div className="text-5xl font-extrabold text-text-primary mb-1">$39</div>
-            <div className="text-text-muted text-sm mb-8">per month</div>
+          {/* Gradient border wrapper */}
+          <div className="relative max-w-sm mx-auto p-[2px] rounded-2xl bg-gradient-to-br from-green-500/50 via-green-600/20 to-green-800/30">
+            <div className="bg-bg-card rounded-2xl p-8">
+              <div className="text-7xl font-black text-text-primary mb-1">$39</div>
+              <div className="text-text-muted text-sm mb-8">per month</div>
 
-            <ul className="space-y-3 text-sm text-left mb-8">
-              {[
-                '21-day free trial',
-                'No contracts — cancel anytime',
-                'Unlimited promises',
-                'Unlimited team members',
-                'Email reminders and escalations',
-                'Dashboard for your whole team',
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-text-secondary">
-                  <span className="text-accent font-bold text-base leading-none">✓</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
+              <ul className="space-y-4 text-sm text-left mb-8">
+                {[
+                  '21-day free trial',
+                  'No contracts — cancel anytime',
+                  'Unlimited promises',
+                  'Unlimited team members',
+                  'Email reminders and escalations',
+                  'Dashboard for your whole team',
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2.5 text-text-secondary">
+                    <span className="text-accent font-bold text-lg leading-none">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
 
-            <Link
-              to="/signup"
-              className="block w-full bg-accent hover:bg-accent-hover text-white font-bold py-3.5 rounded-xl text-base transition-colors duration-150 text-center"
-            >
-              Start Your Free Trial
-            </Link>
-            <p className="text-text-muted text-xs mt-3">No credit card required to start</p>
+              <Link
+                to="/signup"
+                className="block w-full bg-accent hover:bg-accent-hover text-white font-bold py-3.5 rounded-xl text-base transition-colors duration-150 text-center"
+              >
+                Start Your Free Trial
+              </Link>
+              <p className="text-text-muted text-xs mt-3">No credit card required to start</p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── FOOTER ──────────────────────────────────────────────── */}
-      <footer className="border-t border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-text-muted">
+      {/* Green gradient line above footer */}
+      <div
+        style={{
+          height: '1px',
+          background: 'linear-gradient(to right, transparent, rgba(34,197,94,0.4), transparent)',
+        }}
+      />
+      <footer className="bg-[#0d1117]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-text-muted">
           <span>© 2026 Promise Tracker</span>
           <div className="flex items-center gap-4 flex-wrap justify-center">
             <a
