@@ -155,13 +155,13 @@ export default function Signup() {
           <Link to="/privacy" className="hover:text-accent transition-colors duration-200">Privacy Policy</Link>
         </div>
 
-        <p className="text-center text-xs text-gray-500 mt-6">
-          By providing your phone number, you agree to receive SMS reminders and notifications from Promise Tracker. Message frequency varies. Message and data rates may apply. Reply STOP to opt out.
-        </p>
-
-        <p className="text-center text-xs text-[#64748b] mt-4">
+        <p className="text-center text-xs text-[#64748b] mt-6">
           Need help?{' '}
           <a href="mailto:support@promisetracker.app" className="text-accent hover:underline">support@promisetracker.app</a>
+        </p>
+
+        <p className="text-center text-xs text-gray-500 mt-4">
+          By providing your phone number, you agree to receive SMS reminders and notifications from Promise Tracker. Message frequency varies. Message and data rates may apply. Reply STOP to opt out.
         </p>
       </div>
     </div>
