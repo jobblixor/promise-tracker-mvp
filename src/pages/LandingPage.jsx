@@ -57,24 +57,13 @@ export default function LandingPage() {
 
       {/* ── HERO ────────────────────────────────────────────────── */}
       <section className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-40 pb-32 text-center">
-        {/* Radial glow */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(34,197,94,0.08) 0%, transparent 70%)',
-          }}
-        />
         <div className="relative">
           <div className="hero-animate hero-delay-1 inline-block bg-bg-card border border-border text-accent text-xs font-semibold px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
             21-Day Free Trial · No Credit Card Required
           </div>
           <h1 className="hero-animate hero-delay-2 text-5xl sm:text-6xl lg:text-7xl font-extrabold text-text-primary leading-tight tracking-tight mb-6">
             Your Team Promises to Call Back.{' '}
-            <span
-              className="text-accent"
-              style={{ textShadow: '0 0 40px rgba(34,197,94,0.3)' }}
-            >
+            <span className="text-accent">
               Promise Tracker
             </span>{' '}
             Makes Sure They Do.
@@ -111,8 +100,10 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
             {/* Card 1 */}
-            <div className="bg-bg-card border border-border border-l-4 border-l-green-500 rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 hover:border-green-400">
-              <div className="text-4xl mb-5">📞</div>
+            <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center font-bold mb-5">
+                <span className="text-rose-400 text-2xl">✗</span>
+              </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Forgotten Callback</h3>
               <p className="text-text-muted text-sm leading-relaxed">
                 A customer calls about a leaking pipe. Your receptionist says "we'll call you back with a quote." Three days later, they post a 1-star review because nobody ever called.
@@ -120,8 +111,10 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2 */}
-            <div className="bg-bg-card border border-border border-l-4 border-l-green-500 rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 hover:border-green-400">
-              <div className="text-4xl mb-5">📋</div>
+            <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center font-bold mb-5">
+                <span className="text-amber-400 text-2xl">!</span>
+              </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Sticky Note System</h3>
               <p className="text-text-muted text-sm leading-relaxed">
                 Your office tracks follow-ups on sticky notes, whiteboards, or memory. Things fall through the cracks every week, but nobody realizes until a customer complains.
@@ -129,8 +122,10 @@ export default function LandingPage() {
             </div>
 
             {/* Card 3 */}
-            <div className="bg-bg-card border border-border border-l-4 border-l-green-500 rounded-xl p-8 transition-all duration-300 hover:-translate-y-1 hover:border-green-400">
-              <div className="text-4xl mb-5">🤷</div>
+            <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+              <div className="w-10 h-10 rounded-full bg-[#1e293b] flex items-center justify-center font-bold mb-5">
+                <span className="text-orange-400 text-2xl">?</span>
+              </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Blame Game</h3>
               <p className="text-text-muted text-sm leading-relaxed">
                 The receptionist thought the tech was handling it. The tech thought the office was handling it. The customer thought nobody cared.
@@ -152,18 +147,8 @@ export default function LandingPage() {
           </p>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Dashed connecting line on desktop */}
-            <div
-              className="hidden md:block absolute h-0 pointer-events-none"
-              style={{
-                top: '63px',
-                left: 'calc(16.66% + 28px)',
-                right: 'calc(16.66% + 28px)',
-                borderTop: '2px dashed rgba(34,197,94,0.2)',
-              }}
-            />
 
-            <div className="bg-[#111827] border border-border border-l-4 border-l-green-500 rounded-xl p-8 flex flex-col items-start">
+            <div className="bg-[#111827] border border-border rounded-xl p-8 flex flex-col items-start">
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 1
               </div>
@@ -173,7 +158,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-[#111827] border border-border border-l-4 border-l-green-500 rounded-xl p-8 flex flex-col items-start">
+            <div className="bg-[#111827] border border-border rounded-xl p-8 flex flex-col items-start">
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 2
               </div>
@@ -183,7 +168,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-[#111827] border border-border border-l-4 border-l-green-500 rounded-xl p-8 flex flex-col items-start">
+            <div className="bg-[#111827] border border-border rounded-xl p-8 flex flex-col items-start">
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 3
               </div>
@@ -254,9 +239,7 @@ export default function LandingPage() {
             One plan. Everything included. Cancel anytime.
           </p>
 
-          {/* Gradient border wrapper */}
-          <div className="relative max-w-sm mx-auto p-[2px] rounded-2xl bg-gradient-to-br from-green-500/50 via-green-600/20 to-green-800/30">
-            <div className="bg-bg-card rounded-2xl p-8">
+          <div className="relative max-w-sm mx-auto rounded-2xl border-2 border-green-500 bg-bg-card p-8">
               <div className="text-7xl font-black text-text-primary mb-1">$39</div>
               <div className="text-text-muted text-sm mb-8">per month</div>
 
@@ -283,7 +266,6 @@ export default function LandingPage() {
                 Start Your Free Trial
               </Link>
               <p className="text-text-muted text-xs mt-3">No credit card required to start</p>
-            </div>
           </div>
         </div>
       </section>
