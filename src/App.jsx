@@ -15,10 +15,25 @@ import PricingPage from './pages/PricingPage';
 import SuccessPage from './pages/SuccessPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
+import AdminAffiliatePage from './pages/AdminAffiliatePage';
+
+const ADMIN_EMAIL = 'promisetrackermvp@gmail.com';
 
 const INACTIVITY_LIMIT = 259200000; // 3 days in ms
 const ACTIVITY_KEY = 'pt_last_activity';
 const PUBLIC_PATHS = ['/', '/login', '/signup', '/terms', '/privacy'];
+
+function ReferralCapture() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      const expires = new Date(Date.now() + 30 * 864e5).toUTCString();
+      document.cookie = `pt_ref=${encodeURIComponent(ref)}; expires=${expires}; path=/`;
+    }
+  }, []);
+  return null;
+}
 
 function ActivityTracker() {
   const { user, logout } = useAuth();
@@ -68,12 +83,21 @@ function PublicRoute({ children }) {
   return children;
 }
 
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/" replace />;
+  if (!user.emailVerified) return <Navigate to="/verify" replace />;
+  if (user.email !== ADMIN_EMAIL) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
           <SubscriptionProvider>
+            <ReferralCapture />
             <ActivityTracker />
             <Routes>
               <Route path="/" element={<LandingPage />} />
@@ -88,6 +112,7 @@ export default function App() {
               <Route path="/success" element={<ProtectedRoute><SuccessPage /></ProtectedRoute>} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/admin/affiliates" element={<AdminRoute><AdminAffiliatePage /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </SubscriptionProvider>

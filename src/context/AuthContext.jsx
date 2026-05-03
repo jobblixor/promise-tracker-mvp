@@ -158,6 +158,13 @@ export function AuthProvider({ children }) {
 
   const signup = async (email, password, businessName, phone, timezone) => {
     console.log('[SIGNUP DEBUG] === SIGNUP START ===');
+
+    // Read referral cookie before creating the account
+    const refMatch = document.cookie.match(/(?:^|;\s*)pt_ref=([^;]+)/);
+    const referralCode = refMatch ? decodeURIComponent(refMatch[1]) : null;
+    if (referralCode) {
+      console.log('[SIGNUP DEBUG] Referral code found in cookie:', referralCode);
+    }
     
     // Create auth account FIRST so we're authenticated for Firestore queries
     console.log('[SIGNUP DEBUG] Step 1: createUserWithEmailAndPassword...');
@@ -197,7 +204,7 @@ export function AuthProvider({ children }) {
 
     // Create the user doc with businessId
     console.log('[SIGNUP DEBUG] Step 4: setDoc to users/', uid);
-    await setDoc(doc(db, 'users', uid), {
+    const userDocData = {
       uid,
       email,
       phone,
@@ -205,7 +212,12 @@ export function AuthProvider({ children }) {
       businessId: businessRef.id,
       role: 'owner',
       createdAt: serverTimestamp(),
-    });
+    };
+    if (referralCode) {
+      userDocData.referralCode = referralCode;
+      userDocData.referredAt = serverTimestamp();
+    }
+    await setDoc(doc(db, 'users', uid), userDocData);
     console.log('[SIGNUP DEBUG] Step 4 OK - user doc created');
 
     // Store fingerprint data

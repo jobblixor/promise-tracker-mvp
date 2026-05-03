@@ -637,6 +637,53 @@ exports.stripeWebhook = onRequest(async (req, res) => {
           } catch (err) {
             console.error("Owner notification failed (new subscriber):", err.message);
           }
+          // Commission tracking for referred customers
+          try {
+            const bizDocForRef = await db.collection("businesses").doc(businessId).get();
+            if (bizDocForRef.exists && bizDocForRef.data().ownerId) {
+              const ownerId = bizDocForRef.data().ownerId;
+              const ownerDocForRef = await db.collection("users").doc(ownerId).get();
+              if (ownerDocForRef.exists) {
+                const ownerData = ownerDocForRef.data();
+                const refCode = ownerData.referralCode;
+                if (refCode) {
+                  const affiliateSnap = await db
+                    .collection("affiliates")
+                    .where("code", "==", refCode)
+                    .where("active", "==", true)
+                    .limit(1)
+                    .get();
+                  if (!affiliateSnap.empty) {
+                    const affiliateDoc = affiliateSnap.docs[0];
+                    const affiliateData = affiliateDoc.data();
+                    const paymentAmount = session.amount_total || 0;
+                    if (paymentAmount > 0) {
+                      const commissionRate = affiliateData.commissionRate || 0.30;
+                      const commissionAmount = Math.round(paymentAmount * commissionRate);
+                      await db.collection("commissionEvents").add({
+                        affiliateCode: refCode,
+                        affiliateName: affiliateData.name || "",
+                        customerId: ownerId,
+                        customerEmail: ownerData.email || "",
+                        stripePaymentId: session.payment_intent || session.id,
+                        paymentAmount,
+                        commissionAmount,
+                        commissionRate,
+                        eventDate: admin.firestore.FieldValue.serverTimestamp(),
+                        paid: false,
+                        paidDate: null,
+                      });
+                      console.log(`Commission event created: ${commissionAmount} cents for affiliate ${refCode}`);
+                    }
+                  } else {
+                    console.log(`Referral code ${refCode} not found or inactive — skipping commission`);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.error("Commission tracking failed (checkout.session.completed):", err.message);
+          }
         }
         break;
       }
