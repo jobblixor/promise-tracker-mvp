@@ -3,7 +3,7 @@ const { onCall } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
-// SMS provider: Textbelt
+// SMS provider: Vonage Messages API
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -18,28 +18,52 @@ const gmailTransporter = nodemailer.createTransport({
 });
 
 /**
- * Send an SMS via Textbelt. Logs and swallows errors so one failure
+ * Format a phone number to E.164-ish format required by Vonage: "1XXXXXXXXXX"
+ * (no +, no dashes/spaces/parens, country code 1 prepended if only 10 digits)
+ */
+function formatPhoneForVonage(phone) {
+  // Strip everything except digits
+  const digits = phone.replace(/\D/g, '');
+  // Prepend country code 1 if we only have 10 digits
+  return digits.length === 10 ? `1${digits}` : digits;
+}
+
+/**
+ * Send an SMS via Vonage Messages API. Logs and swallows errors so one failure
  * doesn't stop processing the remaining promises.
  */
-async function sendSMS(to, body) {
+async function sendSMS(to, message) {
   try {
-    console.log(`Sending SMS to ${to}: ${body}`);
-    const response = await fetch('https://textbelt.com/text', {
+    const formattedTo = formatPhoneForVonage(to);
+    console.log(`Sending SMS via Vonage to ${formattedTo}: ${message}`);
+
+    const credentials = Buffer.from(
+      `${process.env.VONAGE_API_KEY}:${process.env.VONAGE_API_SECRET}`
+    ).toString('base64');
+
+    const response = await fetch('https://api.nexmo.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${credentials}`
+      },
       body: JSON.stringify({
-        phone: to,
-        message: body,
-        key: process.env.TEXTBELT_KEY
+        to: formattedTo,
+        from: process.env.VONAGE_FROM_NUMBER,
+        channel: 'sms',
+        message_type: 'text',
+        text: message
       })
     });
+
     const result = await response.json();
-    if (result.success) {
-      console.log(`SMS sent successfully via Textbelt. quotaRemaining: ${result.quotaRemaining}`);
+    if (response.ok) {
+      console.log(`SMS sent successfully via Vonage. message_uuid: ${result.message_uuid}`);
+      return true;
     } else {
-      console.log(`Textbelt SMS failed:`, result, `quotaRemaining: ${result.quotaRemaining}`);
+      console.log(`Vonage SMS failed:`, JSON.stringify(result));
+      return false;
     }
-    return result.success;
   } catch (err) {
     console.error(`Failed to send SMS to ${to}:`, err.message);
     return false;
