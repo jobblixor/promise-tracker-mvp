@@ -161,7 +161,7 @@ export default function Signup() {
         </p>
 
         <p className="text-center text-xs text-gray-500 mt-4">
-          By providing your phone number, you agree to receive SMS reminders and notifications from Promise Tracker. Message frequency varies. Message and data rates may apply. Reply STOP to opt out.
+          By entering your phone number, you agree to receive SMS messages from Promise Tracker. Message frequency varies. Msg &amp; data rates may apply. Text HELP for help. Text STOP to cancel.
         </p>
       </div>
     </div>

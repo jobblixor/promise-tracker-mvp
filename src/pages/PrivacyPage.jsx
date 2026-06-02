@@ -106,6 +106,7 @@ export default function PrivacyPage() {
                 <strong className="text-text-primary">Vercel</strong> — Hosts and serves the web application. See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Vercel's Privacy Policy</a>.
               </li>
             </ul>
+            <p className="mt-4">No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. Text messaging opt-in data and consent will not be shared with any third parties.</p>
           </section>
 
           <section>
