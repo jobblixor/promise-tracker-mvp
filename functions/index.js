@@ -656,7 +656,7 @@ exports.stripeWebhook = onRequest(async (req, res) => {
             await sendOwnerNotification(
               `New Subscriber: ${bizName}`,
               `${ownerEmail} (${bizName}) just subscribed to Pro at $39/month`,
-              `New subscriber: ${bizName} - $39/mo`
+              `New subscriber: ${bizName} - ${ownerEmail} - $39/mo`
             );
           } catch (err) {
             console.error("Owner notification failed (new subscriber):", err.message);
@@ -734,7 +734,7 @@ exports.stripeWebhook = onRequest(async (req, res) => {
             await sendOwnerNotification(
               `Subscription Cancelled: ${bizName}`,
               `${ownerEmail} (${bizName}) cancelled their subscription`,
-              `Cancelled: ${bizName}`
+              `Cancelled: ${bizName} - ${ownerEmail}`
             );
           } catch (err) {
             console.error("Owner notification failed (subscription cancelled):", err.message);
@@ -846,7 +846,7 @@ exports.cancelSubscription = onCall(async (request) => {
     await sendOwnerNotification(
       `Subscription Cancelled: ${bizName}`,
       `${ownerEmail} (${bizName}) cancelled their subscription`,
-      `Cancelled: ${bizName}`
+      `Cancelled: ${bizName} - ${ownerEmail}`
     );
   } catch (err) {
     console.error("Owner notification failed (cancel subscription):", err.message);
@@ -996,7 +996,7 @@ exports.sendVerificationCode = onCall(async (request) => {
     await sendOwnerNotification(
       `New Signup: ${email}`,
       `${email} just created an account for business '${businessName}' at ${timestamp}`,
-      `New signup: ${businessName}`
+      `New signup: ${businessName} - ${email}`
     );
     console.log(`[sendVerificationCode] sendOwnerNotification completed for ${email}`);
   } catch (err) {
@@ -1033,11 +1033,17 @@ exports.deleteAccount = onCall(async (request) => {
   // Notify app owner of account deletion
   try {
     const timestamp = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+    let deletedBusinessName = "Unknown";
+    const deletedBusinessId = userDoc.exists ? userDoc.data().businessId : null;
+    if (deletedBusinessId) {
+      const bizDoc = await db.collection("businesses").doc(deletedBusinessId).get();
+      if (bizDoc.exists && bizDoc.data().name) deletedBusinessName = bizDoc.data().name;
+    }
     console.log(`[deleteAccount] About to call sendOwnerNotification for ${userEmail}`);
     await sendOwnerNotification(
-      `Account Deleted: ${userEmail}`,
-      `${userEmail} deleted their account at ${timestamp}`,
-      `Account deleted`
+      `Account Deleted: ${deletedBusinessName} - ${userEmail}`,
+      `${userEmail} (${deletedBusinessName}) deleted their account at ${timestamp}`,
+      `Account deleted: ${deletedBusinessName} - ${userEmail}`
     );
     console.log(`[deleteAccount] sendOwnerNotification completed for ${userEmail}`);
   } catch (err) {
