@@ -211,26 +211,26 @@ async function sendEmail(to, subject, htmlBody) {
  */
 function buildEmailHTML(headline, bodyLines, ctaText) {
   const linesHTML = bodyLines
-    .map((line) => `<p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#cbd5e1;">${line}</p>`)
+    .map((line) => `<p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#4b5563;">${line}</p>`)
     .join("\n            ");
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0f1a;">
+<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;">
     <tr>
       <td align="center" style="padding:40px 20px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#111827;border-radius:12px;overflow:hidden;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;">
           <!-- Header -->
           <tr>
-            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #1e293b;">
+            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #d1d5db;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width:32px;height:32px;">
                     <img src="https://promisetracker.app/logo.jpeg" alt="P" width="32" height="32" style="display:block;border-radius:8px;" />
                   </td>
-                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#f1f5f9;">Promise Tracker</td>
+                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#111827;">Promise Tracker</td>
                 </tr>
               </table>
             </td>
@@ -238,12 +238,12 @@ function buildEmailHTML(headline, bodyLines, ctaText) {
           <!-- Body -->
           <tr>
             <td style="padding:32px;">
-              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#f1f5f9;">${headline}</h1>
+              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#111827;">${headline}</h1>
               ${linesHTML}
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px;">
                 <tr>
                   <td style="background-color:#22c55e;border-radius:8px;">
-                    <a href="https://promisetracker.app/dashboard" target="_blank" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;color:#0a0f1a;text-decoration:none;">${ctaText || "View Dashboard"}</a>
+                    <a href="https://promisetracker.app/dashboard" target="_blank" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">${ctaText || "View Dashboard"}</a>
                   </td>
                 </tr>
               </table>
@@ -251,8 +251,8 @@ function buildEmailHTML(headline, bodyLines, ctaText) {
           </tr>
           <!-- Footer -->
           <tr>
-            <td style="padding:20px 32px;border-top:1px solid #1e293b;text-align:center;">
-              <p style="margin:0;font-size:12px;color:#64748b;">Promise Tracker &mdash; <a href="mailto:support@promisetracker.app" style="color:#22c55e;text-decoration:none;">support@promisetracker.app</a></p>
+            <td style="padding:20px 32px;border-top:1px solid #d1d5db;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">Promise Tracker &mdash; <a href="mailto:support@promisetracker.app" style="color:#16a34a;text-decoration:none;">support@promisetracker.app</a></p>
             </td>
           </tr>
         </table>
@@ -308,32 +308,32 @@ function buildOwnerEmailHTML(headline, bodyText) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0f1a;">
+<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;">
     <tr>
       <td align="center" style="padding:40px 20px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#111827;border-radius:12px;overflow:hidden;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;">
           <tr>
-            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #1e293b;">
+            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #d1d5db;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width:32px;height:32px;">
                     <img src="https://promisetracker.app/logo.jpeg" alt="P" width="32" height="32" style="display:block;border-radius:8px;" />
                   </td>
-                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#f1f5f9;">Promise Tracker — Owner Alert</td>
+                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#111827;">Promise Tracker — Owner Alert</td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
             <td style="padding:32px;">
-              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#22c55e;">${headline}</h1>
-              <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#cbd5e1;">${bodyText}</p>
+              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#16a34a;">${headline}</h1>
+              <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#4b5563;">${bodyText}</p>
             </td>
           </tr>
           <tr>
-            <td style="padding:20px 32px;border-top:1px solid #1e293b;text-align:center;">
-              <p style="margin:0;font-size:12px;color:#64748b;">Promise Tracker Owner Notification</p>
+            <td style="padding:20px 32px;border-top:1px solid #d1d5db;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">Promise Tracker Owner Notification</p>
             </td>
           </tr>
         </table>
@@ -940,36 +940,36 @@ exports.sendVerificationCode = onCall(async (request) => {
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0f1a;">
+<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;">
     <tr>
       <td align="center" style="padding:40px 20px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#111827;border-radius:12px;overflow:hidden;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;">
           <tr>
-            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #1e293b;">
+            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #d1d5db;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width:32px;height:32px;">
                     <img src="https://promisetracker.app/logo.jpeg" alt="P" width="32" height="32" style="display:block;border-radius:8px;" />
                   </td>
-                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#f1f5f9;">Promise Tracker</td>
+                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#111827;">Promise Tracker</td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
             <td style="padding:32px;text-align:center;">
-              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#f1f5f9;">Verify your email</h1>
-              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#cbd5e1;">Enter this code in Promise Tracker to verify your email address:</p>
-              <div style="display:inline-block;padding:16px 40px;background-color:#0a0f1a;border-radius:12px;border:1px solid #1e293b;margin-bottom:24px;">
-                <span style="font-size:36px;font-weight:800;letter-spacing:8px;color:#22c55e;">${code}</span>
+              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#111827;">Verify your email</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4b5563;">Enter this code in Promise Tracker to verify your email address:</p>
+              <div style="display:inline-block;padding:16px 40px;background-color:#f3f4f6;border-radius:12px;border:1px solid #d1d5db;margin-bottom:24px;">
+                <span style="font-size:36px;font-weight:800;letter-spacing:8px;color:#16a34a;">${code}</span>
               </div>
-              <p style="margin:0;font-size:13px;color:#64748b;">This code expires in 15 minutes.</p>
+              <p style="margin:0;font-size:13px;color:#9ca3af;">This code expires in 15 minutes.</p>
             </td>
           </tr>
           <tr>
-            <td style="padding:20px 32px;border-top:1px solid #1e293b;text-align:center;">
-              <p style="margin:0;font-size:12px;color:#64748b;">Promise Tracker &mdash; <a href="mailto:support@promisetracker.app" style="color:#22c55e;text-decoration:none;">support@promisetracker.app</a></p>
+            <td style="padding:20px 32px;border-top:1px solid #d1d5db;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">Promise Tracker &mdash; <a href="mailto:support@promisetracker.app" style="color:#16a34a;text-decoration:none;">support@promisetracker.app</a></p>
             </td>
           </tr>
         </table>
