@@ -12,6 +12,18 @@
   --color-text-muted:    #9ca3af;   /* light gray for hints */
 }
 
+.dark {
+  --color-bg-primary:      #0a0f1a;
+  --color-bg-card:         #111827;
+  --color-bg-card-hover:   #151d2e;
+  --color-border:          #1e293b;
+  --color-accent:          #22c55e;
+  --color-accent-hover:    #16a34a;
+  --color-text-primary:    #ffffff;
+  --color-text-secondary:  #e2e8f0;
+  --color-text-muted:      #94a3b8;
+}
+
 body {
   margin: 0;
   background-color: var(--color-bg-primary);

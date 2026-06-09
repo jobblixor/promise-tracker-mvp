@@ -61,6 +61,17 @@ export default function CalculatorPage() {
   const [openFaq, setOpenFaq] = useState(null);
 
   useEffect(() => {
+    // Force light mode on this public SEO page; restore user preference on unmount
+    const savedTheme = localStorage.getItem('theme');
+    document.documentElement.classList.remove('dark');
+    return () => {
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     document.title = 'Free Quote Follow-Up Revenue Calculator | Promise Tracker';
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {

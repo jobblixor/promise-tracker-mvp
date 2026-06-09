@@ -200,6 +200,20 @@ export default function SettingsPage() {
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
   const [periodEndDate, setPeriodEndDate] = useState(null);
 
+  // Theme
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+  const handleToggleTheme = (isDark) => {
+    const newTheme = isDark ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
   // Loading
   const [loading, setLoading] = useState(true);
 
@@ -509,7 +523,23 @@ export default function SettingsPage() {
           <p className="text-[11px] text-text-muted mt-3">Changes are saved automatically.</p>
         </div>
 
-        {/* SECTION 4: Subscription */}
+        {/* SECTION 4: Theme */}
+        <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
+          <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+            </svg>
+            Theme
+          </h2>
+          <Toggle
+            label="Dark mode"
+            enabled={theme === 'dark'}
+            onChange={handleToggleTheme}
+          />
+          <p className="text-[11px] text-text-muted mt-1">Changes are applied immediately.</p>
+        </div>
+
+        {/* SECTION 5: Subscription */}
         <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
           <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
             <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -629,7 +659,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* SECTION 5: Danger Zone */}
+        {/* SECTION 6: Danger Zone */}
         <div className="bg-bg-card border border-red-500/20 rounded-2xl p-6 animate-fade-in-up">
           <h2 className="text-base font-semibold text-red-400 mb-2 flex items-center gap-2">
             <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
