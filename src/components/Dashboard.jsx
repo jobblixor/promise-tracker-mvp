@@ -239,7 +239,7 @@ export default function Dashboard() {
             <h2 className="text-xl font-extrabold text-text-primary mb-2">
               {plan === 'trial_expired' ? 'Free Trial Unavailable' : 'Your free trial has ended'}
             </h2>
-            <p className="text-sm text-text-muted mb-6">
+            <p className="text-sm text-text-secondary mb-6">
               {plan === 'trial_expired'
                 ? 'A free trial has already been used with this account information. Subscribe to Promise Tracker Pro for $39/month to get started.'
                 : 'Your free trial has ended. Upgrade to Promise Tracker Pro for $39/month to continue.'}
@@ -276,7 +276,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10 animate-fade-in-up">
         <div>
           <h1 className="text-[28px] font-extrabold text-text-primary tracking-tight">Dashboard</h1>
-          <p className="text-sm text-text-muted mt-1.5 font-normal">Track and manage customer promises</p>
+          <p className="text-sm text-text-secondary mt-1.5 font-normal">Track and manage customer promises</p>
         </div>
         <button
           onClick={() => setFormOpen(true)}
@@ -347,7 +347,7 @@ export default function Dashboard() {
           <div className="text-center py-20 animate-fade-in-up">
             <div className="text-4xl mb-4">{emptyMessages[activeTab].icon}</div>
             <p className="text-base font-semibold text-text-secondary mb-1">{emptyMessages[activeTab].title}</p>
-            <p className="text-sm text-text-muted mb-5">{emptyMessages[activeTab].subtitle}</p>
+            <p className="text-sm text-text-secondary mb-5">{emptyMessages[activeTab].subtitle}</p>
             {activeTab === 'all' && promises.length === 0 && (
               <button
                 onClick={() => setFormOpen(true)}

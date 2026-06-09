@@ -46,7 +46,7 @@ function MemberCard({ member, isOwner, currentUserId, onRemove, onRoleChange }) 
       : '—';
 
   return (
-    <div className="group bg-bg-card border border-border/40 rounded-xl p-5 hover:border-border/70 hover:bg-bg-card-hover transition-all duration-200 animate-fade-in-up">
+    <div className="group bg-bg-card border border-border/40 shadow-sm rounded-xl p-5 hover:border-border/70 hover:bg-bg-card-hover transition-all duration-200 animate-fade-in-up">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3.5">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ring-1 shrink-0 ${

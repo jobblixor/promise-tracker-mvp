@@ -68,7 +68,7 @@ export default function LandingPage() {
             </span>{' '}
             Makes Sure They Do.
           </h1>
-          <p className="hero-animate hero-delay-3 text-lg sm:text-xl text-text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="hero-animate hero-delay-3 text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
             The simple follow-up tool for service businesses. Log every customer promise. Get automatic reminders. Escalate when things slip. Nothing gets forgotten.
           </p>
           <div className="hero-animate hero-delay-4 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -94,13 +94,13 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             Every Service Business Has This Problem
           </h2>
-          <p className="text-text-muted text-center mb-12 max-w-xl mx-auto">
+          <p className="text-text-secondary text-center mb-12 max-w-xl mx-auto">
             We researched 40 service companies across 11 industries. Every single one had this problem.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
             {/* Card 1 */}
-            <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
               <div className="w-10 h-10 rounded-full bg-border flex items-center justify-center mb-5">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fb7185" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
@@ -109,13 +109,13 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Forgotten Callback</h3>
-              <p className="text-text-muted text-sm leading-relaxed">
+              <p className="text-text-secondary text-sm leading-relaxed">
                 A customer calls about a leaking pipe. Your receptionist says "we'll call you back with a quote." Three days later, they post a 1-star review because nobody ever called.
               </p>
             </div>
 
             {/* Card 2 */}
-            <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
               <div className="w-10 h-10 rounded-full bg-border flex items-center justify-center mb-5">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
@@ -125,13 +125,13 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Sticky Note System</h3>
-              <p className="text-text-muted text-sm leading-relaxed">
+              <p className="text-text-secondary text-sm leading-relaxed">
                 Your office tracks follow-ups on sticky notes, whiteboards, or memory. Things fall through the cracks every week, but nobody realizes until a customer complains.
               </p>
             </div>
 
             {/* Card 3 */}
-            <div className="bg-bg-card border border-border rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
               <div className="w-10 h-10 rounded-full bg-border flex items-center justify-center mb-5">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="17 1 21 5 17 9"/>
@@ -141,7 +141,7 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">The Blame Game</h3>
-              <p className="text-text-muted text-sm leading-relaxed">
+              <p className="text-text-secondary text-sm leading-relaxed">
                 The receptionist thought the tech was handling it. The tech thought the office was handling it. The customer thought nobody cared.
               </p>
             </div>
@@ -156,38 +156,38 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             Three Steps. Ten Seconds.
           </h2>
-          <p className="text-text-muted text-center mb-14 max-w-xl mx-auto">
+          <p className="text-text-secondary text-center mb-14 max-w-xl mx-auto">
             No training. No learning curve. Show your team once and they've got it.
           </p>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
 
-            <div className="bg-bg-card border border-border rounded-xl p-8 flex flex-col items-start">
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 flex flex-col items-start">
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 1
               </div>
               <h3 className="text-text-primary font-bold text-base mb-2">Log the Promise</h3>
-              <p className="text-text-muted text-sm leading-relaxed">
+              <p className="text-text-secondary text-sm leading-relaxed">
                 Customer calls, your receptionist logs who was promised, what was promised, and when it's due. Done in 10 seconds.
               </p>
             </div>
 
-            <div className="bg-bg-card border border-border rounded-xl p-8 flex flex-col items-start">
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 flex flex-col items-start">
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 2
               </div>
               <h3 className="text-text-primary font-bold text-base mb-2">Automatic Reminders</h3>
-              <p className="text-text-muted text-sm leading-relaxed">
+              <p className="text-text-secondary text-sm leading-relaxed">
                 30 minutes before it's due, the person who made the promise gets reminded via email. No manual follow-up needed.
               </p>
             </div>
 
-            <div className="bg-bg-card border border-border rounded-xl p-8 flex flex-col items-start">
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 flex flex-col items-start">
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 3
               </div>
               <h3 className="text-text-primary font-bold text-base mb-2">Escalation</h3>
-              <p className="text-text-muted text-sm leading-relaxed">
+              <p className="text-text-secondary text-sm leading-relaxed">
                 1 hour overdue? The manager gets alerted. 24 hours? Daily urgent reminders fire until someone handles it. The system never forgets.
               </p>
             </div>
@@ -202,11 +202,11 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             Not Another Bloated Platform
           </h2>
-          <p className="text-text-muted text-center mb-12 max-w-xl mx-auto">
+          <p className="text-text-secondary text-center mb-12 max-w-xl mx-auto">
             Jobber, Housecall Pro, and ServiceTitan are great if you need scheduling, dispatching, invoicing, CRM, and payments. Promise Tracker does one thing and does it perfectly.
           </p>
 
-          <div className="bg-bg-card border border-border rounded-xl overflow-hidden">
+          <div className="bg-bg-card border border-border shadow-sm rounded-xl overflow-hidden">
             {/* Header row */}
             <div className="grid grid-cols-3 border-b border-border">
               <div className="px-6 py-4 text-text-muted text-sm font-medium" />
@@ -249,11 +249,11 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary mb-4 tracking-tight">
             Simple Pricing. No Surprises.
           </h2>
-          <p className="text-text-muted mb-12 max-w-lg mx-auto">
+          <p className="text-text-secondary mb-12 max-w-lg mx-auto">
             One plan. Everything included. Cancel anytime.
           </p>
 
-          <div className="relative max-w-sm mx-auto rounded-2xl border-2 border-green-500 bg-bg-card p-8">
+          <div className="relative max-w-sm mx-auto rounded-2xl border-2 border-green-500 shadow-sm bg-bg-card p-8">
               <div className="text-7xl font-black text-text-primary mb-1">$39</div>
               <div className="text-text-muted text-sm mb-8">per month</div>
 

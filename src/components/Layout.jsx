@@ -68,7 +68,7 @@ export default function Layout({ children }) {
   return (
     <div className="flex h-screen bg-bg-primary">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-bg-card via-bg-card to-bg-primary/80 border-r border-border/60">
+      <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-bg-card via-bg-card to-bg-primary/80 border-r border-border">
         {/* Brand */}
         <div className="p-6 pb-5">
           <h1 className="text-lg font-extrabold text-text-primary flex items-center gap-3 tracking-tight">
@@ -172,7 +172,7 @@ export default function Layout({ children }) {
       </main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-card/90 backdrop-blur-xl border-t border-border/60 flex justify-around py-2.5 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-card/90 backdrop-blur-xl border-t border-border flex justify-around py-2.5 z-50">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (

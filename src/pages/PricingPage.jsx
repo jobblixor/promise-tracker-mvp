@@ -69,10 +69,10 @@ export default function PricingPage() {
       <div className="p-5 md:p-10 max-w-xl mx-auto animate-fade-in-up">
         <div className="text-center mb-10">
           <h1 className="text-[28px] font-extrabold text-text-primary tracking-tight">Upgrade to Pro</h1>
-          <p className="text-sm text-text-muted mt-1.5">Everything you need to track every promise</p>
+          <p className="text-sm text-text-secondary mt-1.5">Everything you need to track every promise</p>
         </div>
 
-        <div className="bg-bg-card border border-border rounded-2xl p-8">
+        <div className="bg-bg-card border border-border shadow-sm rounded-2xl p-8">
           {/* Price */}
           <div className="text-center mb-8">
             <div className="flex items-baseline justify-center gap-1">

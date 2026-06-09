@@ -42,7 +42,7 @@ function PlanBadge({ plan }) {
 
 function StatCard({ label, value, sub }) {
   return (
-    <div className="bg-bg-card border border-border rounded-xl p-5">
+    <div className="bg-bg-card border border-border shadow-sm rounded-xl p-5">
       <p className="text-[12px] font-medium text-text-secondary uppercase tracking-wider mb-1">{label}</p>
       <p className="text-2xl font-bold text-text-primary">{value}</p>
       {sub && <p className="text-[12px] text-text-muted mt-1">{sub}</p>}
@@ -287,7 +287,7 @@ export default function AdminAffiliatePage() {
             <section>
               <h2 className="text-[13px] font-semibold text-text-secondary uppercase tracking-wider mb-4">Affiliates</h2>
               {affiliates.length === 0 ? (
-                <div className="bg-bg-card border border-border rounded-xl p-10 text-center">
+                <div className="bg-bg-card border border-border shadow-sm rounded-xl p-10 text-center">
                   <p className="text-text-secondary text-sm">No affiliates yet.</p>
                   <p className="text-text-muted text-[12px] mt-1">Add affiliate docs manually in Firestore under the <code className="text-accent">affiliates</code> collection.</p>
                 </div>
@@ -299,7 +299,7 @@ export default function AdminAffiliatePage() {
                     return (
                       <div
                         key={affiliate.id}
-                        className={`bg-bg-card border rounded-xl overflow-hidden transition-all duration-200 ${
+                        className={`bg-bg-card border rounded-xl shadow-sm overflow-hidden transition-all duration-200 ${
                           isSelected ? 'border-accent/40' : 'border-border hover:border-border/60'
                         }`}
                       >
