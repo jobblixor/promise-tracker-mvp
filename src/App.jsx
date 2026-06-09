@@ -17,6 +17,8 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import CalculatorPage from './pages/CalculatorPage';
 import AdminAffiliatePage from './pages/AdminAffiliatePage';
+import BlogFollowUpQuote from './pages/BlogFollowUpQuote';
+import BlogFollowUpTimes from './pages/BlogFollowUpTimes';
 
 const ADMIN_EMAIL = 'promisetrackermvp@gmail.com';
 
@@ -114,6 +116,8 @@ export default function App() {
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/calculator" element={<CalculatorPage />} />
+              <Route path="/blog/how-to-follow-up-on-a-quote" element={<BlogFollowUpQuote />} />
+              <Route path="/blog/how-many-times-to-follow-up-on-estimate" element={<BlogFollowUpTimes />} />
               <Route path="/admin/affiliates" element={<AdminRoute><AdminAffiliatePage /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

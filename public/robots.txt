@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /promises
+Disallow: /team
+Disallow: /settings
+Disallow: /pricing
+Disallow: /success
+Disallow: /verify
+Disallow: /admin
+Sitemap: https://www.promisetracker.app/sitemap.xml
