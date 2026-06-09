@@ -49,7 +49,7 @@ export default function PromiseForm({ isOpen, onClose, onSubmit }) {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-muted hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200 hover:rotate-90"
+            className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-muted hover:text-text-secondary hover:bg-black/[0.06] transition-all duration-200 hover:rotate-90"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

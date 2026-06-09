@@ -15,6 +15,7 @@ import PricingPage from './pages/PricingPage';
 import SuccessPage from './pages/SuccessPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
+import CalculatorPage from './pages/CalculatorPage';
 import AdminAffiliatePage from './pages/AdminAffiliatePage';
 
 const ADMIN_EMAIL = 'promisetrackermvp@gmail.com';
@@ -112,6 +113,7 @@ export default function App() {
               <Route path="/success" element={<ProtectedRoute><SuccessPage /></ProtectedRoute>} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/calculator" element={<CalculatorPage />} />
               <Route path="/admin/affiliates" element={<AdminRoute><AdminAffiliatePage /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

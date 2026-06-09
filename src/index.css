@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-primary: #0a0f1a;
-  --color-bg-card: #111827;
-  --color-bg-card-hover: #151d2e;
-  --color-border: #1e293b;
-  --color-accent: #22c55e;
-  --color-accent-hover: #16a34a;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #e2e8f0;
-  --color-text-muted: #94a3b8;
+  --color-bg-primary:    #f9fafb;   /* light gray background */
+  --color-bg-card:       #ffffff;   /* white cards */
+  --color-bg-card-hover: #f3f4f6;   /* light gray hover */
+  --color-border:        #e5e7eb;   /* light gray borders */
+  --color-accent:        #22c55e;   /* keep green */
+  --color-accent-hover:  #16a34a;   /* keep green hover */
+  --color-text-primary:  #111827;   /* dark text for headings */
+  --color-text-secondary:#4b5563;   /* medium gray for body */
+  --color-text-muted:    #9ca3af;   /* light gray for hints */
 }
 
 body {
@@ -89,7 +89,7 @@ body {
   animation: slide-out-up 0.25s ease both;
 }
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.04) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;
 }

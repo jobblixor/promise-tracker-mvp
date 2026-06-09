@@ -57,13 +57,13 @@ function SkeletonCard() {
       <div className="flex items-start gap-3">
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="h-4 w-28 rounded-md bg-white/[0.06] animate-shimmer" />
-            <div className="h-4 w-16 rounded-full bg-white/[0.04] animate-shimmer" />
+            <div className="h-4 w-28 rounded-md bg-black/[0.06] animate-shimmer" />
+            <div className="h-4 w-16 rounded-full bg-black/[0.04] animate-shimmer" />
           </div>
-          <div className="h-3.5 w-3/4 rounded-md bg-white/[0.04] animate-shimmer" />
+          <div className="h-3.5 w-3/4 rounded-md bg-black/[0.04] animate-shimmer" />
           <div className="flex gap-4">
-            <div className="h-3 w-24 rounded-md bg-white/[0.03] animate-shimmer" />
-            <div className="h-3 w-20 rounded-md bg-white/[0.03] animate-shimmer" />
+            <div className="h-3 w-24 rounded-md bg-black/[0.03] animate-shimmer" />
+            <div className="h-3 w-20 rounded-md bg-black/[0.03] animate-shimmer" />
           </div>
         </div>
       </div>
@@ -329,7 +329,7 @@ export default function Dashboard() {
           ))}
           {/* Sliding indicator */}
           <span
-            className="absolute bottom-0 h-full bg-white/[0.07] rounded-[10px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="absolute bottom-0 h-full bg-black/[0.07] rounded-[10px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
           />
         </div>

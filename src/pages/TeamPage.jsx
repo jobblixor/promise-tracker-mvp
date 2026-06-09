@@ -52,7 +52,7 @@ function MemberCard({ member, isOwner, currentUserId, onRemove, onRoleChange }) 
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ring-1 shrink-0 ${
             isMemberOwner
               ? 'bg-accent/15 text-accent ring-accent/25'
-              : 'bg-white/[0.06] text-text-muted ring-white/10'
+              : 'bg-bg-card-hover text-text-muted ring-black/10'
           }`}>
             {member.email?.[0]?.toUpperCase() || '?'}
           </div>
@@ -93,7 +93,7 @@ function MemberCard({ member, isOwner, currentUserId, onRemove, onRoleChange }) 
             <div className="relative">
               <button
                 onClick={() => setRoleDropdown(!roleDropdown)}
-                className="px-2.5 py-1.5 text-[11px] font-medium text-text-muted bg-white/[0.04] hover:bg-white/[0.08] border border-border/40 rounded-lg transition-all duration-200"
+                className="px-2.5 py-1.5 text-[11px] font-medium text-text-muted bg-bg-card-hover hover:bg-border border border-border/40 rounded-lg transition-all duration-200"
               >
                 Change role
               </button>
@@ -111,7 +111,7 @@ function MemberCard({ member, isOwner, currentUserId, onRemove, onRoleChange }) 
                         className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors duration-150 ${
                           member.role === role
                             ? 'text-accent bg-accent/5'
-                            : 'text-text-secondary hover:bg-white/[0.04]'
+                            : 'text-text-secondary hover:bg-black/[0.04]'
                         }`}
                       >
                         <span className="capitalize">{role}</span>
@@ -138,7 +138,7 @@ function MemberCard({ member, isOwner, currentUserId, onRemove, onRoleChange }) 
           </div>
         )}
         {isCurrentUser && (
-          <span className="text-[10px] font-medium text-text-muted bg-white/[0.04] px-2 py-1 rounded-md">You</span>
+          <span className="text-[10px] font-medium text-text-muted bg-bg-card-hover px-2 py-1 rounded-md">You</span>
         )}
       </div>
     </div>
@@ -154,7 +154,7 @@ function PendingInviteCard({ invite, onCopyLink }) {
     <div className="bg-bg-card border border-dashed border-border/60 rounded-xl p-5 animate-fade-in-up">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-full bg-white/[0.04] flex items-center justify-center ring-1 ring-white/10 shrink-0">
+          <div className="w-10 h-10 rounded-full bg-bg-card-hover flex items-center justify-center ring-1 ring-black/10 shrink-0">
             <svg className="w-4 h-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
             </svg>
@@ -190,16 +190,16 @@ function SkeletonMemberCard() {
   return (
     <div className="bg-bg-card border border-border/40 rounded-xl p-5">
       <div className="flex items-start gap-3.5">
-        <div className="w-10 h-10 rounded-full bg-white/[0.06] animate-shimmer shrink-0" />
+        <div className="w-10 h-10 rounded-full bg-black/[0.06] animate-shimmer shrink-0" />
         <div className="flex-1 space-y-2.5">
           <div className="flex items-center gap-2">
-            <div className="h-4 w-28 rounded-md bg-white/[0.06] animate-shimmer" />
-            <div className="h-4 w-16 rounded-full bg-white/[0.04] animate-shimmer" />
+            <div className="h-4 w-28 rounded-md bg-black/[0.06] animate-shimmer" />
+            <div className="h-4 w-16 rounded-full bg-black/[0.04] animate-shimmer" />
           </div>
-          <div className="h-3 w-40 rounded-md bg-white/[0.04] animate-shimmer" />
+          <div className="h-3 w-40 rounded-md bg-black/[0.04] animate-shimmer" />
           <div className="flex gap-4">
-            <div className="h-3 w-24 rounded-md bg-white/[0.03] animate-shimmer" />
-            <div className="h-3 w-20 rounded-md bg-white/[0.03] animate-shimmer" />
+            <div className="h-3 w-24 rounded-md bg-black/[0.03] animate-shimmer" />
+            <div className="h-3 w-20 rounded-md bg-black/[0.03] animate-shimmer" />
           </div>
         </div>
       </div>

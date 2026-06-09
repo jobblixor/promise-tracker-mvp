@@ -90,8 +90,8 @@ export default function Layout({ children }) {
                 to={item.to}
                 className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium transition-all duration-200 group ${
                   isActive
-                    ? 'text-text-primary bg-white/[0.07]'
-                    : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.04]'
+                    ? 'text-text-primary bg-black/[0.06]'
+                    : 'text-text-muted hover:text-text-secondary hover:bg-black/[0.04]'
                 }`}
               >
                 {/* Active indicator */}
@@ -112,8 +112,8 @@ export default function Layout({ children }) {
                 to="/admin/affiliates"
                 className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium transition-all duration-200 group ${
                   isActive
-                    ? 'text-text-primary bg-white/[0.07]'
-                    : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.04]'
+                    ? 'text-text-primary bg-black/[0.06]'
+                    : 'text-text-muted hover:text-text-secondary hover:bg-black/[0.04]'
                 }`}
               >
                 <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-300 ${
@@ -148,7 +148,7 @@ export default function Layout({ children }) {
 
         {/* User */}
         <div className="p-4 pt-4">
-          <div className="flex items-center gap-3 mb-3 p-2 rounded-[10px] hover:bg-white/[0.03] transition-colors duration-200">
+          <div className="flex items-center gap-3 mb-3 p-2 rounded-[10px] hover:bg-black/[0.04] transition-colors duration-200">
             <div className="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-bold ring-1 ring-accent/20">
               {user?.email?.[0]?.toUpperCase() || 'U'}
             </div>

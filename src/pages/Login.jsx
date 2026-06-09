@@ -83,7 +83,7 @@ export default function Login() {
               </div>
               <button
                 onClick={handleBackToLogin}
-                className="w-full py-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-border/40 text-text-secondary font-semibold rounded-[10px] text-sm transition-all duration-200"
+                className="w-full py-2.5 bg-bg-card-hover hover:bg-border border border-border/40 text-text-secondary font-semibold rounded-[10px] text-sm transition-all duration-200"
               >
                 Back to login
               </button>
@@ -193,7 +193,7 @@ export default function Login() {
           <Link to="/privacy" className="hover:text-accent transition-colors duration-200">Privacy Policy</Link>
         </div>
 
-        <p className="text-center text-xs text-[#64748b] mt-6">
+        <p className="text-center text-xs text-text-muted mt-6">
           Need help?{' '}
           <a href="mailto:support@promisetracker.app" className="text-accent hover:underline">support@promisetracker.app</a>
         </p>

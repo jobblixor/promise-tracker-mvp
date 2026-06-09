@@ -135,7 +135,7 @@ export default function PromiseCard({ promise, onMarkDone, onDelete, canDelete, 
             </button>
             <button
               onClick={handleDeleteCancel}
-              className="px-2.5 py-1 text-xs font-semibold rounded-[7px] bg-white/[0.06] text-text-muted hover:bg-white/[0.09] border border-white/[0.08] transition-all duration-150 active:scale-95"
+              className="px-2.5 py-1 text-xs font-semibold rounded-[7px] bg-bg-card-hover text-text-muted hover:bg-border border border-border transition-all duration-150 active:scale-95"
             >
               No
             </button>

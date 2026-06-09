@@ -51,7 +51,7 @@ function ConfirmModal({ open, onClose, onConfirm, deleting }) {
           <button
             onClick={onClose}
             disabled={deleting}
-            className="px-4 py-2 text-sm font-medium text-text-secondary bg-white/[0.04] hover:bg-white/[0.08] border border-border/40 rounded-xl transition-all duration-200"
+            className="px-4 py-2 text-sm font-medium text-text-secondary bg-bg-card-hover hover:bg-border border border-border/40 rounded-xl transition-all duration-200"
           >
             Cancel
           </button>
@@ -92,7 +92,7 @@ function CancelSubModal({ open, onClose, onConfirm, cancelling }) {
           <button
             onClick={onClose}
             disabled={cancelling}
-            className="px-4 py-2 text-sm font-medium text-text-secondary bg-white/[0.04] hover:bg-white/[0.08] border border-border/40 rounded-xl transition-all duration-200"
+            className="px-4 py-2 text-sm font-medium text-text-secondary bg-bg-card-hover hover:bg-border border border-border/40 rounded-xl transition-all duration-200"
           >
             Keep Subscription
           </button>
@@ -348,10 +348,10 @@ export default function SettingsPage() {
         <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="bg-bg-card border border-border/40 rounded-2xl p-6">
-              <div className="h-5 w-36 rounded-md bg-white/[0.06] animate-shimmer mb-4" />
+              <div className="h-5 w-36 rounded-md bg-black/[0.06] animate-shimmer mb-4" />
               <div className="space-y-3">
-                <div className="h-10 rounded-xl bg-white/[0.04] animate-shimmer" />
-                <div className="h-10 rounded-xl bg-white/[0.04] animate-shimmer" />
+                <div className="h-10 rounded-xl bg-black/[0.04] animate-shimmer" />
+                <div className="h-10 rounded-xl bg-black/[0.04] animate-shimmer" />
               </div>
             </div>
           ))}
@@ -384,20 +384,20 @@ export default function SettingsPage() {
                 type="text"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
                 placeholder="Your business name"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-text-muted mb-1.5">Business ID</label>
-                <div className="px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-border/30 text-sm text-text-muted font-mono truncate">
+                <div className="px-3.5 py-2.5 rounded-xl bg-bg-card-hover border border-border/30 text-sm text-text-muted font-mono truncate">
                   {businessId || '—'}
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-text-muted mb-1.5">Plan</label>
-                <div className="px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-border/30 text-sm text-text-muted capitalize flex items-center gap-2">
+                <div className="px-3.5 py-2.5 rounded-xl bg-bg-card-hover border border-border/30 text-sm text-text-muted capitalize flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                   {plan}
                 </div>
@@ -408,11 +408,11 @@ export default function SettingsPage() {
               <select
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-border/40 text-sm text-text-primary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
               >
-                <option value="" className="bg-[#111827] text-white">Select timezone...</option>
+                <option value="" className="bg-bg-card text-text-primary">Select timezone...</option>
                 {getTimezoneOptions().map((tz) => (
-                  <option key={tz.value} value={tz.value} className="bg-[#111827] text-white">{tz.label}</option>
+                  <option key={tz.value} value={tz.value} className="bg-bg-card text-text-primary">{tz.label}</option>
                 ))}
               </select>
             </div>
@@ -442,7 +442,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-text-muted mb-1.5">Email</label>
-              <div className="px-3.5 py-2.5 rounded-xl bg-white/[0.02] border border-border/30 text-sm text-text-muted">
+              <div className="px-3.5 py-2.5 rounded-xl bg-bg-card-hover border border-border/30 text-sm text-text-muted">
                 {user?.email || '—'}
               </div>
             </div>
@@ -452,7 +452,7 @@ export default function SettingsPage() {
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
                 placeholder="Your name"
               />
             </div>
@@ -462,7 +462,7 @@ export default function SettingsPage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
                 placeholder="(555) 123-4567"
               />
             </div>
