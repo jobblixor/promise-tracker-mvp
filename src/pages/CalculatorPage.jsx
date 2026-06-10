@@ -210,7 +210,7 @@ export default function CalculatorPage() {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <p className="text-sm text-gray-600">
-                    You're sending about <strong className="text-gray-900">{Math.round(unfollowedMonthly)}</strong> quotes per month
+                    You're sending about <strong className="text-gray-900">{unfollowedMonthly > 0 && unfollowedMonthly < 1 ? unfollowedMonthly.toFixed(1) : Math.round(unfollowedMonthly)}</strong> quotes per month
                     with no follow-up. Each one represents <strong className="text-gray-900">{formatCurrency(costPerLostQuote)}</strong> in potential revenue.
                   </p>
                 </div>
@@ -343,7 +343,7 @@ function InputGroup({ label, prefix, value, onChange, min, max }) {
         )}
         <input
           type="number"
-          value={value}
+          value={String(value)}
           onChange={(e) => {
             const v = Number(e.target.value);
             if (v >= min && v <= max) onChange(v);
