@@ -40,6 +40,12 @@ export default function LandingPage() {
           </Link>
           <div className="flex items-center gap-3">
             <Link
+              to="/calculator"
+              className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5"
+            >
+              Free Tools
+            </Link>
+            <Link
               to="/login"
               className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5"
             >
@@ -281,6 +287,30 @@ export default function LandingPage() {
               </Link>
               <p className="text-text-muted text-xs mt-3">No credit card required to start</p>
           </div>
+        </div>
+      </section>
+
+      {/* ── RESOURCES ───────────────────────────────────────────── */}
+      <section className="border-t border-border bg-bg-primary">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
+          <h2 className="text-2xl font-extrabold text-text-primary mb-6 tracking-tight">Resources</h2>
+          <ul className="space-y-3">
+            <li>
+              <Link to="/calculator" className="text-accent hover:underline text-sm font-medium">
+                Quote Follow-Up Revenue Calculator
+              </Link>
+            </li>
+            <li>
+              <Link to="/blog/how-to-follow-up-on-a-quote" className="text-accent hover:underline text-sm font-medium">
+                How to Follow Up on a Quote
+              </Link>
+            </li>
+            <li>
+              <Link to="/blog/how-many-times-to-follow-up-on-estimate" className="text-accent hover:underline text-sm font-medium">
+                How Many Times to Follow Up on an Estimate
+              </Link>
+            </li>
+          </ul>
         </div>
       </section>
 
