@@ -87,7 +87,7 @@ export default function CalculatorPage() {
   const monthlyQuotes = quotesPerWeek * 4.33;
   const unfollowedMonthly = monthlyQuotes * (noFollowUp / 100);
   const lostMonthly = unfollowedMonthly * (closeRate / 100) * avgJob;
-  const lostYearly = lostMonthly * 12;
+  const lostYearly = Math.round(lostMonthly) * 12;
   const costPerLostQuote = avgJob * (closeRate / 100);
 
   function handleCalculate(e) {
