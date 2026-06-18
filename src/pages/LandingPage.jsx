@@ -49,7 +49,7 @@ export default function LandingPage() {
               to="/blog"
               className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5"
             >
-              Blog
+              Blogs
             </Link>
             <Link
               to="/login"
