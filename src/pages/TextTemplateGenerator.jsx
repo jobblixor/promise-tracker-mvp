@@ -27,44 +27,44 @@ function genTemplates(biz, cust, trade) {
   const s = trade.service, j = trade.job;
   return {
     estimate_day2: [
-      `Hi ${cust}! ${biz} here. Just checking in on the ${s} estimate I sent over. Any questions? Happy to help!`,
-      `Hey ${cust} — wanted to make sure you got the ${s} quote from ${biz}. Let me know if you have any questions or want to adjust anything.`,
-      `Hi ${cust}, ${biz} here. Following up on your ${s} estimate. If you're ready to move forward or have questions, I'm just a text away!`,
+      `Hey ${cust} — ${biz} here. Any questions about the ${s} estimate I sent over?`,
+      `Hi ${cust}! ${biz} checking in. Did the ${s} quote come through okay?`,
+      `Hey ${cust}, ${biz} here. Just making sure you got the ${s} estimate!`,
     ],
     estimate_day7: [
-      `Hey ${cust}, ${biz} checking in. Still thinking about the ${s} quote? No rush — just want to make sure I'm not leaving you hanging.`,
-      `Hi ${cust}! Quick follow-up from ${biz} on your ${s} estimate. Would you like to go ahead, or is there anything I can adjust?`,
-      `Hey ${cust} — ${biz} here. Just circling back on the ${j} quote. If the price wasn't right, I might be able to work something out.`,
+      `Hi ${cust} — ${biz} here. Still thinking about the ${s} quote? No rush at all.`,
+      `Hey ${cust}, ${biz} checking back on your estimate. Want to go ahead or adjust anything?`,
+      `Hi ${cust}! ${biz} following up. If the price wasn't right, I might be able to help.`,
     ],
     estimate_day14: [
-      `Hi ${cust}, ${biz} here. Last check-in on your ${s} estimate. No hard feelings if you went another direction — we're here if you need us down the road.`,
-      `Hey ${cust} — ${biz} following up one last time on the ${s} quote. If the timing isn't right, totally understand. We'd love to help whenever you're ready.`,
-      `Hi ${cust}, just a final note from ${biz} on your ${j} estimate. If anything changes, you've got my number. Appreciate you considering us!`,
+      `Hi ${cust}, ${biz} here. Last check-in on your estimate. No hard feelings either way!`,
+      `Hey ${cust} — closing the loop on your ${s} quote. We're here if you need us down the road.`,
+      `Hi ${cust}, final note from ${biz} on your estimate. Reach out anytime if things change!`,
     ],
     appointment: [
-      `Hi ${cust}! Reminder from ${biz} — your ${s} appointment is coming up on [date] at [time]. Reply to confirm or reschedule.`,
-      `Hey ${cust}, ${biz} here. Just a heads-up that your ${j} is scheduled for [date/time]. See you then! Reply if you need to change anything.`,
-      `Hi ${cust}! ${biz} here with a quick reminder about your upcoming ${s} appointment on [date]. Looking forward to it!`,
+      `Hi ${cust}! ${biz} reminder: your ${j} is on [date] at [time]. See you then!`,
+      `Hey ${cust} — ${biz} here. Quick reminder about your ${j} on [date]. Reply to confirm!`,
+      `Hi ${cust}, reminder from ${biz}: booked for [date/time]. Need to reschedule? Just reply.`,
     ],
     postjob: [
-      `Hey ${cust}, ${biz} here. Just wanted to check — how did everything go with the ${j}? Let me know if anything needs attention.`,
-      `Hi ${cust}! Hope you're happy with the ${s} work. If anything doesn't look right or you have questions, don't hesitate to reach out. — ${biz}`,
-      `Hey ${cust}, ${biz} checking in. Everything good with the ${j} we did? Your satisfaction matters to us.`,
+      `Hey ${cust} — ${biz} here. How did the ${j} go? Let me know if anything needs attention.`,
+      `Hi ${cust}! ${biz} checking in. Everything good with the ${j} we did?`,
+      `Hey ${cust}, hope the ${j} turned out well! Reach out if anything comes up. — ${biz}`,
     ],
     review: [
-      `Hi ${cust}! Thanks for choosing ${biz}. If you were happy with the work, a quick Google review would mean a lot to us: [your review link]`,
-      `Hey ${cust} — ${biz} here. If you have 30 seconds, a Google review would really help us out: [review link]. Thanks for your business!`,
-      `Hi ${cust}! Glad we could help with your ${j}. If you'd recommend ${biz}, a quick review here would be amazing: [review link]`,
+      `Hi ${cust}! If you're happy with ${biz}, a quick Google review would mean a lot: [link]`,
+      `Hey ${cust} — ${biz} here. Got 30 seconds? A Google review helps us a ton: [link]`,
+      `Hi ${cust}, thanks for choosing ${biz}! If you'd recommend us, a review here helps: [link]`,
     ],
     reengage: [
-      `Hey ${cust}! It's ${biz}. It's been a while — if you need any ${s} help, we'd love to take care of you again. How have you been?`,
-      `Hi ${cust}, ${biz} here. Haven't heard from you in a bit. If any ${s} needs come up, we're just a text away!`,
-      `Hey ${cust} — ${biz} checking in. Hope all is well! If you need anything ${s}-related, don't hesitate to reach out.`,
+      `Hey ${cust}! ${biz} here. Been a while — need any ${s} help? We'd love to hear from you.`,
+      `Hi ${cust}, ${biz} checking in. If any ${s} needs come up, we're a text away!`,
+      `Hey ${cust} — ${biz} here. Hope all is well! We're around if you need anything.`,
     ],
     referral: [
-      `Hi ${cust}! So glad you're happy with ${biz}. If you know anyone who needs ${s} help, we'd love a referral. Means the world to us!`,
-      `Hey ${cust} — if you know anyone who could use reliable ${s} work, we'd really appreciate you sending them our way. Thanks for being a great customer! — ${biz}`,
-      `Hi ${cust}, ${biz} here. Word of mouth is how we grow. If any friends or neighbors need ${s} help, would you mind passing along our number?`,
+      `Hi ${cust}! Know anyone who needs ${s} help? A referral means the world to us. — ${biz}`,
+      `Hey ${cust} — if any friends need ${s} work, we'd appreciate you sending them our way! — ${biz}`,
+      `Hi ${cust}, word of mouth is how ${biz} grows. Mind passing our number along if anyone asks?`,
     ],
   };
 }
