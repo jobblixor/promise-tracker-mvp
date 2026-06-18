@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 
@@ -22,6 +22,14 @@ const ARTICLES = [
 ];
 
 export default function BlogPage() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   useEffect(() => {
     document.title = 'Blog — Follow-Up Tips for Service Businesses | Promise Tracker';
     let meta = document.querySelector('meta[name="description"]');
@@ -38,19 +46,32 @@ export default function BlogPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-bg-primary text-text-secondary">
+
       {/* ── Nav ── */}
-      <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link to="/" className="flex items-center gap-2 text-gray-900 no-underline">
-            <Logo size={28} />
-            <span className="text-lg font-semibold">Promise Tracker</span>
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? 'bg-bg-primary/80 backdrop-blur-lg border-b border-border'
+            : 'border-b border-transparent'
+        }`}
+      >
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 text-text-primary font-bold text-lg">
+            <Logo size={32} />
+            Promise Tracker
           </Link>
-          <div className="flex items-center gap-4">
-            <Link
-              to="/signup"
-              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700"
-            >
+          <div className="flex items-center gap-3">
+            <Link to="/free-tools" className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5">
+              Free Tools
+            </Link>
+            <Link to="/blog" className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5">
+              Blogs
+            </Link>
+            <Link to="/login" className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5">
+              Sign In
+            </Link>
+            <Link to="/signup" className="text-sm font-semibold bg-accent hover:bg-accent-hover text-white px-4 py-1.5 rounded-lg transition-colors duration-150">
               Start Free Trial
             </Link>
           </div>
@@ -58,15 +79,15 @@ export default function BlogPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <main className="mx-auto max-w-5xl px-4 py-14">
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 pt-32 pb-16">
         <div className="mb-12 text-center">
-          <span className="mb-4 inline-block rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700">
+          <div className="inline-block bg-bg-card border border-border text-accent text-xs font-semibold px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
             Blog
-          </span>
-          <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          </div>
+          <h1 className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-text-primary">
             Follow-Up Tips for Service Businesses
           </h1>
-          <p className="mx-auto max-w-xl text-gray-500">
+          <p className="mx-auto max-w-xl text-text-secondary">
             Practical guides on winning more jobs, following up without feeling pushy,
             and building a system so nothing falls through the cracks.
           </p>
@@ -78,19 +99,19 @@ export default function BlogPage() {
             <Link
               key={article.to}
               to={article.to}
-              className="group flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-green-400 hover:shadow-md no-underline"
+              className="group flex flex-col gap-3 rounded-2xl border border-border bg-bg-card p-6 transition hover:border-accent no-underline"
             >
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-green-100 px-3 py-0.5 text-xs font-semibold text-green-700">
+                <span className="rounded-full bg-accent/10 px-3 py-0.5 text-xs font-semibold text-accent">
                   {article.tag}
                 </span>
-                <span className="text-xs text-gray-400">{article.readTime}</span>
+                <span className="text-xs text-text-muted">{article.readTime}</span>
               </div>
-              <h2 className="text-lg font-semibold text-gray-900 group-hover:text-green-700 transition-colors leading-snug">
+              <h2 className="text-lg font-semibold text-text-primary group-hover:text-accent transition-colors leading-snug">
                 {article.title}
               </h2>
-              <p className="flex-1 text-sm leading-relaxed text-gray-500">{article.description}</p>
-              <span className="text-sm font-medium text-green-600 group-hover:underline">
+              <p className="flex-1 text-sm leading-relaxed text-text-secondary">{article.description}</p>
+              <span className="text-sm font-medium text-accent group-hover:underline">
                 Read article →
               </span>
             </Link>
@@ -98,17 +119,17 @@ export default function BlogPage() {
         </div>
 
         {/* ── CTA ── */}
-        <div className="mt-16 rounded-2xl border border-gray-200 bg-white px-6 py-10 text-center shadow-sm">
-          <h2 className="mb-2 text-xl font-bold text-gray-900">
+        <div className="mt-16 rounded-2xl border border-border bg-bg-card px-6 py-10 text-center">
+          <h2 className="mb-2 text-xl font-bold text-text-primary">
             Ready to put this into practice?
           </h2>
-          <p className="mb-6 text-gray-500">
+          <p className="mb-6 text-text-secondary">
             Promise Tracker automates the entire follow-up process — log a customer promise and it
             sends escalating reminders until you get a yes or no. Nothing falls through the cracks.
           </p>
           <Link
             to="/signup"
-            className="inline-block rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+            className="inline-block bg-accent hover:bg-accent-hover text-white font-semibold px-6 py-2.5 rounded-lg transition-colors duration-150 text-sm"
           >
             Start Your 21-Day Free Trial
           </Link>
@@ -116,11 +137,16 @@ export default function BlogPage() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-gray-200 bg-white py-6 text-center text-sm text-gray-400">
-        <span>© 2026 Promise Tracker · </span>
-        <Link to="/terms" className="hover:underline">Terms</Link>
-        <span> · </span>
-        <Link to="/privacy" className="hover:underline">Privacy</Link>
+      <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(34,197,94,0.4), transparent)' }} />
+      <footer className="bg-bg-primary">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-text-muted">
+          <span>© 2026 Promise Tracker</span>
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <a href="mailto:support@promisetracker.app" className="hover:text-text-primary transition-colors duration-150">support@promisetracker.app</a>
+            <Link to="/terms" className="hover:text-text-primary transition-colors duration-150">Terms</Link>
+            <Link to="/privacy" className="hover:text-text-primary transition-colors duration-150">Privacy</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );
