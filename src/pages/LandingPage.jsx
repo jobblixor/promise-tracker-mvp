@@ -40,7 +40,7 @@ export default function LandingPage() {
           </Link>
           <div className="flex items-center gap-3">
             <Link
-              to="/calculator"
+              to="/free-tools"
               className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5"
             >
               Free Tools

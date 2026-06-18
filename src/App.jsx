@@ -20,6 +20,7 @@ import AdminAffiliatePage from './pages/AdminAffiliatePage';
 import BlogFollowUpQuote from './pages/BlogFollowUpQuote';
 import BlogFollowUpTimes from './pages/BlogFollowUpTimes';
 import TextTemplateGenerator from './pages/TextTemplateGenerator';
+import FreeToolsPage from './pages/FreeToolsPage';
 
 const ADMIN_EMAIL = 'promisetrackermvp@gmail.com';
 
@@ -120,6 +121,7 @@ export default function App() {
               <Route path="/blog/how-to-follow-up-on-a-quote" element={<BlogFollowUpQuote />} />
               <Route path="/blog/how-many-times-to-follow-up-on-estimate" element={<BlogFollowUpTimes />} />
               <Route path="/follow-up-text-templates" element={<TextTemplateGenerator />} />
+              <Route path="/free-tools" element={<FreeToolsPage />} />
               <Route path="/admin/affiliates" element={<AdminRoute><AdminAffiliatePage /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
