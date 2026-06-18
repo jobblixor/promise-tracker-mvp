@@ -99,11 +99,11 @@ export default function FreeToolsPage() {
 
         {/* ── Tool Cards ── */}
         <div className="flex flex-col gap-8">
-          {TOOLS.map((tool, i) => (
+          {TOOLS.map((tool) => (
             <Link
               key={tool.to}
               to={tool.to}
-              className={`group flex flex-col lg:flex-row ${i % 2 === 1 ? 'lg:flex-row-reverse' : ''} rounded-2xl border border-border bg-bg-card overflow-hidden transition hover:border-accent no-underline`}
+              className="group flex flex-col lg:flex-row rounded-2xl border border-border bg-bg-card overflow-hidden transition hover:border-accent no-underline"
             >
               {/* Text side */}
               <div className="flex flex-col justify-center gap-4 p-8 lg:w-2/5">
@@ -120,23 +120,12 @@ export default function FreeToolsPage() {
               </div>
 
               {/* Screenshot side */}
-              <div className="lg:w-3/5 bg-border/20 flex items-end overflow-hidden">
-                {/* Browser chrome bar */}
-                <div className="w-full">
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-bg-card border-b border-border">
-                    <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
-                    <span className="ml-2 flex-1 rounded bg-border/60 px-2 py-0.5 text-[10px] text-text-muted font-mono truncate">
-                      promisetracker.app{tool.to}
-                    </span>
-                  </div>
-                  <img
-                    src={tool.preview}
-                    alt={tool.previewAlt}
-                    className="w-full object-cover object-top max-h-64 lg:max-h-72"
-                  />
-                </div>
+              <div className="lg:w-3/5 overflow-hidden">
+                <img
+                  src={tool.preview}
+                  alt={tool.previewAlt}
+                  className="w-full h-full object-cover object-top"
+                />
               </div>
             </Link>
           ))}
