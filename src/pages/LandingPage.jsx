@@ -46,6 +46,12 @@ export default function LandingPage() {
               Free Tools
             </Link>
             <Link
+              to="/blog"
+              className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5"
+            >
+              Blog
+            </Link>
+            <Link
               to="/login"
               className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 px-3 py-1.5"
             >
