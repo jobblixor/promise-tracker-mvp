@@ -5,12 +5,9 @@ import Logo from '../components/Logo';
 const TOOLS = [
   {
     to: '/calculator',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-6-6h12" />
-        <rect x="3" y="3" width="18" height="18" rx="3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    badge: 'Free Calculator',
+    preview: '/calculator.png',
+    previewAlt: 'Quote follow-up revenue calculator showing $3,897/mo in lost revenue',
     title: 'Quote Follow-Up Revenue Calculator',
     description:
       'Find out exactly how much revenue your service business is leaving on the table from unfollowed quotes. Plug in your numbers and see the dollar amount in seconds.',
@@ -18,11 +15,9 @@ const TOOLS = [
   },
   {
     to: '/follow-up-text-templates',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.852L3 20l1.09-3.27A7.95 7.95 0 013 12C3 7.582 7.03 4 12 4s9 3.582 9 8z" />
-      </svg>
-    ),
+    badge: 'Free Templates',
+    preview: '/text.png',
+    previewAlt: 'Follow-up text message template generator showing ready-to-send messages',
     title: 'Follow-Up Text Message Templates',
     description:
       'Ready-to-send text templates for every follow-up situation — estimate reminders, appointment confirmations, post-job check-ins, review requests, and more. Pick your trade, pick the situation, copy and send.',
@@ -103,25 +98,46 @@ export default function FreeToolsPage() {
         </div>
 
         {/* ── Tool Cards ── */}
-        <div className="grid gap-6 sm:grid-cols-2">
-          {TOOLS.map((tool) => (
+        <div className="flex flex-col gap-8">
+          {TOOLS.map((tool, i) => (
             <Link
               key={tool.to}
               to={tool.to}
-              className="group flex flex-col gap-4 rounded-2xl border border-border bg-bg-card p-6 transition hover:border-accent no-underline"
+              className={`group flex flex-col lg:flex-row ${i % 2 === 1 ? 'lg:flex-row-reverse' : ''} rounded-2xl border border-border bg-bg-card overflow-hidden transition hover:border-accent no-underline`}
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-accent/10">
-                {tool.icon}
-              </div>
-              <div className="flex-1">
-                <h2 className="mb-2 text-lg font-semibold text-text-primary group-hover:text-accent transition-colors">
+              {/* Text side */}
+              <div className="flex flex-col justify-center gap-4 p-8 lg:w-2/5">
+                <span className="w-fit rounded-full bg-accent/10 px-3 py-0.5 text-xs font-semibold text-accent">
+                  {tool.badge}
+                </span>
+                <h2 className="text-xl font-bold text-text-primary group-hover:text-accent transition-colors leading-snug">
                   {tool.title}
                 </h2>
                 <p className="text-sm leading-relaxed text-text-secondary">{tool.description}</p>
+                <span className="text-sm font-semibold text-accent group-hover:underline">
+                  {tool.cta}
+                </span>
               </div>
-              <span className="text-sm font-medium text-accent group-hover:underline">
-                {tool.cta}
-              </span>
+
+              {/* Screenshot side */}
+              <div className="lg:w-3/5 bg-border/20 flex items-end overflow-hidden">
+                {/* Browser chrome bar */}
+                <div className="w-full">
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-bg-card border-b border-border">
+                    <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
+                    <span className="ml-2 flex-1 rounded bg-border/60 px-2 py-0.5 text-[10px] text-text-muted font-mono truncate">
+                      promisetracker.app{tool.to}
+                    </span>
+                  </div>
+                  <img
+                    src={tool.preview}
+                    alt={tool.previewAlt}
+                    className="w-full object-cover object-top max-h-64 lg:max-h-72"
+                  />
+                </div>
+              </div>
             </Link>
           ))}
         </div>
