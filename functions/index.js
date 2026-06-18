@@ -611,14 +611,55 @@ exports.stripeWebhook = onRequest(async (req, res) => {
   const stripe = getStripe();
   const sig = req.headers["stripe-signature"];
 
+  // ── DEBUG LOGGING (remove after diagnosing) ──────────────────────────────
+  console.log("[stripe-webhook-debug] req.rawBody exists:", req.rawBody != null);
+  console.log("[stripe-webhook-debug] req.rawBody type:", typeof req.rawBody, req.rawBody instanceof Buffer ? "(Buffer)" : "");
+  console.log("[stripe-webhook-debug] req.rawBody length:", req.rawBody ? req.rawBody.length : "N/A");
+  console.log("[stripe-webhook-debug] req.body exists:", req.body != null);
+  console.log("[stripe-webhook-debug] req.body type:", typeof req.body);
+  console.log("[stripe-webhook-debug] stripe-signature header (first 50):", sig ? sig.substring(0, 50) : "(missing)");
+  console.log("[stripe-webhook-debug] STRIPE_WEBHOOK_SECRET set:", !!process.env.STRIPE_WEBHOOK_SECRET);
+  console.log("[stripe-webhook-debug] STRIPE_WEBHOOK_SECRET first 10:", process.env.STRIPE_WEBHOOK_SECRET ? process.env.STRIPE_WEBHOOK_SECRET.substring(0, 10) : "(missing)");
+  console.log("[stripe-webhook-debug] content-type:", req.headers["content-type"]);
+  // ─────────────────────────────────────────────────────────────────────────
+
+  if (!sig) {
+    res.status(400).send("Webhook Error: No stripe-signature header");
+    return;
+  }
+
+  // Firebase Functions v2 sets req.rawBody as a Buffer via
+  // @google-cloud/functions-framework (production Cloud Run).
+  // The firebase-functions v7 bin does NOT configure body-parser, so rawBody
+  // may be undefined in the Firebase Emulator or other non-production paths.
+  // In those cases, fall back to reading the raw bytes directly from the stream.
+  let rawBody = req.rawBody;
+  if (!rawBody) {
+    console.log("[stripe-webhook-debug] req.rawBody missing — reading from stream");
+    rawBody = await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on("end", () => resolve(Buffer.concat(chunks)));
+      req.on("error", reject);
+    });
+    console.log("[stripe-webhook-debug] stream read complete, bytes:", rawBody.length);
+  }
+
+  if (!rawBody || rawBody.length === 0) {
+    console.error("Stripe webhook received with empty body");
+    res.status(400).send("Webhook Error: Empty request body");
+    return;
+  }
+
   let event;
   try {
     event = stripe.webhooks.constructEvent(
-      req.rawBody,
+      rawBody,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (err) {
+    console.error("[stripe-webhook-debug] rawBody as string (first 200):", rawBody.toString("utf8").substring(0, 200));
     console.error("Webhook signature verification failed:", err.message);
     res.status(400).send(`Webhook Error: ${err.message}`);
     return;

@@ -310,6 +310,11 @@ export default function LandingPage() {
                 How Many Times to Follow Up on an Estimate
               </Link>
             </li>
+            <li>
+              <Link to="/follow-up-text-templates" className="text-accent hover:underline text-sm font-medium">
+                Follow-Up Text Message Templates
+              </Link>
+            </li>
           </ul>
         </div>
       </section>
