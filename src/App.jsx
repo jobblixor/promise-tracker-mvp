@@ -19,6 +19,7 @@ import CalculatorPage from './pages/CalculatorPage';
 import AdminAffiliatePage from './pages/AdminAffiliatePage';
 import BlogFollowUpQuote from './pages/BlogFollowUpQuote';
 import BlogFollowUpTimes from './pages/BlogFollowUpTimes';
+import BlogGhostedEstimate from './pages/BlogGhostedEstimate';
 import TextTemplateGenerator from './pages/TextTemplateGenerator';
 import FreeToolsPage from './pages/FreeToolsPage';
 import BlogPage from './pages/BlogPage';
@@ -121,6 +122,7 @@ export default function App() {
               <Route path="/calculator" element={<CalculatorPage />} />
               <Route path="/blog/how-to-follow-up-on-a-quote" element={<BlogFollowUpQuote />} />
               <Route path="/blog/how-many-times-to-follow-up-on-estimate" element={<BlogFollowUpTimes />} />
+              <Route path="/blog/what-to-do-when-customer-ghosts-estimate" element={<BlogGhostedEstimate />} />
               <Route path="/follow-up-text-templates" element={<TextTemplateGenerator />} />
               <Route path="/free-tools" element={<FreeToolsPage />} />
               <Route path="/blog" element={<BlogPage />} />

@@ -19,6 +19,14 @@ const ARTICLES = [
     tag: 'Quote Follow-Up',
     readTime: '5 min read',
   },
+  {
+    to: '/blog/what-to-do-when-customer-ghosts-estimate',
+    title: 'What to Do When a Customer Ghosts Your Estimate',
+    description:
+      'You sent the quote and heard nothing. Here\'s a proven system for recovering silent estimates — with scripts, timing, and prevention tactics.',
+    tag: 'Ghosted Estimates',
+    readTime: '7 min read',
+  },
 ];
 
 export default function BlogPage() {
