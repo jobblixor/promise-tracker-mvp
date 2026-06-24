@@ -300,6 +300,9 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
+    // Reset the inactivity timestamp on explicit login so ActivityTracker
+    // doesn't immediately sign the user out due to a stale timestamp.
+    localStorage.setItem('pt_last_activity', Date.now().toString());
     const userData = await fetchUserData(cred.user.uid);
     if (userData) {
       setUser({

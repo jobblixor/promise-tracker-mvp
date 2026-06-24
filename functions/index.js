@@ -1093,3 +1093,349 @@ exports.deleteAccount = onCall(async (request) => {
 
   return { success: true };
 });
+
+// ─── SMS Command Router ───────────────────────────────────────────────
+
+/**
+ * Normalize a phone number down to its last 10 digits for comparison.
+ */
+function normalizeLast10(phone) {
+  if (!phone) return '';
+  const digits = String(phone).replace(/\D/g, '');
+  return digits.slice(-10);
+}
+
+/**
+ * Find a Firestore user doc whose phone field matches the last 10 digits
+ * of rawPhone. Returns { uid, ...userData } or null.
+ */
+async function findUserByPhone(rawPhone) {
+  const incoming10 = normalizeLast10(rawPhone);
+  if (!incoming10) return null;
+
+  const usersSnap = await db.collection('users').get();
+  for (const doc of usersSnap.docs) {
+    const stored = doc.data().phone;
+    if (!stored) continue;
+    if (normalizeLast10(stored) === incoming10) {
+      return { uid: doc.id, ...doc.data() };
+    }
+  }
+  return null;
+}
+
+/**
+ * Format a Firestore Timestamp as a short date string (e.g. "Jun 22, 2026").
+ */
+function formatDueShort(timestamp) {
+  if (!timestamp || !timestamp.toDate) return '?';
+  return timestamp.toDate().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// ─── Individual SMS Command Handlers ─────────────────────────────────
+
+async function handleListCommand(userId, userPhone, userData) {
+  console.log(`[SMS LIST] userId=${userId}`);
+  const businessId = userData.businessId;
+  if (!businessId) {
+    await sendSMS(userPhone, 'Your account is not linked to a business. Please complete setup at promisetracker.app');
+    return;
+  }
+
+  const snapshot = await db.collection('promises')
+    .where('businessId', '==', businessId)
+    .where('status', '==', 'open')
+    .orderBy('dueDate', 'asc')
+    .get();
+
+  if (snapshot.empty) {
+    await sendSMS(userPhone, 'No open promises. Nice work! 🎉');
+    return;
+  }
+
+  const allDocs = snapshot.docs;
+  const showDocs = allDocs.slice(0, 5);
+  const promiseIds = showDocs.map(d => d.id);
+
+  // Store number-to-promiseId mapping so DONE/DELETE by number work
+  await db.collection('smsListMappings').doc(userId).set({
+    promiseIds,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  const lines = showDocs.map((doc, i) => {
+    const p = doc.data();
+    const due = formatDueShort(p.dueDate);
+    return `${i + 1}) ${p.description || '(no description)'} - ${p.customerName || '?'} - ${due}`;
+  });
+
+  let msg = 'Your promises:\n' + lines.join('\n');
+  if (allDocs.length > 5) {
+    msg += '\nShowing 5 soonest. Reply MORE for next page.';
+  }
+
+  await sendSMS(userPhone, msg);
+}
+
+async function handleDoneCommand(userId, userPhone, userData, messageText) {
+  console.log(`[SMS DONE] userId=${userId} text="${messageText}"`);
+  const businessId = userData.businessId;
+  if (!businessId) {
+    await sendSMS(userPhone, 'Your account is not linked to a business.');
+    return;
+  }
+
+  const afterDone = messageText.replace(/^done\s*/i, '').trim();
+  let promiseId = null;
+  let promiseDoc = null;
+
+  if (/^\d+$/.test(afterDone)) {
+    // Number-based lookup via smsListMappings
+    const mappingDoc = await db.collection('smsListMappings').doc(userId).get();
+    if (mappingDoc.exists) {
+      const idx = parseInt(afterDone, 10) - 1;
+      const ids = mappingDoc.data().promiseIds || [];
+      if (idx >= 0 && idx < ids.length) {
+        promiseId = ids[idx];
+        const pd = await db.collection('promises').doc(promiseId).get();
+        if (pd.exists) promiseDoc = pd;
+      }
+    }
+  }
+
+  if (!promiseDoc && afterDone) {
+    // Freeform substring match on description or customerName
+    const openSnap = await db.collection('promises')
+      .where('businessId', '==', businessId)
+      .where('status', '==', 'open')
+      .get();
+    const term = afterDone.toLowerCase();
+    for (const doc of openSnap.docs) {
+      const d = doc.data();
+      if ((d.description || '').toLowerCase().includes(term) ||
+          (d.customerName || '').toLowerCase().includes(term)) {
+        promiseDoc = doc;
+        promiseId = doc.id;
+        break;
+      }
+    }
+  }
+
+  if (!promiseDoc) {
+    await sendSMS(userPhone, "Couldn't find that promise. Reply LIST to see your open promises.");
+    return;
+  }
+
+  await db.collection('promises').doc(promiseId).update({
+    status: 'completed',
+    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // Count remaining open promises
+  const remainingSnap = await db.collection('promises')
+    .where('businessId', '==', businessId)
+    .where('status', '==', 'open')
+    .get();
+
+  const desc = promiseDoc.data().description || '(no description)';
+  const remaining = remainingSnap.size;
+  await sendSMS(userPhone, `✅ Done: '${desc}'. ${remaining} promise${remaining !== 1 ? 's' : ''} remaining.`);
+}
+
+async function handleDeleteCommand(userId, userPhone, userData, messageText) {
+  console.log(`[SMS DELETE] userId=${userId} text="${messageText}"`);
+  const businessId = userData.businessId;
+  if (!businessId) {
+    await sendSMS(userPhone, 'Your account is not linked to a business.');
+    return;
+  }
+
+  const afterDelete = messageText.replace(/^delete\s*/i, '').trim();
+  let promiseId = null;
+  let promiseDoc = null;
+
+  if (/^\d+$/.test(afterDelete)) {
+    const mappingDoc = await db.collection('smsListMappings').doc(userId).get();
+    if (mappingDoc.exists) {
+      const idx = parseInt(afterDelete, 10) - 1;
+      const ids = mappingDoc.data().promiseIds || [];
+      if (idx >= 0 && idx < ids.length) {
+        promiseId = ids[idx];
+        const pd = await db.collection('promises').doc(promiseId).get();
+        if (pd.exists) promiseDoc = pd;
+      }
+    }
+  }
+
+  if (!promiseDoc && afterDelete) {
+    const openSnap = await db.collection('promises')
+      .where('businessId', '==', businessId)
+      .where('status', '==', 'open')
+      .get();
+    const term = afterDelete.toLowerCase();
+    for (const doc of openSnap.docs) {
+      const d = doc.data();
+      if ((d.description || '').toLowerCase().includes(term) ||
+          (d.customerName || '').toLowerCase().includes(term)) {
+        promiseDoc = doc;
+        promiseId = doc.id;
+        break;
+      }
+    }
+  }
+
+  if (!promiseDoc) {
+    await sendSMS(userPhone, "Couldn't find that promise. Reply LIST to see your open promises.");
+    return;
+  }
+
+  const desc = promiseDoc.data().description || '(no description)';
+
+  // Store pending-delete state so the next message can confirm
+  const convoId = `${userId}_delete`;
+  await db.collection('smsConversations').doc(convoId).set({
+    userId,
+    state: 'awaiting_delete_confirm',
+    pendingDeleteId: promiseId,
+    pendingDeleteDesc: desc,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  await sendSMS(userPhone, `Delete '${desc}'? Reply YES to confirm.`);
+}
+
+async function handleDeleteConfirmation(convoDoc, userId, userPhone, messageText) {
+  console.log(`[SMS DELETE CONFIRM] userId=${userId} text="${messageText}"`);
+  const convoData = convoDoc.data();
+  const promiseId = convoData.pendingDeleteId;
+  const desc = convoData.pendingDeleteDesc || '(no description)';
+
+  // Reset conversation state regardless of outcome
+  await db.collection('smsConversations').doc(convoDoc.id).update({
+    state: 'idle',
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  if (messageText.trim().toUpperCase() === 'YES') {
+    await db.collection('promises').doc(promiseId).delete();
+    console.log(`[SMS DELETE CONFIRM] Deleted promise ${promiseId}`);
+    await sendSMS(userPhone, '🗑️ Deleted.');
+  } else {
+    await sendSMS(userPhone, 'Cancelled. Promise kept.');
+  }
+}
+
+async function handleHelpCommand(userPhone) {
+  console.log(`[SMS HELP] userPhone=${userPhone}`);
+  await sendSMS(
+    userPhone,
+    "Promise Tracker SMS Commands:\n" +
+    "• Text any promise to log it (e.g. 'Quote for John by Friday')\n" +
+    "• LIST — see your open promises\n" +
+    "• DONE # — mark a promise complete\n" +
+    "• DELETE # — remove a promise\n" +
+    "• HELP — this message\n" +
+    "• STOP — unsubscribe from texts"
+  );
+}
+
+async function handleStopCommand(userId, userPhone) {
+  console.log(`[SMS STOP] userId=${userId}`);
+  await db.collection('users').doc(userId).update({ smsEnabled: false });
+  await sendSMS(userPhone, "You've been unsubscribed from Promise Tracker texts. Reply START to resubscribe.");
+}
+
+async function handleStartCommand(userId, userPhone) {
+  console.log(`[SMS START] userId=${userId}`);
+  await db.collection('users').doc(userId).update({ smsEnabled: true });
+  await sendSMS(userPhone, "Welcome back! You're resubscribed to Promise Tracker texts. Reply HELP for commands.");
+}
+
+// ─── Main Inbound SMS Handler ─────────────────────────────────────────
+
+exports.handleInboundSMS = onRequest(async (req, res) => {
+  // Return 200 immediately — Vonage retries for 24 hours otherwise
+  res.status(200).send('OK');
+
+  try {
+    const senderPhone = req.body && req.body.from;
+    const messageText = ((req.body && req.body.text) || '').trim();
+
+    console.log(`[SMS INBOUND] from=${senderPhone} text="${messageText}"`);
+
+    if (!senderPhone) {
+      console.warn('[SMS INBOUND] No sender phone in payload — ignoring');
+      return;
+    }
+
+    // Identify the user by matching last 10 digits of phone number
+    const user = await findUserByPhone(senderPhone);
+    if (!user) {
+      console.log(`[SMS INBOUND] No user found for phone ${senderPhone}`);
+      await sendSMS(
+        senderPhone,
+        "This number isn't linked to a Promise Tracker account. Sign up at promisetracker.app"
+      );
+      return;
+    }
+
+    const userId = user.uid;
+    console.log(`[SMS INBOUND] Matched userId=${userId}`);
+
+    // Check for an active multi-turn conversation (e.g. awaiting delete confirmation)
+    const convoId = `${userId}_delete`;
+    const convoDoc = await db.collection('smsConversations').doc(convoId).get();
+    if (convoDoc.exists && convoDoc.data().state !== 'idle') {
+      const state = convoDoc.data().state;
+      console.log(`[SMS INBOUND] Active conversation state="${state}" for userId=${userId}`);
+      if (state === 'awaiting_delete_confirm') {
+        await handleDeleteConfirmation(convoDoc, userId, senderPhone, messageText);
+        return;
+      }
+    }
+
+    // Route by the first word (keyword), case-insensitive
+    const keyword = (messageText.split(/\s+/)[0] || '').toUpperCase();
+    console.log(`[SMS INBOUND] Routing keyword="${keyword}"`);
+
+    switch (keyword) {
+      case 'LIST':
+      case 'STATUS':
+        await handleListCommand(userId, senderPhone, user);
+        break;
+      case 'DONE':
+        await handleDoneCommand(userId, senderPhone, user, messageText);
+        break;
+      case 'DELETE':
+        await handleDeleteCommand(userId, senderPhone, user, messageText);
+        break;
+      case 'HELP':
+        await handleHelpCommand(senderPhone);
+        break;
+      case 'STOP':
+        await handleStopCommand(userId, senderPhone);
+        break;
+      case 'START':
+        await handleStartCommand(userId, senderPhone);
+        break;
+      default:
+        console.log(`[SMS INBOUND] Unrecognized keyword="${keyword}"`);
+        await sendSMS(senderPhone, 'Command not recognized. Reply HELP for available commands.');
+    }
+  } catch (err) {
+    console.error('[SMS INBOUND] Unhandled error:', err.message, err.stack);
+    // Best-effort error SMS — never throw from here
+    try {
+      const senderPhone = req.body && req.body.from;
+      if (senderPhone) {
+        await sendSMS(senderPhone, 'Something went wrong. Please try again or reply HELP.');
+      }
+    } catch (smsErr) {
+      console.error('[SMS INBOUND] Failed to send error SMS:', smsErr.message);
+    }
+  }
+});
