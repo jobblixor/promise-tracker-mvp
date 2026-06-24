@@ -157,7 +157,6 @@ export default function QuoteFollowUpChecklist() {
       {/* Hero */}
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '48px 20px 0' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <span style={{ display: 'inline-block', backgroundColor: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, marginBottom: '16px' }}>Free — no signup required</span>
           <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#111827', lineHeight: 1.2, marginBottom: '16px' }}>Quote Follow-Up Checklist</h1>
           <p style={{ fontSize: '18px', color: '#4b5563', lineHeight: 1.6 }}>A step-by-step system to follow up on every quote and close more jobs. Select your trade, check off each step, and use the ready-made scripts. Based on data from 1,000+ contractors.</p>
         </div>
