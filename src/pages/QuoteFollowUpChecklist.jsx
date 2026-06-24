@@ -250,6 +250,35 @@ export default function QuoteFollowUpChecklist() {
           </div>
         </div>
 
+        {/* Content sections */}
+        <div style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginBottom: '16px' }}>Why Most Quotes Never Close</h2>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>If you run a service business, you already know how much work goes into generating a lead. Between your Google Business Profile, word-of-mouth referrals, and advertising spend, getting a customer to request a quote can cost anywhere from $50 to $250 before you even show up to give the estimate.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>Yet most service businesses have no system for following up on the quotes they send. The estimate goes out, the owner gets busy with the next job, and three days later the customer has already hired someone else. According to Jobber Academy, a single sent quote can represent $400 to $500 in fully-loaded acquisition cost when you factor in marketing spend, drive time, and the estimator's labor. Every unfollowed quote is that investment walking out the door.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>The most common objection is "I don't want to be annoying." But the research says the opposite. RAIN Group data shows that 80% of sales require between 5 and 12 follow-up touches, yet 44% of salespeople quit after a single attempt. Following up isn't pushy. It's professional. It shows the customer you actually want their business.</p>
+        </div>
+
+        <div style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginBottom: '16px' }}>Speed Wins More Jobs Than Price</h2>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>The data is clear on how much speed matters. Research from MIT and InsideSales.com found that responding to a lead within five minutes makes you 21 times more likely to qualify that lead compared to waiting just 30 minutes. And a 2020 Lead Connect survey found that 78% of customers end up buying from whichever business responds first.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>In service industries where three or four companies are quoting the same job, the business that follows up fastest almost always wins. That's why the first step in this checklist isn't "send a follow-up" but "confirm receipt." Making sure your quote actually arrived and didn't land in spam is the easiest win in the entire sales process.</p>
+        </div>
+
+        <div style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginBottom: '16px' }}>Why Each Follow-Up Needs a Different Angle</h2>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>The biggest mistake contractors make is sending the same "just checking in" message every time. Repetitive messages train the customer to ignore you. Each follow-up in this checklist has a specific purpose backed by behavioral psychology.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>Touch 1 confirms the quote arrived. Touch 2 adds value with photos or reviews. Touch 3 proactively handles objections. Touch 4 creates urgency with a real scheduling constraint. Touch 5 steps back with a "closing the file" message that often triggers a response precisely because it signals you're not going to keep chasing.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>The psychology works because each message gives the customer something new to respond to instead of repeating the same ask. It's the difference between a salesperson who says "have you decided yet?" five times and one who brings a new reason to say yes each time they reach out.</p>
+        </div>
+
+        <div style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginBottom: '16px' }}>Text First, Call to Close</h2>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>Text messaging is the ideal channel for service business follow-ups because it's fast, non-intrusive, and gets read. Unlike email, which sits in an inbox competing with promotional noise, a text message lands directly on the customer's phone and gets opened within minutes. Housecall Pro's sales team found that adding SMS to their workflow increased their close rate by 15% and improved connection rates by 25 to 50%.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>The key is keeping your messages short, personal, and spaced out. Messages under 100 characters get 2 to 5 times higher response rates than longer ones. This checklist uses text as the default channel for most touches and reserves phone calls for high-ticket jobs or stalled deals where a live conversation can break through.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>Want to see how much revenue you're losing from quotes you never follow up on? <a href="/calculator" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>Try our free Quote Follow-Up Revenue Calculator</a> — it takes 30 seconds.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>And if you want the follow-ups to happen automatically instead of relying on memory, <a href="/signup" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>Promise Tracker</a> sends escalating SMS and email reminders on your behalf until every quote gets a definitive yes or no. For more tips on the full follow-up process, read our guides on <a href="/blog/how-to-follow-up-on-a-quote" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>how to follow up on a quote without being annoying</a> and <a href="/blog/how-many-times-to-follow-up-on-estimate" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>how many times to follow up on an estimate</a>.</p>
+        </div>
+
         {/* Key stats */}
         <div style={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', marginBottom: '40px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '16px' }}>Why This System Works</h2>

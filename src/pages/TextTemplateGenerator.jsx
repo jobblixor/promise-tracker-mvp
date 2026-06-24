@@ -148,7 +148,12 @@ export default function TextTemplateGenerator() {
           <Link to="/" className="flex items-center gap-2 text-gray-900 no-underline">
             <Logo size={28} /><span className="text-lg font-semibold">Promise Tracker</span>
           </Link>
-          <Link to="/signup" className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700">Start Free Trial</Link>
+          <div className="flex items-center gap-4">
+            <Link to="/free-tools" className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Free Tools</Link>
+            <Link to="/blog" className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Blogs</Link>
+            <Link to="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Sign In</Link>
+            <Link to="/signup" className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700">Start Free Trial</Link>
+          </div>
         </div>
       </nav>
 
