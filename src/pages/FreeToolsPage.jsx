@@ -26,6 +26,8 @@ const TOOLS = [
   {
     to: '/follow-up-checklist',
     badge: 'Free Checklist',
+    preview: '/quote-follow-up-checklist.png',
+    previewAlt: 'Quote follow-up checklist showing step-by-step system with trade-specific scripts',
     title: 'Quote Follow-Up Checklist',
     description:
       'Step-by-step system to follow up on every quote and close more jobs. Trade-specific scripts, timing, and the psychology behind each step.',
