@@ -1357,7 +1357,7 @@ async function handleStartCommand(userId, userPhone) {
 
 // ─── Main Inbound SMS Handler ─────────────────────────────────────────
 
-exports.handleInboundSMS = onRequest(async (req, res) => {
+exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
   // Return 200 immediately — Vonage retries for 24 hours otherwise
   res.status(200).send('OK');
 

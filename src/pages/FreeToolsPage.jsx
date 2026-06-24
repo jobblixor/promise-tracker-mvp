@@ -23,6 +23,14 @@ const TOOLS = [
       'Ready-to-send text templates for every follow-up situation — estimate reminders, appointment confirmations, post-job check-ins, review requests, and more. Pick your trade, pick the situation, copy and send.',
     cta: 'Browse Templates →',
   },
+  {
+    to: '/follow-up-checklist',
+    badge: 'Free Checklist',
+    title: 'Quote Follow-Up Checklist',
+    description:
+      'Step-by-step system to follow up on every quote and close more jobs. Trade-specific scripts, timing, and the psychology behind each step.',
+    cta: 'View Checklist →',
+  },
 ];
 
 export default function FreeToolsPage() {

@@ -23,6 +23,7 @@ import BlogGhostedEstimate from './pages/BlogGhostedEstimate';
 import TextTemplateGenerator from './pages/TextTemplateGenerator';
 import FreeToolsPage from './pages/FreeToolsPage';
 import BlogPage from './pages/BlogPage';
+import QuoteFollowUpChecklist from './pages/QuoteFollowUpChecklist';
 
 const ADMIN_EMAIL = 'promisetrackermvp@gmail.com';
 
@@ -125,6 +126,7 @@ export default function App() {
               <Route path="/blog/what-to-do-when-customer-ghosts-estimate" element={<BlogGhostedEstimate />} />
               <Route path="/follow-up-text-templates" element={<TextTemplateGenerator />} />
               <Route path="/free-tools" element={<FreeToolsPage />} />
+              <Route path="/follow-up-checklist" element={<QuoteFollowUpChecklist />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/admin/affiliates" element={<AdminRoute><AdminAffiliatePage /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
