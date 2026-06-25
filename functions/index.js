@@ -674,15 +674,27 @@ exports.stripeWebhook = onRequest(async (req, res) => {
         const businessId =
           session.client_reference_id || session.metadata?.businessId;
         if (businessId) {
+          const updatePayload = {
+            plan: "pro",
+            stripeCustomerId: session.customer,
+            stripeSubscriptionId: session.subscription,
+            paymentFailed: false,
+          };
+          // Fetch subscription to get current period end
+          try {
+            if (session.subscription) {
+              const sub = await stripe.subscriptions.retrieve(session.subscription);
+              if (sub.current_period_end) {
+                updatePayload.currentPeriodEnd = admin.firestore.Timestamp.fromMillis(sub.current_period_end * 1000);
+              }
+            }
+          } catch (subErr) {
+            console.error("Failed to retrieve subscription for period end:", subErr.message);
+          }
           await db
             .collection("businesses")
             .doc(businessId)
-            .update({
-              plan: "pro",
-              stripeCustomerId: session.customer,
-              stripeSubscriptionId: session.subscription,
-              paymentFailed: false,
-            });
+            .update(updatePayload);
           console.log(`Business ${businessId} upgraded to pro`);
 
           // Notify app owner of new subscriber
@@ -793,7 +805,11 @@ exports.stripeWebhook = onRequest(async (req, res) => {
         for (const doc of snap.docs) {
           const newPlan =
             subscription.status === "active" ? "pro" : "expired";
-          await doc.ref.update({ plan: newPlan });
+          const updateData = { plan: newPlan };
+          if (subscription.current_period_end) {
+            updateData.currentPeriodEnd = admin.firestore.Timestamp.fromMillis(subscription.current_period_end * 1000);
+          }
+          await doc.ref.update(updateData);
           console.log(
             `Business ${doc.id} subscription updated to ${newPlan}`,
           );
@@ -872,9 +888,11 @@ exports.cancelSubscription = onCall(async (request) => {
   });
 
   // Update business doc
-  await db.collection("businesses").doc(businessId).update({
-    cancelAtPeriodEnd: true,
-  });
+  const cancelUpdate = { cancelAtPeriodEnd: true };
+  if (subscription.current_period_end) {
+    cancelUpdate.currentPeriodEnd = admin.firestore.Timestamp.fromMillis(subscription.current_period_end * 1000);
+  }
+  await db.collection("businesses").doc(businessId).update(cancelUpdate);
 
   // Notify app owner of cancellation
   try {

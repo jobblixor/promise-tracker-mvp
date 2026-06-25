@@ -579,6 +579,19 @@ export default function SettingsPage() {
             {plan === 'pro' && !cancelAtPeriodEnd && (
               <p className="text-sm text-text-secondary">
                 You&apos;re on the <strong className="text-text-primary">Pro</strong> plan at <strong className="text-text-primary">$39/month</strong>.
+                {subBusiness?.currentPeriodEnd && (() => {
+                  const renewDate = subBusiness.currentPeriodEnd?.toDate
+                    ? subBusiness.currentPeriodEnd.toDate()
+                    : new Date(subBusiness.currentPeriodEnd);
+                  return (
+                    <span className="block text-xs text-text-muted mt-1">
+                      Renews on{' '}
+                      <strong className="text-text-secondary">
+                        {renewDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </strong>
+                    </span>
+                  );
+                })()}
               </p>
             )}
 
@@ -587,9 +600,14 @@ export default function SettingsPage() {
                 <p className="text-sm text-yellow-300">
                   Your subscription will end on{' '}
                   <strong>
-                    {periodEndDate
-                      ? periodEndDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-                      : 'the end of your billing period'}
+                    {(() => {
+                      const d = periodEndDate || (subBusiness?.currentPeriodEnd
+                        ? (subBusiness.currentPeriodEnd?.toDate ? subBusiness.currentPeriodEnd.toDate() : new Date(subBusiness.currentPeriodEnd))
+                        : null);
+                      return d
+                        ? d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                        : 'the end of your billing period';
+                    })()}
                   </strong>.
                   You&apos;ll have full access until then.
                 </p>
