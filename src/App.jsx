@@ -32,6 +32,14 @@ const INACTIVITY_LIMIT = 259200000; // 3 days in ms
 const ACTIVITY_KEY = 'pt_last_activity';
 const PUBLIC_PATHS = ['/', '/login', '/signup', '/terms', '/privacy'];
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function ReferralCapture() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -108,6 +116,7 @@ export default function App() {
           <SubscriptionProvider>
             <ReferralCapture />
             <ActivityTracker />
+            <ScrollToTop />
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
