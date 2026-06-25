@@ -33,6 +33,10 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://promisetracker.app/blog/how-to-increase-quote-close-rate</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://promisetracker.app/blog</loc>
     <priority>0.8</priority>
   </url>

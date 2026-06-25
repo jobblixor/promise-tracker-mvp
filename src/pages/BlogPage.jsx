@@ -27,6 +27,14 @@ const ARTICLES = [
     tag: 'Ghosted Estimates',
     readTime: '7 min read',
   },
+  {
+    to: '/blog/how-to-increase-quote-close-rate',
+    title: 'How to Increase Your Quote Close Rate Without Lowering Prices',
+    description:
+      'Data-backed strategies to close more quotes without cutting prices. Why trust beats price, how multi-option quoting lifts close rates by 10 points, and the follow-up system that wins more jobs.',
+    tag: 'Sales',
+    readTime: '15 min read',
+  },
 ];
 
 export default function BlogPage() {
