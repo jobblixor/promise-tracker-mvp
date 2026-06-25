@@ -21,7 +21,7 @@ import PromiseCard from './PromiseCard';
 import PromiseForm from './PromiseForm';
 
 function computeStatus(promise) {
-  if (!promise.dueDate || !promise.dueDate.toDate) return promise.status === 'done' ? 'done' : 'upcoming';
+  if (!promise.dueDate) return promise.status === 'done' ? 'done' : 'upcoming';
   if (promise.status === 'done') return 'done';
   const now = new Date();
   const due = promise.dueDate instanceof Timestamp

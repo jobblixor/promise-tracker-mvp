@@ -15,6 +15,7 @@ export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, can
   const status = statusConfig[promise.status] || statusConfig.upcoming;
 
   const formatDate = (dateStr) => {
+    if (!dateStr) return 'No due date';
     const date = new Date(dateStr);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
@@ -28,6 +29,7 @@ export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, can
   };
 
   const getRelativeTime = (dateStr) => {
+    if (!dateStr) return null;
     const date = new Date(dateStr);
     const now = new Date();
     const diffMs = date - now;
