@@ -1159,16 +1159,20 @@ function formatDueShort(timestamp) {
 async function handleListCommand(userId, userPhone, userData) {
   console.log(`[SMS LIST] userId=${userId}`);
   const businessId = userData.businessId;
+  console.log(`[SMS LIST] businessId=${businessId}`);
   if (!businessId) {
     await sendSMS(userPhone, 'Your account is not linked to a business. Please complete setup at promisetracker.app');
     return;
   }
 
+  console.log(`[SMS LIST] Querying promises where businessId==${businessId} AND status in [open,overdue] ORDER BY dueDate asc`);
   const snapshot = await db.collection('promises')
     .where('businessId', '==', businessId)
-    .where('status', '==', 'open')
+    .where('status', 'in', ['open', 'overdue'])
     .orderBy('dueDate', 'asc')
     .get();
+
+  console.log(`[SMS LIST] Query returned ${snapshot.size} doc(s)`);
 
   if (snapshot.empty) {
     await sendSMS(userPhone, 'No open promises. Nice work! 🎉');
@@ -1177,24 +1181,34 @@ async function handleListCommand(userId, userPhone, userData) {
 
   const allDocs = snapshot.docs;
   const showDocs = allDocs.slice(0, 5);
+  // Store promise IDs in display order so DONE 1, DONE 2, etc. resolve correctly
   const promiseIds = showDocs.map(d => d.id);
 
-  // Store number-to-promiseId mapping so DONE/DELETE by number work
   await db.collection('smsListMappings').doc(userId).set({
     promiseIds,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
+  const nowMs = Date.now();
   const lines = showDocs.map((doc, i) => {
     const p = doc.data();
-    const due = formatDueShort(p.dueDate);
-    return `${i + 1}) ${p.description || '(no description)'} - ${p.customerName || '?'} - ${due}`;
+    const customerName = p.customerName || '?';
+    const description = p.description || '(no description)';
+    let dueStr;
+    if (p.status === 'overdue' && p.dueDate && p.dueDate.toDate) {
+      const daysOverdue = Math.max(1, Math.floor((nowMs - p.dueDate.toDate().getTime()) / (24 * 60 * 60 * 1000)));
+      dueStr = `${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue`;
+    } else {
+      dueStr = formatDueShort(p.dueDate);
+    }
+    return `${i + 1}) ${customerName} - ${description} - ${dueStr}`;
   });
 
   let msg = 'Your promises:\n' + lines.join('\n');
   if (allDocs.length > 5) {
-    msg += '\nShowing 5 soonest. Reply MORE for next page.';
+    msg += `\nShowing 5 of ${allDocs.length}. Reply MORE for rest.`;
   }
+  msg += '\nReply DONE # or DELETE #';
 
   await sendSMS(userPhone, msg);
 }
@@ -1226,10 +1240,10 @@ async function handleDoneCommand(userId, userPhone, userData, messageText) {
   }
 
   if (!promiseDoc && afterDone) {
-    // Freeform substring match on description or customerName
+    // Freeform substring match on description or customerName (include overdue)
     const openSnap = await db.collection('promises')
       .where('businessId', '==', businessId)
-      .where('status', '==', 'open')
+      .where('status', 'in', ['open', 'overdue'])
       .get();
     const term = afterDone.toLowerCase();
     for (const doc of openSnap.docs) {
@@ -1253,10 +1267,10 @@ async function handleDoneCommand(userId, userPhone, userData, messageText) {
     completedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  // Count remaining open promises
+  // Count remaining non-completed promises
   const remainingSnap = await db.collection('promises')
     .where('businessId', '==', businessId)
-    .where('status', '==', 'open')
+    .where('status', 'in', ['open', 'overdue'])
     .get();
 
   const desc = promiseDoc.data().description || '(no description)';
@@ -1292,7 +1306,7 @@ async function handleDeleteCommand(userId, userPhone, userData, messageText) {
   if (!promiseDoc && afterDelete) {
     const openSnap = await db.collection('promises')
       .where('businessId', '==', businessId)
-      .where('status', '==', 'open')
+      .where('status', 'in', ['open', 'overdue'])
       .get();
     const term = afterDelete.toLowerCase();
     for (const doc of openSnap.docs) {

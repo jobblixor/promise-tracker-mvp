@@ -156,6 +156,19 @@ export function AuthProvider({ children }) {
     console.log('[SIGNUP DEBUG] storeFingerprint - registeredPhones doc OK');
   };
 
+  // Returns true if the phone (normalized to last 10 digits) is already stored on
+  // another user account. excludeUid lets the Settings page skip the current user.
+  const checkDuplicatePhone = async (phone, excludeUid = null) => {
+    const normalized = phone.replace(/\D/g, '').slice(-10);
+    if (normalized.length < 10) return false;
+    const snap = await getDocs(collection(db, 'users'));
+    return snap.docs.some((docSnap) => {
+      if (excludeUid && docSnap.id === excludeUid) return false;
+      const stored = docSnap.data().phone;
+      return stored && stored.replace(/\D/g, '').slice(-10) === normalized;
+    });
+  };
+
   const signup = async (email, password, businessName, phone, timezone) => {
     console.log('[SIGNUP DEBUG] === SIGNUP START ===');
 
@@ -171,6 +184,17 @@ export function AuthProvider({ children }) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
     console.log('[SIGNUP DEBUG] Step 1 OK - uid:', uid, 'auth.currentUser:', auth.currentUser?.uid);
+
+    // Duplicate phone check — must run after auth creation (Firestore rules require auth).
+    // If the phone is already in use, delete the newly created auth account and surface
+    // a clear error so the caller can show it to the user.
+    if (phone) {
+      const isDuplicate = await checkDuplicatePhone(phone);
+      if (isDuplicate) {
+        await cred.user.delete();
+        throw new Error('This phone number is already linked to another account.');
+      }
+    }
 
     console.log('[SIGNUP DEBUG] Step 2: runAbuseChecks...');
     const { eligibleForTrial, fingerprint, ip, deviceId } = await runAbuseChecks(phone);
@@ -258,6 +282,15 @@ export function AuthProvider({ children }) {
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
+
+    // Duplicate phone check — roll back auth if phone already in use.
+    if (phone) {
+      const isDuplicate = await checkDuplicatePhone(phone);
+      if (isDuplicate) {
+        await cred.user.delete();
+        throw new Error('This phone number is already linked to another account.');
+      }
+    }
 
     await setDoc(doc(db, 'users', uid), {
       uid,

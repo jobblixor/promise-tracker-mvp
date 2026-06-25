@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db, auth } from '../config/firebase';
 import app from '../config/firebase';
@@ -284,9 +284,25 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
+      const trimmedPhone = phone.trim();
+      if (trimmedPhone) {
+        const normalized = trimmedPhone.replace(/\D/g, '').slice(-10);
+        if (normalized.length === 10) {
+          const usersSnap = await getDocs(collection(db, 'users'));
+          const duplicate = usersSnap.docs.some((docSnap) => {
+            if (docSnap.id === user.uid) return false;
+            const stored = docSnap.data().phone;
+            return stored && stored.replace(/\D/g, '').slice(-10) === normalized;
+          });
+          if (duplicate) {
+            toast.error('This phone number is already linked to another account.');
+            return;
+          }
+        }
+      }
       await updateDoc(doc(db, 'users', user.uid), {
         displayName: displayName.trim(),
-        phone: phone.trim(),
+        phone: trimmedPhone,
       });
       toast.success('Profile updated');
     } catch (err) {
