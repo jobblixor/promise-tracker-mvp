@@ -1263,7 +1263,7 @@ async function handleDoneCommand(userId, userPhone, userData, messageText) {
   }
 
   await db.collection('promises').doc(promiseId).update({
-    status: 'completed',
+    status: 'done',
     completedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
@@ -1393,8 +1393,21 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
   try {
     const senderPhone = req.body && req.body.from;
     const messageText = ((req.body && req.body.text) || '').trim();
+    const messageUuid = req.body && req.body.message_uuid;
 
     console.log(`[SMS INBOUND] from=${senderPhone} text="${messageText}"`);
+
+    // Dedup: skip Vonage retries that reuse the same message_uuid
+    if (messageUuid) {
+      const dedupRef = db.collection('processedMessages').doc(messageUuid);
+      const dedupSnap = await dedupRef.get();
+      if (dedupSnap.exists) {
+        console.log(`[SMS INBOUND] Duplicate message_uuid=${messageUuid} — skipping`);
+        return res.status(200).send('OK');
+      }
+      await dedupRef.set({ processedAt: admin.firestore.FieldValue.serverTimestamp() });
+      // Note: processedMessages docs are tiny and can be cleaned up periodically (e.g. after 7 days)
+    }
 
     if (!senderPhone) {
       console.warn('[SMS INBOUND] No sender phone in payload — ignoring');
