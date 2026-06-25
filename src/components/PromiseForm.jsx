@@ -1,6 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function PromiseForm({ isOpen, onClose, onSubmit }) {
+function toLocalDatetimeString(isoStr) {
+  if (!isoStr) return '';
+  const date = new Date(isoStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+export default function PromiseForm({ isOpen, onClose, onSubmit, editingPromise }) {
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -8,6 +19,21 @@ export default function PromiseForm({ isOpen, onClose, onSubmit }) {
     dueDate: '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (editingPromise) {
+        setFormData({
+          customerName: editingPromise.customerName || '',
+          customerPhone: editingPromise.customerPhone || '',
+          description: editingPromise.description || '',
+          dueDate: toLocalDatetimeString(editingPromise.dueDate),
+        });
+      } else {
+        setFormData({ customerName: '', customerPhone: '', description: '', dueDate: '' });
+      }
+    }
+  }, [isOpen, editingPromise]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -44,8 +70,8 @@ export default function PromiseForm({ isOpen, onClose, onSubmit }) {
       <div className="fixed inset-y-0 right-0 w-full max-w-md bg-bg-card border-l border-border/60 z-50 flex flex-col shadow-2xl shadow-black/40 animate-slide-in-right">
         <div className="flex items-center justify-between p-6 border-b border-border/40">
           <div>
-            <h2 className="text-lg font-bold text-text-primary">Log a Promise</h2>
-            <p className="text-xs text-text-muted mt-1 font-medium">Record what was promised to the customer</p>
+            <h2 className="text-lg font-bold text-text-primary">{editingPromise ? 'Edit Promise' : 'Log a Promise'}</h2>
+            <p className="text-xs text-text-muted mt-1 font-medium">{editingPromise ? 'Update the promise details below' : 'Record what was promised to the customer'}</p>
           </div>
           <button
             onClick={onClose}
@@ -120,7 +146,7 @@ export default function PromiseForm({ isOpen, onClose, onSubmit }) {
                   Saving...
                 </>
               ) : (
-                'Log Promise'
+                editingPromise ? 'Save Changes' : 'Log Promise'
               )}
             </button>
           </div>

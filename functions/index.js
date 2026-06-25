@@ -1358,9 +1358,6 @@ async function handleStartCommand(userId, userPhone) {
 // ─── Main Inbound SMS Handler ─────────────────────────────────────────
 
 exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
-  // Return 200 immediately — Vonage retries for 24 hours otherwise
-  res.status(200).send('OK');
-
   try {
     const senderPhone = req.body && req.body.from;
     const messageText = ((req.body && req.body.text) || '').trim();
@@ -1438,4 +1435,6 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       console.error('[SMS INBOUND] Failed to send error SMS:', smsErr.message);
     }
   }
+  // ALWAYS send 200 at the very end so Vonage doesn't retry
+  res.status(200).send('OK');
 });

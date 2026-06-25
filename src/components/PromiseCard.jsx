@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function PromiseCard({ promise, onMarkDone, onDelete, canDelete, disabled }) {
+export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, canDelete, disabled }) {
   const [completing, setCompleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -98,6 +98,17 @@ export default function PromiseCard({ promise, onMarkDone, onDelete, canDelete, 
           </div>
         </div>
 
+        {promise.status !== 'done' && !completing && !disabled && onEdit && (
+          <button
+            onClick={() => onEdit(promise)}
+            aria-label="Edit promise"
+            className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 p-1.5 rounded-[8px] text-text-muted hover:text-text-secondary hover:bg-black/[0.06] active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+            </svg>
+          </button>
+        )}
         {promise.status !== 'done' && !completing && !disabled && (
           <button
             onClick={handleMarkDone}

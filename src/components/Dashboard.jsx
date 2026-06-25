@@ -78,6 +78,7 @@ export default function Dashboard() {
   const [promises, setPromises] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
+  const [editingPromise, setEditingPromise] = useState(null);
   const [loading, setLoading] = useState(true);
   const tabsRef = useRef({});
   const rawPromisesRef = useRef([]);
@@ -218,6 +219,28 @@ export default function Dashboard() {
     toast.success('Promise logged successfully');
   };
 
+  const handleEditPromise = async (formData) => {
+    await updateDoc(doc(db, 'promises', editingPromise.id), {
+      customerName: formData.customerName,
+      customerPhone: formData.customerPhone,
+      description: formData.description,
+      dueDate: Timestamp.fromDate(new Date(formData.dueDate)),
+    });
+    toast.success('Promise updated');
+  };
+
+  const handleFormSubmit = editingPromise ? handleEditPromise : handleAddPromise;
+
+  const openEditForm = (promise) => {
+    setEditingPromise(promise);
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingPromise(null);
+  };
+
   const statCards = [
     { label: 'Overdue', count: counts.overdue, color: 'text-red-400', bg: 'bg-red-500/8', borderColor: 'border-red-500/15', glow: counts.overdue > 0 ? 'animate-pulse-glow' : '' },
     { label: 'Due Today', count: counts['due-today'], color: 'text-yellow-400', bg: 'bg-yellow-500/8', borderColor: 'border-yellow-500/15', glow: '' },
@@ -279,7 +302,7 @@ export default function Dashboard() {
           <p className="text-sm text-text-secondary mt-1.5 font-normal">Track and manage customer promises</p>
         </div>
         <button
-          onClick={() => setFormOpen(true)}
+          onClick={() => { setEditingPromise(null); setFormOpen(true); }}
           disabled={!hasAccess}
           className={`flex items-center gap-2.5 px-5 py-2.5 bg-accent hover:bg-accent-hover text-white font-semibold rounded-[10px] text-sm transition-all duration-200 hover:shadow-[0_0_20px_rgba(34,197,94,0.25)] hover:scale-[1.02] active:scale-[0.98] shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none ${
             promises.length === 0 && !loading && hasAccess ? 'animate-pulse-soft' : ''
@@ -367,6 +390,7 @@ export default function Dashboard() {
               promise={promise}
               onMarkDone={handleMarkDone}
               onDelete={handleDeletePromise}
+              onEdit={openEditForm}
               canDelete={user?.role === 'owner' || user?.email === promise.createdBy}
               disabled={!hasAccess}
             />
@@ -374,7 +398,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <PromiseForm isOpen={formOpen} onClose={() => setFormOpen(false)} onSubmit={handleAddPromise} />
+      <PromiseForm isOpen={formOpen} onClose={closeForm} onSubmit={handleFormSubmit} editingPromise={editingPromise} />
 
       <p className="text-center text-xs text-[#64748b] mt-12 pb-4">
         Need help?{' '}
