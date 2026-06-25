@@ -1609,8 +1609,20 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
     }
     console.log(`[SMS CONFIRM] validCommand="${kw}" — routed after silent cancel for userId=${userId}`);
   } else {
-    await sendSMS(userPhone, 'Reply YES to confirm, EDIT to change, or CANCEL.');
-    console.log(`[SMS CONFIRM] unrecognized input — reprompted for userId=${userId}`);
+    const timezone = (user && user.timezone) || 'America/New_York';
+    const newParsed = await parsePromiseText(messageText, timezone);
+    if (newParsed.promise_text) {
+      await db.collection('smsConversations').doc(convoDoc.id).update({
+        pendingParse: newParsed,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      const confirmMsg = buildConfirmMessage(newParsed);
+      await sendSMS(userPhone, confirmMsg);
+      console.log(`[SMS CONFIRM] replaced pending confirmation with new parse for userId=${userId}`);
+    } else {
+      await sendSMS(userPhone, 'Reply YES to confirm, EDIT to change, or CANCEL.');
+      console.log(`[SMS CONFIRM] unrecognized input — reprompted for userId=${userId}`);
+    }
   }
 }
 
