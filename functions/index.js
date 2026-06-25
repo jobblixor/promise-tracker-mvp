@@ -1490,6 +1490,18 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
 
     const localNow = getLocalNow();
 
+    // Helper: build timezone-aware ISO string
+    function toLocalISO(date, tzOffset) {
+      const pad = (n) => String(n).padStart(2, '0');
+      return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':00' + tzOffset;
+    }
+
+    // Compute offset from localNow vs real now
+    const realNow = new Date();
+    const diffMs = localNow.getTime() - realNow.getTime();
+    const offsetHours = Math.round(diffMs / 3600000);
+    const tzOffset = (offsetHours >= 0 ? '+' : '-') + String(Math.abs(offsetHours)).padStart(2, '0') + ':00';
+
     // Default times for time-of-day keywords
     let overrideHour = 17; // default 5pm
     if (lowerText.includes('morning')) overrideHour = 9;
@@ -1502,7 +1514,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       const d = new Date(localNow);
       if (lowerText.includes('tonight')) overrideHour = 20;
       d.setHours(overrideHour, 0, 0, 0);
-      parsed.due_date = d.toISOString();
+      parsed.due_date = toLocalISO(d, tzOffset);
       parsed.due_date_readable = dayNames[d.getDay()] + ' ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
     }
     // Check for "tomorrow"
@@ -1510,7 +1522,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       const d = new Date(localNow);
       d.setDate(d.getDate() + 1);
       d.setHours(overrideHour, 0, 0, 0);
-      parsed.due_date = d.toISOString();
+      parsed.due_date = toLocalISO(d, tzOffset);
       parsed.due_date_readable = dayNames[d.getDay()] + ' ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
     }
     // --- End post-process ---
@@ -1553,6 +1565,8 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
     };
     if (pendingParse.due_date) {
       promiseData.dueDate = admin.firestore.Timestamp.fromDate(new Date(pendingParse.due_date));
+    } else {
+      promiseData.dueDate = null;
     }
     await db.collection('promises').add(promiseData);
     await resetConvo();
