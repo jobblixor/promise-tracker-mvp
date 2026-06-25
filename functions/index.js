@@ -1404,15 +1404,7 @@ async function handleHelpCommand(userPhone) {
   console.log(`[SMS HELP] userPhone=${userPhone}`);
   await sendSMS(
     userPhone,
-    "Promise Tracker SMS Commands:\n" +
-    "• Text any promise to log it (e.g. 'Quote for John by Friday')\n" +
-    "• LIST — see your open promises\n" +
-    "• DONE # — mark a promise complete\n" +
-    "• DELETE # — remove a promise\n" +
-    "• HELP — this message\n" +
-    "• CANCEL — cancel current action\n" +
-    "• START — resubscribe to texts\n" +
-    "• STOP — unsubscribe from texts"
+    "PT Commands:\nLIST - see open promises\nDONE # - complete a promise\nDELETE # - remove a promise\nCANCEL - cancel current action\nSTOP/START - unsub/resub\nHELP - this msg\nOr text a promise to log it"
   );
 }
 
