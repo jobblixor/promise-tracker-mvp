@@ -1420,6 +1420,169 @@ async function handleStartCommand(userId, userPhone) {
   await sendSMS(userPhone, "Welcome back! You're resubscribed to Promise Tracker texts. Reply HELP for commands.");
 }
 
+// ─── GPT Promise Parser ───────────────────────────────────────────────
+
+/**
+ * Build the confirmation message from a parsed promise object.
+ */
+function buildConfirmMessage(parsed) {
+  const text = parsed.promise_text;
+  const customer = parsed.customer_name;
+  const dateStr = parsed.due_date_readable;
+
+  if (customer && dateStr) {
+    return `Logging: '${text}' for ${customer} - due ${dateStr}. Reply YES to confirm, EDIT to change, or CANCEL.`;
+  } else if (customer && !dateStr) {
+    return `Logging: '${text}' for ${customer} - no due date set. Reply YES to confirm, EDIT to change, or CANCEL.`;
+  } else {
+    return `Logging: '${text}' - due ${dateStr || 'no date set'}. Reply YES to confirm, EDIT to change, or CANCEL.`;
+  }
+}
+
+/**
+ * Call GPT-4o-mini to extract structured promise data from a natural language message.
+ */
+async function parsePromiseText(messageText) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const systemPrompt =
+      `You are a promise parser for Promise Tracker. Extract structured data from a short text message describing a promise or commitment a contractor made to a customer. Return ONLY valid JSON, no markdown, no backticks: {"promise_text": "the action the user committed to", "customer_name": "customer name if mentioned, or null", "due_date": "ISO 8601 datetime if mentioned, or null", "due_date_readable": "human-friendly date like 'Tuesday 5pm' or null", "confidence": "high" | "medium" | "low"}. Today's date is ` + today + `. When the user says 'Tuesday' they mean the next upcoming Tuesday. When they say 'tomorrow' they mean tomorrow. Default time is 5:00 PM local if no time specified. If you cannot determine what the promise is, return: {"promise_text": null, "error": "Could not understand the promise"}`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: messageText },
+        ],
+        temperature: 0,
+      }),
+    });
+
+    const data = await response.json();
+    console.log('[parsePromiseText] raw response:', JSON.stringify(data));
+
+    const raw = data.choices?.[0]?.message?.content;
+    if (!raw) return { promise_text: null, error: 'Could not parse promise' };
+
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch (err) {
+    console.error('[parsePromiseText] error:', err.message);
+    return { promise_text: null, error: 'Could not parse promise' };
+  }
+}
+
+/**
+ * Handle the awaiting_confirm conversation state.
+ */
+async function handleConfirmConversation(convoDoc, userId, userPhone, messageText, user) {
+  console.log(`[SMS CONFIRM] userId=${userId} text="${messageText}"`);
+  const convoData = convoDoc.data();
+  const pendingParse = convoData.pendingParse;
+  const upper = messageText.trim().toUpperCase();
+  const kw = (messageText.split(/\s+/)[0] || '').toUpperCase();
+  const validCommands = ['LIST', 'STATUS', 'DONE', 'DELETE', 'HELP', 'STOP', 'START'];
+
+  const resetConvo = () =>
+    db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'idle',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+  if (upper === 'YES') {
+    let dueDate = null;
+    if (pendingParse.due_date) {
+      try {
+        dueDate = admin.firestore.Timestamp.fromDate(new Date(pendingParse.due_date));
+      } catch (e) {
+        console.warn('[SMS CONFIRM] Could not parse due_date:', pendingParse.due_date);
+      }
+    }
+    await db.collection('promises').add({
+      customerName: pendingParse.customer_name || '',
+      customerPhone: '',
+      description: pendingParse.promise_text,
+      dueDate: dueDate,
+      status: 'open',
+      createdBy: user.email,
+      businessId: user.businessId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      completedAt: null,
+      source: 'sms',
+    });
+    await resetConvo();
+    await sendSMS(userPhone, 'Promise logged! Reminders are set.');
+    console.log(`[SMS CONFIRM] YES — promise created for userId=${userId}`);
+  } else if (upper === 'EDIT') {
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'awaiting_promise',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    await sendSMS(userPhone, "Send your updated promise and I'll re-parse it.");
+    console.log(`[SMS CONFIRM] EDIT — moved to awaiting_promise for userId=${userId}`);
+  } else if (upper === 'CANCEL') {
+    await resetConvo();
+    await sendSMS(userPhone, 'Cancelled. No promise logged.');
+    console.log(`[SMS CONFIRM] CANCEL for userId=${userId}`);
+  } else if (validCommands.includes(kw)) {
+    // Cancel silently, then route to that command
+    await resetConvo();
+    switch (kw) {
+      case 'LIST':
+      case 'STATUS':
+        await handleListCommand(userId, userPhone, user);
+        break;
+      case 'DONE':
+        await handleDoneCommand(userId, userPhone, user, messageText);
+        break;
+      case 'DELETE':
+        await handleDeleteCommand(userId, userPhone, user, messageText);
+        break;
+      case 'HELP':
+        await handleHelpCommand(userPhone);
+        break;
+      case 'STOP':
+        await handleStopCommand(userId, userPhone);
+        break;
+      case 'START':
+        await handleStartCommand(userId, userPhone);
+        break;
+    }
+    console.log(`[SMS CONFIRM] validCommand="${kw}" — routed after silent cancel for userId=${userId}`);
+  } else {
+    await sendSMS(userPhone, 'Reply YES to confirm, EDIT to change, or CANCEL.');
+    console.log(`[SMS CONFIRM] unrecognized input — reprompted for userId=${userId}`);
+  }
+}
+
+/**
+ * Handle the awaiting_promise conversation state (after EDIT).
+ */
+async function handleAwaitingPromise(convoDoc, userId, userPhone, messageText) {
+  console.log(`[SMS AWAITING_PROMISE] userId=${userId} text="${messageText}"`);
+  const parsed = await parsePromiseText(messageText);
+  if (!parsed.promise_text) {
+    await sendSMS(userPhone, "I couldn't understand that. Try something like: 'Quote for John by Friday' or type HELP for commands.");
+    // Stay in awaiting_promise state
+    return;
+  }
+
+  await db.collection('smsConversations').doc(convoDoc.id).update({
+    state: 'awaiting_confirm',
+    pendingParse: parsed,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  const confirmMsg = buildConfirmMessage(parsed);
+  await sendSMS(userPhone, confirmMsg);
+  console.log(`[SMS AWAITING_PROMISE] re-parsed — moved to awaiting_confirm for userId=${userId}`);
+}
+
 // ─── Main Inbound SMS Handler ─────────────────────────────────────────
 
 exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
@@ -1484,6 +1647,24 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       }
     }
 
+    // Check for an active confirm/edit conversation (GPT promise parser flow)
+    const confirmConvoId = `${userId}_confirm`;
+    const confirmConvoDoc = await db.collection('smsConversations').doc(confirmConvoId).get();
+    if (confirmConvoDoc.exists && confirmConvoDoc.data().state !== 'idle') {
+      const confirmState = confirmConvoDoc.data().state;
+      console.log(`[SMS INBOUND] Active confirm conversation state="${confirmState}" for userId=${userId}`);
+      if (confirmState === 'awaiting_confirm') {
+        await handleConfirmConversation(confirmConvoDoc, userId, senderPhone, messageText, user);
+        res.status(200).send('OK');
+        return;
+      }
+      if (confirmState === 'awaiting_promise') {
+        await handleAwaitingPromise(confirmConvoDoc, userId, senderPhone, messageText);
+        res.status(200).send('OK');
+        return;
+      }
+    }
+
     // Route by the first word (keyword), case-insensitive
     const keyword = (messageText.split(/\s+/)[0] || '').toUpperCase();
     console.log(`[SMS INBOUND] Routing keyword="${keyword}"`);
@@ -1522,9 +1703,24 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       case 'START':
         await handleStartCommand(userId, senderPhone);
         break;
-      default:
-        console.log(`[SMS INBOUND] Unrecognized keyword="${keyword}"`);
-        await sendSMS(senderPhone, 'Command not recognized. Reply HELP for available commands.');
+      default: {
+        console.log(`[SMS INBOUND] Default case — attempting GPT parse for text="${messageText}"`);
+        const parsed = await parsePromiseText(messageText);
+        if (!parsed.promise_text) {
+          await sendSMS(senderPhone, "I couldn't understand that. Try something like: 'Quote for John by Friday' or type HELP for commands.");
+        } else {
+          const newConfirmConvoId = `${userId}_confirm`;
+          await db.collection('smsConversations').doc(newConfirmConvoId).set({
+            userId,
+            state: 'awaiting_confirm',
+            pendingParse: parsed,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          const confirmMsg = buildConfirmMessage(parsed);
+          await sendSMS(senderPhone, confirmMsg);
+        }
+        break;
+      }
     }
   } catch (err) {
     console.error('[SMS INBOUND] Unhandled error:', err.message, err.stack);
