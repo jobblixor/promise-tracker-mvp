@@ -1525,6 +1525,39 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       parsed.due_date = toLocalISO(d, tzOffset);
       parsed.due_date_readable = dayNames[d.getDay()] + ' ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
     }
+    else {
+      // Check for "end of week" / "end of the week" — priority over generic day-name match
+      if (lowerText.includes('end of week') || lowerText.includes('end of the week')) {
+        const d = new Date(localNow);
+        const currentDay = d.getDay();
+        let daysUntil = 5 - currentDay; // Friday = 5
+        if (daysUntil <= 0) daysUntil += 7; // always go to NEXT Friday
+        d.setDate(d.getDate() + daysUntil);
+        d.setHours(overrideHour, 0, 0, 0);
+        parsed.due_date = toLocalISO(d, tzOffset);
+        parsed.due_date_readable = 'Friday ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
+      } else {
+        // Check for day-of-week references
+        const dayMap = { 'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6 };
+        let matchedDay = null;
+        for (const [name, num] of Object.entries(dayMap)) {
+          if (lowerText.includes(name)) {
+            matchedDay = { name, num };
+            break;
+          }
+        }
+        if (matchedDay) {
+          const d = new Date(localNow);
+          const currentDay = d.getDay();
+          let daysUntil = matchedDay.num - currentDay;
+          if (daysUntil <= 0) daysUntil += 7; // always go to NEXT occurrence
+          d.setDate(d.getDate() + daysUntil);
+          d.setHours(overrideHour, 0, 0, 0);
+          parsed.due_date = toLocalISO(d, tzOffset);
+          parsed.due_date_readable = matchedDay.name.charAt(0).toUpperCase() + matchedDay.name.slice(1) + ' ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
+        }
+      }
+    }
     // --- End post-process ---
 
     return parsed;
