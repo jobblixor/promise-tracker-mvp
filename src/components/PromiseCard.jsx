@@ -102,6 +102,7 @@ export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, can
           <button
             onClick={() => onEdit(promise)}
             aria-label="Edit promise"
+            title="Edit"
             className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-200 p-1.5 rounded-[8px] text-text-muted hover:text-text-secondary hover:bg-black/[0.06] active:scale-95"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
