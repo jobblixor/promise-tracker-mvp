@@ -1267,6 +1267,8 @@ async function handleDoneCommand(userId, userPhone, userData, messageText) {
     completedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
+  await db.collection('smsListMappings').doc(userId).delete().catch(() => {});
+
   // Count remaining non-completed promises
   const remainingSnap = await db.collection('promises')
     .where('businessId', '==', businessId)
@@ -1340,24 +1342,61 @@ async function handleDeleteCommand(userId, userPhone, userData, messageText) {
   await sendSMS(userPhone, `Delete '${desc}'? Reply YES to confirm.`);
 }
 
-async function handleDeleteConfirmation(convoDoc, userId, userPhone, messageText) {
+async function handleDeleteConfirmation(convoDoc, userId, userPhone, messageText, user) {
   console.log(`[SMS DELETE CONFIRM] userId=${userId} text="${messageText}"`);
   const convoData = convoDoc.data();
   const promiseId = convoData.pendingDeleteId;
-  const desc = convoData.pendingDeleteDesc || '(no description)';
+  const upper = messageText.trim().toUpperCase();
+  const kw = (messageText.split(/\s+/)[0] || '').toUpperCase();
+  const validCommands = ['LIST', 'STATUS', 'DONE', 'DELETE', 'HELP', 'STOP', 'START'];
 
-  // Reset conversation state regardless of outcome
-  await db.collection('smsConversations').doc(convoDoc.id).update({
-    state: 'idle',
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
-  if (messageText.trim().toUpperCase() === 'YES') {
+  if (upper === 'YES') {
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'idle',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
     await db.collection('promises').doc(promiseId).delete();
+    await db.collection('smsListMappings').doc(userId).delete().catch(() => {});
     console.log(`[SMS DELETE CONFIRM] Deleted promise ${promiseId}`);
     await sendSMS(userPhone, '🗑️ Deleted.');
+    console.log(`[SMS DELETE CONFIRM] YES branch complete — returning to caller`);
+  } else if (upper === 'CANCEL' || upper === 'NO') {
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'idle',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    await sendSMS(userPhone, 'Delete cancelled.');
+    console.log(`[SMS DELETE CONFIRM] CANCEL/NO branch complete — returning to caller`);
+  } else if (validCommands.includes(kw)) {
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'idle',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    switch (kw) {
+      case 'LIST':
+      case 'STATUS':
+        await handleListCommand(userId, userPhone, user);
+        break;
+      case 'DONE':
+        await handleDoneCommand(userId, userPhone, user, messageText);
+        break;
+      case 'DELETE':
+        await handleDeleteCommand(userId, userPhone, user, messageText);
+        break;
+      case 'HELP':
+        await handleHelpCommand(userPhone);
+        break;
+      case 'STOP':
+        await handleStopCommand(userId, userPhone);
+        break;
+      case 'START':
+        await handleStartCommand(userId, userPhone);
+        break;
+    }
+    console.log(`[SMS DELETE CONFIRM] validCommand="${kw}" branch complete — returning to caller`);
   } else {
-    await sendSMS(userPhone, 'Cancelled. Promise kept.');
+    await sendSMS(userPhone, 'Reply YES to delete or CANCEL to keep it.');
+    console.log(`[SMS DELETE CONFIRM] unrecognized input — prompted for YES/CANCEL — returning to caller`);
   }
 }
 
@@ -1371,6 +1410,8 @@ async function handleHelpCommand(userPhone) {
     "• DONE # — mark a promise complete\n" +
     "• DELETE # — remove a promise\n" +
     "• HELP — this message\n" +
+    "• CANCEL — cancel current action\n" +
+    "• START — resubscribe to texts\n" +
     "• STOP — unsubscribe from texts"
   );
 }
@@ -1414,6 +1455,14 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       return;
     }
 
+    // Short-circuit HELP before doing a user lookup — HELP is generic text anyone can receive
+    const firstWord = (messageText.split(/\s+/)[0] || '').toUpperCase();
+    if (firstWord === 'HELP') {
+      await handleHelpCommand(senderPhone);
+      res.status(200).send('OK');
+      return;
+    }
+
     // Identify the user by matching last 10 digits of phone number
     const user = await findUserByPhone(senderPhone);
     if (!user) {
@@ -1435,7 +1484,10 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       const state = convoDoc.data().state;
       console.log(`[SMS INBOUND] Active conversation state="${state}" for userId=${userId}`);
       if (state === 'awaiting_delete_confirm') {
-        await handleDeleteConfirmation(convoDoc, userId, senderPhone, messageText);
+        await handleDeleteConfirmation(convoDoc, userId, senderPhone, messageText, user);
+        // NOTE: bare return; would exit the function BEFORE the final res.status(200).send('OK'),
+        // causing Vonage to never receive a response and triggering 504 retries.
+        res.status(200).send('OK');
         return;
       }
     }
@@ -1449,6 +1501,20 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       case 'STATUS':
         await handleListCommand(userId, senderPhone, user);
         break;
+      case 'CANCEL': {
+        const cancelConvoId = `${userId}_delete`;
+        const cancelConvoDoc = await db.collection('smsConversations').doc(cancelConvoId).get();
+        if (cancelConvoDoc.exists && cancelConvoDoc.data().state !== 'idle') {
+          await db.collection('smsConversations').doc(cancelConvoId).update({
+            state: 'idle',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          await sendSMS(senderPhone, 'Cancelled.');
+        } else {
+          await sendSMS(senderPhone, 'Nothing to cancel.');
+        }
+        break;
+      }
       case 'DONE':
         await handleDoneCommand(userId, senderPhone, user, messageText);
         break;
