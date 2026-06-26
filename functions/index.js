@@ -1449,7 +1449,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const todayStr = dayNames[now.getUTCDay()] + ', ' + monthNames[now.getUTCMonth()] + ' ' + now.getUTCDate() + ', ' + now.getUTCFullYear();
     const systemPrompt =
-      `You are a promise parser for Promise Tracker. Extract structured data from a short text message describing a promise or commitment a contractor made to a customer. Return ONLY valid JSON, no markdown, no backticks: {"promise_text": "the action the user committed to", "customer_name": "customer name if mentioned, or null", "due_date": "ISO 8601 datetime if mentioned, or null", "due_date_readable": "human-friendly date like 'Tuesday 5pm' or null", "confidence": "high" | "medium" | "low"}. Today is ` + todayStr + `. The user is in the ${timezone} timezone. All dates and times you return should be in this timezone. Include the timezone offset in the ISO 8601 string, e.g. '2026-06-26T17:00:00-04:00'. When the user says 'Tuesday' they mean the next upcoming Tuesday. When they say 'tomorrow' they mean tomorrow. If the user says 'morning', use 9:00 AM. If they say 'afternoon', use 1:00 PM. If they say 'evening', use 6:00 PM. If they say 'end of day' or 'EOD', use 5:00 PM. If no time is mentioned at all, default to 5:00 PM. When the user says 'end of the week', they mean Friday. When they say 'next week', they mean the following Monday. Make sure the day of the week name in due_date_readable matches the actual calendar date. Double check this. IMPORTANT: If the user does NOT mention ANY date, time, day, deadline, or time-related word, you MUST return due_date: null and due_date_readable: null. Do NOT invent or assume a date. Only extract a date if the user explicitly mentions one. If you cannot determine what the promise is, return: {"promise_text": null, "error": "Could not understand the promise"}`;
+      `You are a promise parser for Promise Tracker. Extract structured data from a short text message describing a promise or commitment a contractor made to a customer. Return ONLY valid JSON, no markdown, no backticks: {"promise_text": "the action the user committed to", "customer_name": "customer name if mentioned, or null", "due_date": "ISO 8601 datetime if mentioned, or null", "due_date_readable": "human-friendly date like 'Tuesday 5pm' or null", "confidence": "high" | "medium" | "low"}. Today is ` + todayStr + `. The user is in the ${timezone} timezone. All dates and times you return should be in this timezone. Include the timezone offset in the ISO 8601 string, e.g. '2026-06-26T17:00:00-04:00'. When the user says 'Tuesday' they mean the next upcoming Tuesday. When they say 'tomorrow' they mean tomorrow. If the user says 'morning', use 9:00 AM. If they say 'afternoon', use 1:00 PM. If they say 'evening', use 6:00 PM. If they say 'end of day' or 'EOD', use 5:00 PM. If no time is mentioned at all, default to 12:00 PM noon. When the user says 'end of the week', they mean Friday. When they say 'next week', they mean the following Monday. Make sure the day of the week name in due_date_readable matches the actual calendar date. Double check this. IMPORTANT: If the user does NOT mention ANY date, time, day, deadline, or time-related word, you MUST return due_date: null and due_date_readable: null. Do NOT invent or assume a date. Only extract a date if the user explicitly mentions one. If no date or deadline is mentioned but the promise implies urgency, obligation, or a near-term action (like 'asap', 'soon', 'need to', 'gotta', 'owe', 'call back', 'get back to'), set due_date to tomorrow at 3pm and due_date_readable to 'Tomorrow 3pm'. If the promise has no time pressure at all, return due_date as null. IMPORTANT: Extract the customer name even when it appears as the direct object of a verb. Examples: 'Call Mike' → customer_name='Mike'. 'Follow up with Dave' → customer_name='Dave'. 'call tony back' → customer_name='Tony'. 'Order parts for the Smith job' → customer_name='Smith'. The customer name is ANY proper noun referring to a person in the message. Always extract it to customer_name, even if it also appears in the promise_text. If the user writes 'n' between two names (like 'mike n sarah'), expand it to 'and' in customer_name (e.g. 'Mike and Sarah'). Include relevant context and details in promise_text. Do NOT strip important information. Examples: 'mr and mrs johnson want new cabinets call em back tmrw' → promise_text='Call back about new cabinets'. 'roof inspection for chen family wednesday afternoon' → promise_text='Roof inspection for Chen family'. 'ac install 4th street house finish by end of week' → promise_text='Finish AC install at 4th street house'. The promise text should contain enough detail that the user knows exactly what they promised when they get the reminder. If you cannot determine what the promise is, return: {"promise_text": null, "error": "Could not understand the promise"}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -1477,6 +1477,12 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     if (parsed.promise_text) {
       parsed.promise_text = parsed.promise_text.charAt(0).toUpperCase() + parsed.promise_text.slice(1);
     }
+    if (parsed.customer_name) {
+      parsed.customer_name = parsed.customer_name
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    }
 
     // --- Post-process: override GPT dates for common relative references ---
     const lowerText = messageText.toLowerCase();
@@ -1503,11 +1509,29 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     const tzOffset = (offsetHours >= 0 ? '+' : '-') + String(Math.abs(offsetHours)).padStart(2, '0') + ':00';
 
     // Default times for time-of-day keywords
-    let overrideHour = 17; // default 5pm
+    const formatHour = (h) => {
+      if (h === 0) return '12am';
+      if (h === 12) return '12pm';
+      if (h > 12) return (h - 12) + 'pm';
+      return h + 'am';
+    };
+    let overrideHour = 12; // default 12pm noon
     if (lowerText.includes('morning')) overrideHour = 9;
     else if (lowerText.includes('afternoon')) overrideHour = 13;
     else if (lowerText.includes('evening')) overrideHour = 18;
     else if (lowerText.includes('eod') || lowerText.includes('end of day')) overrideHour = 17;
+
+    // Override with explicit time if present (e.g. "at 3", "by 3pm", "at 3:30")
+    const timeMatch = lowerText.match(/(?:at|by|before|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (timeMatch) {
+      let hour = parseInt(timeMatch[1]);
+      const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      const ampm = timeMatch[3] ? timeMatch[3].toLowerCase() : null;
+      if (ampm === 'pm' && hour < 12) hour += 12;
+      else if (ampm === 'am' && hour === 12) hour = 0;
+      else if (!ampm && hour >= 1 && hour <= 7) hour += 12; // assume PM for 1-7 without am/pm
+      overrideHour = hour;
+    }
 
     // Check for "today" or "tonight"
     if (lowerText.includes('today') || lowerText.includes('tonight')) {
@@ -1515,7 +1539,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       if (lowerText.includes('tonight')) overrideHour = 20;
       d.setHours(overrideHour, 0, 0, 0);
       parsed.due_date = toLocalISO(d, tzOffset);
-      parsed.due_date_readable = dayNames[d.getDay()] + ' ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
+      parsed.due_date_readable = dayNames[d.getDay()] + ' ' + formatHour(overrideHour);
     }
     // Check for "tomorrow"
     else if (lowerText.includes('tomorrow')) {
@@ -1523,19 +1547,43 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       d.setDate(d.getDate() + 1);
       d.setHours(overrideHour, 0, 0, 0);
       parsed.due_date = toLocalISO(d, tzOffset);
-      parsed.due_date_readable = dayNames[d.getDay()] + ' ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
+      parsed.due_date_readable = dayNames[d.getDay()] + ' ' + formatHour(overrideHour);
     }
     else {
-      // Check for "end of week" / "end of the week" — priority over generic day-name match
-      if (lowerText.includes('end of week') || lowerText.includes('end of the week')) {
+      // Check for "this week" — set to this coming Friday (or today if already Friday)
+      if (lowerText.includes('this week')) {
         const d = new Date(localNow);
         const currentDay = d.getDay();
-        let daysUntil = 5 - currentDay; // Friday = 5
-        if (daysUntil <= 0) daysUntil += 7; // always go to NEXT Friday
-        d.setDate(d.getDate() + daysUntil);
-        d.setHours(overrideHour, 0, 0, 0);
+        if (currentDay === 5) {
+          // Already Friday — "this week" = today
+          d.setHours(overrideHour, 0, 0, 0);
+          parsed.due_date = toLocalISO(d, tzOffset);
+          parsed.due_date_readable = 'Friday ' + formatHour(overrideHour);
+        } else if (currentDay !== 6) {
+          // Not Saturday — set to this coming Friday
+          const daysUntilFri = 5 - currentDay;
+          d.setDate(d.getDate() + daysUntilFri);
+          d.setHours(overrideHour, 0, 0, 0);
+          parsed.due_date = toLocalISO(d, tzOffset);
+          parsed.due_date_readable = 'Friday ' + formatHour(overrideHour);
+        }
+        // Saturday: this week already passed, leave GPT's result as-is
+      }
+      // Check for "end of week" / "end of the week" — priority over generic day-name match
+      else if (lowerText.includes('end of week') || lowerText.includes('end of the week')) {
+        const d = new Date(localNow);
+        const currentDay = d.getDay();
+        if (currentDay === 5) {
+          // Already Friday — use today
+          d.setHours(overrideHour, 0, 0, 0);
+        } else {
+          let daysUntil = 5 - currentDay;
+          if (daysUntil <= 0) daysUntil += 7;
+          d.setDate(d.getDate() + daysUntil);
+          d.setHours(overrideHour, 0, 0, 0);
+        }
         parsed.due_date = toLocalISO(d, tzOffset);
-        parsed.due_date_readable = 'Friday ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
+        parsed.due_date_readable = 'Friday ' + formatHour(overrideHour);
       } else {
         // Check for day-of-week references
         const dayMap = { 'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6 };
@@ -1554,7 +1602,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
           d.setDate(d.getDate() + daysUntil);
           d.setHours(overrideHour, 0, 0, 0);
           parsed.due_date = toLocalISO(d, tzOffset);
-          parsed.due_date_readable = matchedDay.name.charAt(0).toUpperCase() + matchedDay.name.slice(1) + ' ' + (overrideHour > 12 ? (overrideHour - 12) + 'pm' : overrideHour + 'am');
+          parsed.due_date_readable = matchedDay.name.charAt(0).toUpperCase() + matchedDay.name.slice(1) + ' ' + formatHour(overrideHour);
         }
       }
     }
@@ -1710,8 +1758,7 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
     }
 
     // Short-circuit HELP before doing a user lookup — HELP is generic text anyone can receive
-    const firstWord = (messageText.split(/\s+/)[0] || '').toUpperCase();
-    if (firstWord === 'HELP') {
+    if (messageText.trim().toUpperCase() === 'HELP') {
       await handleHelpCommand(senderPhone);
       res.status(200).send('OK');
       return;
@@ -1774,62 +1821,53 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       }
     }
 
-    // Route by the first word (keyword), case-insensitive
+    // Route message: exact single-word commands or keyword+number only.
+    // Any keyword followed by natural language text goes to GPT parser.
+    const fullTextUpper = messageText.trim().toUpperCase();
     const keyword = (messageText.split(/\s+/)[0] || '').toUpperCase();
-    console.log(`[SMS INBOUND] Routing keyword="${keyword}"`);
+    const afterKeyword = messageText.trim().substring(keyword.length).trim();
+    console.log(`[SMS INBOUND] Routing fullTextUpper="${fullTextUpper}" keyword="${keyword}" afterKeyword="${afterKeyword}"`);
 
-    switch (keyword) {
-      case 'LIST':
-      case 'STATUS':
-        await handleListCommand(userId, senderPhone, user);
-        break;
-      case 'CANCEL': {
-        const cancelConvoId = `${userId}_delete`;
-        const cancelConvoDoc = await db.collection('smsConversations').doc(cancelConvoId).get();
-        if (cancelConvoDoc.exists && cancelConvoDoc.data().state !== 'idle') {
-          await db.collection('smsConversations').doc(cancelConvoId).update({
-            state: 'idle',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-          await sendSMS(senderPhone, 'Cancelled.');
-        } else {
-          await sendSMS(senderPhone, 'Nothing to cancel.');
-        }
-        break;
+    if (fullTextUpper === 'LIST' || fullTextUpper === 'STATUS') {
+      await handleListCommand(userId, senderPhone, user);
+    } else if (fullTextUpper === 'HELP') {
+      await handleHelpCommand(senderPhone);
+    } else if (fullTextUpper === 'STOP') {
+      await handleStopCommand(userId, senderPhone);
+    } else if (fullTextUpper === 'START') {
+      await handleStartCommand(userId, senderPhone);
+    } else if (fullTextUpper === 'CANCEL') {
+      const cancelConvoId = `${userId}_delete`;
+      const cancelConvoDoc = await db.collection('smsConversations').doc(cancelConvoId).get();
+      if (cancelConvoDoc.exists && cancelConvoDoc.data().state !== 'idle') {
+        await db.collection('smsConversations').doc(cancelConvoId).update({
+          state: 'idle',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        await sendSMS(senderPhone, 'Cancelled.');
+      } else {
+        await sendSMS(senderPhone, 'Nothing to cancel.');
       }
-      case 'DONE':
-        await handleDoneCommand(userId, senderPhone, user, messageText);
-        break;
-      case 'DELETE':
-        await handleDeleteCommand(userId, senderPhone, user, messageText);
-        break;
-      case 'HELP':
-        await handleHelpCommand(senderPhone);
-        break;
-      case 'STOP':
-        await handleStopCommand(userId, senderPhone);
-        break;
-      case 'START':
-        await handleStartCommand(userId, senderPhone);
-        break;
-      default: {
-        console.log(`[SMS INBOUND] Default case — attempting GPT parse for text="${messageText}"`);
-        const timezone = user.timezone || 'America/New_York';
-        const parsed = await parsePromiseText(messageText, timezone);
-        if (!parsed.promise_text) {
-          await sendSMS(senderPhone, "I couldn't understand that. Try something like: 'Quote for John by Friday' or type HELP for commands.");
-        } else {
-          const newConfirmConvoId = `${userId}_confirm`;
-          await db.collection('smsConversations').doc(newConfirmConvoId).set({
-            userId,
-            state: 'awaiting_confirm',
-            pendingParse: parsed,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-          const confirmMsg = buildConfirmMessage(parsed);
-          await sendSMS(senderPhone, confirmMsg);
-        }
-        break;
+    } else if (keyword === 'DONE' && /^\d+$/.test(afterKeyword)) {
+      await handleDoneCommand(userId, senderPhone, user, messageText);
+    } else if (keyword === 'DELETE' && /^\d+$/.test(afterKeyword)) {
+      await handleDeleteCommand(userId, senderPhone, user, messageText);
+    } else {
+      console.log(`[SMS INBOUND] GPT parse — text="${messageText}"`);
+      const timezone = user.timezone || 'America/New_York';
+      const parsed = await parsePromiseText(messageText, timezone);
+      if (!parsed.promise_text) {
+        await sendSMS(senderPhone, "I couldn't understand that. Try something like: 'Quote for John by Friday' or type HELP for commands.");
+      } else {
+        const newConfirmConvoId = `${userId}_confirm`;
+        await db.collection('smsConversations').doc(newConfirmConvoId).set({
+          userId,
+          state: 'awaiting_confirm',
+          pendingParse: parsed,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        const confirmMsg = buildConfirmMessage(parsed);
+        await sendSMS(senderPhone, confirmMsg);
       }
     }
   } catch (err) {
