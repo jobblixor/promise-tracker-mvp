@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, canDelete, disabled }) {
+export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, canDelete, disabled, timezone = 'America/New_York' }) {
   const [completing, setCompleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -18,14 +18,17 @@ export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, can
     if (!dateStr) return 'No due date';
     const date = new Date(dateStr);
     const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
+    const dateDayStr = date.toLocaleDateString('en-CA', { timeZone: timezone });
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: timezone });
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const isTomorrow = date.toDateString() === tomorrow.toDateString();
-    const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const tomorrowStr = tomorrow.toLocaleDateString('en-CA', { timeZone: timezone });
+    const isToday = dateDayStr === todayStr;
+    const isTomorrow = dateDayStr === tomorrowStr;
+    const time = date.toLocaleTimeString('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' });
     if (isToday) return `Today at ${time}`;
     if (isTomorrow) return `Tomorrow at ${time}`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ` at ${time}`;
+    return date.toLocaleDateString('en-US', { timeZone: timezone, month: 'short', day: 'numeric' }) + ` at ${time}`;
   };
 
   const getRelativeTime = (dateStr) => {

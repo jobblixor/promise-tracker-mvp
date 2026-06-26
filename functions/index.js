@@ -1731,6 +1731,16 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
     const userId = user.uid;
     console.log(`[SMS INBOUND] Matched userId=${userId}`);
 
+    // Resolve timezone from the business doc (timezone is stored on businesses, not users)
+    let userTimezone = 'America/New_York';
+    if (user.businessId) {
+      const bizDoc = await db.collection('businesses').doc(user.businessId).get();
+      if (bizDoc.exists && bizDoc.data().timezone) {
+        userTimezone = bizDoc.data().timezone;
+      }
+    }
+    user.timezone = userTimezone;
+
     // Check for an active multi-turn conversation (e.g. awaiting delete confirmation)
     const convoId = `${userId}_delete`;
     const convoDoc = await db.collection('smsConversations').doc(convoId).get();

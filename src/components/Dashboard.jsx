@@ -5,6 +5,7 @@ import {
   where,
   onSnapshot,
   getDocs,
+  getDoc,
   doc,
   updateDoc,
   deleteDoc,
@@ -20,19 +21,17 @@ import { useSubscription } from '../context/SubscriptionContext';
 import PromiseCard from './PromiseCard';
 import PromiseForm from './PromiseForm';
 
-function computeStatus(promise) {
+function computeStatus(promise, timezone = 'America/New_York') {
   if (!promise.dueDate) return promise.status === 'done' ? 'done' : 'upcoming';
   if (promise.status === 'done') return 'done';
   const now = new Date();
   const due = promise.dueDate instanceof Timestamp
     ? promise.dueDate.toDate()
     : new Date(promise.dueDate);
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
-
-  if (due < todayStart) return 'overdue';
-  if (due < todayEnd) return 'due-today';
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: timezone });
+  const dueStr = due.toLocaleDateString('en-CA', { timeZone: timezone });
+  if (dueStr < todayStr) return 'overdue';
+  if (dueStr === todayStr) return 'due-today';
   return 'upcoming';
 }
 
@@ -81,6 +80,8 @@ export default function Dashboard() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingPromise, setEditingPromise] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [timezone, setTimezone] = useState('America/New_York');
+  const timezoneRef = useRef('America/New_York');
   const tabsRef = useRef({});
   const rawPromisesRef = useRef([]);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
@@ -96,6 +97,23 @@ export default function Dashboard() {
       });
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    getDoc(doc(db, 'businesses', user.businessId)).then((snap) => {
+      if (snap.exists() && snap.data().timezone) {
+        timezoneRef.current = snap.data().timezone;
+        setTimezone(snap.data().timezone);
+      }
+    });
+  }, [user?.businessId]);
+
+  useEffect(() => {
+    timezoneRef.current = timezone;
+    if (rawPromisesRef.current.length > 0) {
+      setPromises(rawPromisesRef.current.map((p) => ({ ...p, status: computeStatus(p, timezone) })));
+    }
+  }, [timezone]);
 
   useEffect(() => {
     if (!user?.businessId) {
@@ -118,7 +136,7 @@ export default function Dashboard() {
           };
         });
         rawPromisesRef.current = data;
-        setPromises(data.map((p) => ({ ...p, status: computeStatus(p) })));
+        setPromises(data.map((p) => ({ ...p, status: computeStatus(p, timezoneRef.current) })));
         setLoading(false);
       },
       () => {
@@ -149,14 +167,14 @@ export default function Dashboard() {
             };
           });
           rawPromisesRef.current = data;
-          setPromises(data.map((p) => ({ ...p, status: computeStatus(p) })));
+          setPromises(data.map((p) => ({ ...p, status: computeStatus(p, timezoneRef.current) })));
         });
       }
     };
 
     const intervalId = setInterval(() => {
       if (rawPromisesRef.current.length > 0) {
-        setPromises(rawPromisesRef.current.map((p) => ({ ...p, status: computeStatus(p) })));
+        setPromises(rawPromisesRef.current.map((p) => ({ ...p, status: computeStatus(p, timezoneRef.current) })));
       }
     }, 30000);
 
@@ -394,6 +412,7 @@ export default function Dashboard() {
               onEdit={openEditForm}
               canDelete={user?.role === 'owner' || user?.email === promise.createdBy}
               disabled={!hasAccess}
+              timezone={timezone}
             />
           ))
         )}
