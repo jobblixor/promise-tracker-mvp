@@ -375,8 +375,8 @@ function formatDate(timestamp, timezone) {
   });
 }
 
-// ─── Scheduled function: runs every 15 minutes ──────────────────────────
-exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
+// ─── Scheduled function: runs every 5 minutes ──────────────────────────
+exports.checkPromises = onSchedule("every 5 minutes", async (event) => {
     console.log("checkPromises: starting run at", new Date().toISOString());
 
     const now = new Date();
@@ -495,6 +495,41 @@ exports.checkPromises = onSchedule("every 15 minutes", async (event) => {
 
           updates.push(
             docSnap.ref.update({ status: "overdue", escalated: true, escalationEmailSent: true })
+          );
+        }
+        // ── 2-hour early reminder (before due) ────────────────────
+        else if (
+          minutesUntilDue >= 115 &&
+          minutesUntilDue <= 125 &&
+          promise.earlyReminderSent !== true
+        ) {
+          console.log(`[Promise ${promiseId}] ✓ PASSED 2-hour early reminder check (${minutesUntilDue.toFixed(2)} min until due)`);
+
+          const earlyCreatorPhone = await getCreatorPhone(promise.createdBy);
+          if (earlyCreatorPhone) {
+            const msg = `Reminder: You promised ${customerName} you'd ${description}. Due in about 2 hours (${formattedDue}). Text LIST to see all promises.`;
+            await sendSMS(earlyCreatorPhone, msg);
+          }
+
+          if (!promise.earlyReminderEmailSent) {
+            const earlyCreatorEmail = await getCreatorEmail(promise.createdBy);
+            if (earlyCreatorEmail) {
+              const subject = `Upcoming: ${customerName} promise due in 2 hours`;
+              const html = buildEmailHTML(
+                `Upcoming: ${customerName} promise due in 2 hours`,
+                [
+                  `Hi, this is an early reminder that you promised to <strong>${description}</strong> for <strong>${customerName}</strong>.`,
+                  `It's due at <strong>${formattedDue}</strong> — about 2 hours from now.`,
+                  `Please prepare to handle it or mark it done in Promise Tracker.`,
+                ],
+                "View Dashboard"
+              );
+              await sendEmail(earlyCreatorEmail, subject, html);
+            }
+          }
+
+          updates.push(
+            docSnap.ref.update({ earlyReminderSent: true, earlyReminderEmailSent: true })
           );
         }
         // ── 30-minute reminder (before due) ──────────────────────
@@ -1884,4 +1919,166 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
   }
   // ALWAYS send 200 at the very end so Vonage doesn't retry
   res.status(200).send('OK');
+});
+
+// ─── Scheduled function: morning daily briefing at 7 AM ─────────────────────
+exports.morningBriefing = onSchedule("every 5 minutes", async (event) => {
+  console.log("morningBriefing: starting run at", new Date().toISOString());
+
+  let businessesSnap;
+  try {
+    businessesSnap = await db.collection("businesses").get();
+  } catch (err) {
+    console.error("morningBriefing: failed to query businesses:", err.message);
+    return null;
+  }
+
+  const nowMs = Date.now();
+
+  for (const bizDoc of businessesSnap.docs) {
+    try {
+      const businessId = bizDoc.id;
+      const bizData = bizDoc.data();
+      const bizTimezone = bizData.timezone || "America/New_York";
+
+      // Check if it's 7:00–7:04 AM in this business's timezone
+      const localTime = new Date().toLocaleString('en-US', { timeZone: bizTimezone });
+      const localDate = new Date(localTime);
+      const localHour = localDate.getHours();
+      const localMinute = localDate.getMinutes();
+
+      if (!(localHour === 7 && localMinute < 5)) {
+        continue; // Not in the 7:00–7:04 AM window for this business
+      }
+
+      console.log(`morningBriefing: in window for business ${businessId} (${bizTimezone})`);
+
+      // Build today's date key: YYYY-MM-DD in business's local timezone
+      const year = localDate.getFullYear();
+      const month = String(localDate.getMonth() + 1).padStart(2, '0');
+      const day = String(localDate.getDate()).padStart(2, '0');
+      const todayKey = `${year}-${month}-${day}`;
+
+      // Prevent duplicate sends — check if briefing already sent today
+      const briefingDocId = `${businessId}_${todayKey}`;
+      const briefingDocRef = db.collection("morningBriefings").doc(briefingDocId);
+      const briefingDocSnap = await briefingDocRef.get();
+      if (briefingDocSnap.exists) {
+        console.log(`morningBriefing: already sent for ${businessId} on ${todayKey} — skipping`);
+        continue;
+      }
+
+      // Query all open/overdue promises for this business
+      const promisesSnap = await db.collection("promises")
+        .where("businessId", "==", businessId)
+        .where("status", "in", ["open", "overdue"])
+        .get();
+
+      if (promisesSnap.empty) {
+        // Mark as checked so we don't re-query during the 7:00–7:04 window
+        await briefingDocRef.set({
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          noPromises: true,
+        });
+        continue;
+      }
+
+      // Boundaries for "today" in the business's local timezone
+      const todayStart = new Date(localDate);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(localDate);
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const todayDuePromises = [];
+      const overduePromises = [];
+
+      for (const pDoc of promisesSnap.docs) {
+        const p = pDoc.data();
+        if (!p.dueDate || !p.dueDate.toDate) continue;
+
+        const dueDateMs = p.dueDate.toDate().getTime();
+        const dueDateLocalStr = p.dueDate.toDate().toLocaleString('en-US', { timeZone: bizTimezone });
+        const dueDateLocal = new Date(dueDateLocalStr);
+
+        if (dueDateLocal >= todayStart && dueDateLocal <= todayEnd) {
+          // Due today in this timezone
+          todayDuePromises.push(p);
+        } else if (dueDateMs < nowMs) {
+          // Past due from a previous day
+          overduePromises.push({ ...p, dueDateMs });
+        }
+        // Future promises beyond today are not included in the morning briefing
+      }
+
+      if (todayDuePromises.length === 0 && overduePromises.length === 0) {
+        await briefingDocRef.set({
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          noRelevantPromises: true,
+        });
+        continue;
+      }
+
+      // Sort today's promises by due time ascending
+      todayDuePromises.sort((a, b) => a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime());
+      // Sort overdue by most overdue first
+      overduePromises.sort((a, b) => a.dueDateMs - b.dueDateMs);
+
+      // Build consolidated SMS
+      const smsLines = ["Good morning! Here's your day:"];
+
+      if (todayDuePromises.length > 0) {
+        smsLines.push("DUE TODAY:");
+        todayDuePromises.forEach((p, i) => {
+          const timeStr = p.dueDate.toDate().toLocaleTimeString('en-US', {
+            timeZone: bizTimezone,
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          });
+          smsLines.push(`${i + 1}) ${p.customerName || 'Customer'} - ${p.description || '?'} - ${timeStr}`);
+        });
+      }
+
+      if (overduePromises.length > 0) {
+        smsLines.push("OVERDUE:");
+        overduePromises.forEach((p, i) => {
+          const daysOverdue = Math.max(1, Math.floor((nowMs - p.dueDateMs) / (24 * 60 * 60 * 1000)));
+          smsLines.push(`${i + 1}) ${p.customerName || 'Customer'} - ${p.description || '?'} - ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue`);
+        });
+      }
+
+      smsLines.push("Reply LIST for full details.");
+      const smsMessage = smsLines.join("\n");
+
+      // Send to all users in this business who haven't opted out
+      const usersSnap = await db.collection("users")
+        .where("businessId", "==", businessId)
+        .get();
+
+      let smsSentCount = 0;
+      for (const userDoc of usersSnap.docs) {
+        const userData = userDoc.data();
+        if (userData.smsEnabled === false) continue; // Explicitly opted out
+        const phone = userData.phone;
+        if (!phone) continue;
+        await sendSMS(phone, smsMessage);
+        smsSentCount++;
+      }
+
+      // Record that the briefing was sent to prevent duplicate sends
+      await briefingDocRef.set({
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        todayCount: todayDuePromises.length,
+        overdueCount: overduePromises.length,
+        smsSentCount,
+      });
+
+      console.log(`morningBriefing: sent for ${businessId} on ${todayKey} — today: ${todayDuePromises.length}, overdue: ${overduePromises.length}, sms sent: ${smsSentCount}`);
+    } catch (err) {
+      console.error(`morningBriefing: error processing business ${bizDoc.id}:`, err.message);
+    }
+  }
+
+  console.log("morningBriefing: finished run");
+  return null;
 });
