@@ -1484,7 +1484,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const todayStr = dayNames[now.getUTCDay()] + ', ' + monthNames[now.getUTCMonth()] + ' ' + now.getUTCDate() + ', ' + now.getUTCFullYear();
     const systemPrompt =
-      `You are a promise parser for Promise Tracker. Extract structured data from a short text message describing a promise or commitment a contractor made to a customer. Return ONLY valid JSON, no markdown, no backticks: {"promise_text": "the action the user committed to", "customer_name": "customer name if mentioned, or null", "due_date": "ISO 8601 datetime if mentioned, or null", "due_date_readable": "human-friendly date like 'Tuesday 5pm' or null", "confidence": "high" | "medium" | "low"}. Today is ` + todayStr + `. The user is in the ${timezone} timezone. All dates and times you return should be in this timezone. Include the timezone offset in the ISO 8601 string, e.g. '2026-06-26T17:00:00-04:00'. When the user says 'Tuesday' they mean the next upcoming Tuesday. When they say 'tomorrow' they mean tomorrow. If the user says 'morning', use 9:00 AM. If they say 'afternoon', use 1:00 PM. If they say 'evening', use 6:00 PM. If they say 'end of day' or 'EOD', use 5:00 PM. If no time is mentioned at all, default to 12:00 PM noon. When the user says 'end of the week', they mean Friday. When they say 'next week', they mean the following Monday. Make sure the day of the week name in due_date_readable matches the actual calendar date. Double check this. EVERY promise MUST have a due_date. If the user mentions a specific date or time, use that. If the user implies urgency (asap, soon, need to, gotta, owe, call back, get back to), set due_date to tomorrow at 12:00 PM noon. If no date or urgency is mentioned at all, STILL set due_date to tomorrow at 12:00 PM noon. The user can always change it with EDIT. Never return due_date as null. IMPORTANT: Extract the customer name even when it appears as the direct object of a verb. Examples: 'Call Mike' → customer_name='Mike'. 'Follow up with Dave' → customer_name='Dave'. 'call tony back' → customer_name='Tony'. 'Order parts for the Smith job' → customer_name='Smith'. The customer name is ANY proper noun referring to a person in the message. Always extract it to customer_name, even if it also appears in the promise_text. If the user writes 'n' between two names (like 'mike n sarah'), expand it to 'and' in customer_name (e.g. 'Mike and Sarah'). Include relevant context and details in promise_text. Do NOT strip important information. Examples: 'mr and mrs johnson want new cabinets call em back tmrw' → promise_text='Call back about new cabinets'. 'roof inspection for chen family wednesday afternoon' → promise_text='Roof inspection for Chen family'. 'ac install 4th street house finish by end of week' → promise_text='Finish AC install at 4th street house'. The promise text should contain enough detail that the user knows exactly what they promised when they get the reminder. If you cannot determine what the promise is, return: {"promise_text": null, "error": "Could not understand the promise"}`;
+      `You are a promise parser for Promise Tracker. Extract structured data from a short text message describing a promise or commitment a contractor made to a customer. Return ONLY valid JSON, no markdown, no backticks: {"promise_text": "the action the user committed to", "customer_name": "customer name if mentioned, or null", "due_date": "ISO 8601 datetime if mentioned, or null", "due_date_readable": "human-friendly date like 'Tuesday 5pm' or null", "confidence": "high" | "medium" | "low"}. Today is ` + todayStr + `. The user is in the ${timezone} timezone. All dates and times you return should be in this timezone. Include the timezone offset in the ISO 8601 string, e.g. '2026-06-26T17:00:00-04:00'. When the user says 'Tuesday' they mean the next upcoming Tuesday. When they say 'tomorrow' they mean tomorrow. If the user says 'morning', use 9:00 AM. If they say 'afternoon', use 1:00 PM. If they say 'evening', use 6:00 PM. If they say 'end of day' or 'EOD', use 5:00 PM. If no time is mentioned at all, default to 12:00 PM noon. When the user says 'end of the week', they mean Friday. When they say 'next week', they mean the following Monday. Make sure the day of the week name in due_date_readable matches the actual calendar date. Double check this. EVERY promise MUST have a due_date. If the user mentions a specific date or time, use that. If the user implies urgency (asap, soon, need to, gotta, owe, call back, get back to), set due_date to tomorrow at 12:00 PM noon. If no date or urgency is mentioned at all, STILL set due_date to tomorrow at 12:00 PM noon. The user can always change it with EDIT. Never return due_date as null. IMPORTANT: Extract the customer name even when it appears as the direct object of a verb. Examples: 'Call Mike' → customer_name='Mike'. 'Follow up with Dave' → customer_name='Dave'. 'call tony back' → customer_name='Tony'. 'Order parts for the Smith job' → customer_name='Smith'. The customer name is ANY proper noun referring to a person in the message. Always extract it to customer_name, even if it also appears in the promise_text. If the user writes 'n' between two names (like 'mike n sarah'), expand it to 'and' in customer_name (e.g. 'Mike and Sarah'). Include relevant context and details in promise_text. Do NOT strip important information. Examples: 'mr and mrs johnson want new cabinets call em back tmrw' → promise_text='Call back about new cabinets'. 'roof inspection for chen family wednesday afternoon' → promise_text='Roof inspection for Chen family'. 'ac install 4th street house finish by end of week' → promise_text='Finish AC install at 4th street house'. The promise text should contain enough detail that the user knows exactly what they promised when they get the reminder. If you cannot determine what the promise is, return: {"promise_text": null, "error": "Could not understand the promise"} IMPORTANT date parsing rules: 1. If a date word appears in PAST TENSE context (e.g. 'I sent Monday', 'we finished Tuesday', 'called last week'), do NOT use it as the due date. It describes when something already happened. Default to tomorrow at the default time instead. 2. If a time reference describes delivery/arrival of materials or items (e.g. 'should be here in two weeks', 'parts arriving Friday', 'ordered and it takes 3 days'), do NOT use it as the promise due date. The promise is to order/handle it NOW. Default to tomorrow at the default time. 3. For messages that describe self-introductions ('this is Dave from X'), the speaker is NOT the customer. Extract the customer as the implied recipient if mentioned, otherwise return customer_name as null. 4. When a time window is given ('between 8 and 10', '8 to 10'), use the START of the window as the due time.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -1517,6 +1517,16 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
+      // Lowercase conjunctions/prepositions in names
+      parsed.customer_name = parsed.customer_name
+        .replace(/ And /g, ' and ')
+        .replace(/ Or /g, ' or ')
+        .replace(/ Of /g, ' of ')
+        .replace(/ The /g, ' the ')
+        .replace(/ On /g, ' on ')
+        .replace(/ In /g, ' in ')
+        .replace(/ At /g, ' at ')
+        .replace(/ For /g, ' for ');
     }
 
     // --- Post-process: override GPT dates for common relative references ---
@@ -1551,7 +1561,8 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       return h + 'am';
     };
     let overrideHour = 12; // default 12pm noon
-    if (lowerText.includes('morning')) overrideHour = 9;
+    if (lowerText.includes('first thing')) overrideHour = 9;
+    else if (lowerText.includes('morning')) overrideHour = 9;
     else if (lowerText.includes('afternoon')) overrideHour = 13;
     else if (lowerText.includes('evening')) overrideHour = 18;
     else if (lowerText.includes('eod') || lowerText.includes('end of day')) overrideHour = 17;
@@ -1568,10 +1579,30 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       overrideHour = hour;
     }
 
-    // Check for "today" or "tonight"
-    if (lowerText.includes('today') || lowerText.includes('tonight')) {
+    // Override with "noon"
+    if (lowerText.match(/\bnoon\b/i)) {
+      overrideHour = 12;
+    }
+
+    // Override with "between X and Y" time window — use start of window
+    const windowMatch = lowerText.match(/between\s+(\d{1,2})\s+and\s+(\d{1,2})/i);
+    if (windowMatch) {
+      let startHour = parseInt(windowMatch[1]);
+      if (startHour >= 1 && startHour <= 7) startHour += 12; // assume PM for 1-7
+      overrideHour = startHour;
+    }
+
+    // Check for "tonight" — must come BEFORE generic "today" check
+    if (lowerText.includes('tonight')) {
+      overrideHour = 20;
       const d = new Date(localNow);
-      if (lowerText.includes('tonight')) overrideHour = 20;
+      d.setHours(overrideHour, 0, 0, 0);
+      parsed.due_date = toLocalISO(d, tzOffset);
+      parsed.due_date_readable = 'Tonight ' + formatHour(overrideHour);
+    }
+    // Check for "today"
+    else if (lowerText.includes('today')) {
+      const d = new Date(localNow);
       d.setHours(overrideHour, 0, 0, 0);
       parsed.due_date = toLocalISO(d, tzOffset);
       parsed.due_date_readable = dayNames[d.getDay()] + ' ' + formatHour(overrideHour);
@@ -1604,6 +1635,24 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
         }
         // Saturday: this week already passed, leave GPT's result as-is
       }
+      // Check for "before the weekend" — this Friday
+      else if (lowerText.includes('before the weekend')) {
+        const d = new Date(localNow);
+        const currentDay = d.getDay();
+        if (currentDay >= 5) {
+          // Already Friday/Saturday/Sunday — next Friday
+          let daysUntilFri = 5 - currentDay;
+          if (daysUntilFri <= 0) daysUntilFri += 7;
+          d.setDate(d.getDate() + daysUntilFri);
+        } else {
+          // Set to this Friday
+          const daysUntilFri = 5 - currentDay;
+          d.setDate(d.getDate() + daysUntilFri);
+        }
+        d.setHours(overrideHour, 0, 0, 0);
+        parsed.due_date = toLocalISO(d, tzOffset);
+        parsed.due_date_readable = 'Friday ' + formatHour(overrideHour);
+      }
       // Check for "end of week" / "end of the week" — priority over generic day-name match
       else if (lowerText.includes('end of week') || lowerText.includes('end of the week')) {
         const d = new Date(localNow);
@@ -1620,12 +1669,33 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
         parsed.due_date = toLocalISO(d, tzOffset);
         parsed.due_date_readable = 'Friday ' + formatHour(overrideHour);
       } else {
-        // Check for day-of-week references
-        const dayMap = { 'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6 };
+        // Check for day-of-week references — full names first, then abbreviations (longest match wins)
+        const dayPatterns = [
+          { pattern: 'wednesday', num: 3 },
+          { pattern: 'thursday', num: 4 },
+          { pattern: 'saturday', num: 6 },
+          { pattern: 'tuesday', num: 2 },
+          { pattern: 'sunday', num: 0 },
+          { pattern: 'monday', num: 1 },
+          { pattern: 'friday', num: 5 },
+          { pattern: 'thurs', num: 4 },
+          { pattern: 'tues', num: 2 },
+          { pattern: 'weds', num: 3 },
+          { pattern: 'thur', num: 4 },
+          { pattern: 'wed', num: 3 },
+          { pattern: 'thu', num: 4 },
+          { pattern: 'tue', num: 2 },
+          { pattern: 'sat', num: 6 },
+          { pattern: 'fri', num: 5 },
+          { pattern: 'sun', num: 0 },
+          { pattern: 'mon', num: 1 },
+        ];
+        const fullDayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
         let matchedDay = null;
-        for (const [name, num] of Object.entries(dayMap)) {
-          if (lowerText.includes(name)) {
-            matchedDay = { name, num };
+        for (const { pattern, num } of dayPatterns) {
+          const regex = new RegExp('\\b' + pattern + '\\b', 'i');
+          if (regex.test(lowerText)) {
+            matchedDay = { name: pattern, num };
             break;
           }
         }
@@ -1637,7 +1707,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
           d.setDate(d.getDate() + daysUntil);
           d.setHours(overrideHour, 0, 0, 0);
           parsed.due_date = toLocalISO(d, tzOffset);
-          parsed.due_date_readable = matchedDay.name.charAt(0).toUpperCase() + matchedDay.name.slice(1) + ' ' + formatHour(overrideHour);
+          parsed.due_date_readable = fullDayNames[matchedDay.num] + ' ' + formatHour(overrideHour);
         }
       }
     }
@@ -1669,7 +1739,7 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
 
   if (upper === 'YES') {
     const promiseData = {
-      customerName: pendingParse.customer_name || '',
+      customerName: (pendingParse.customer_name && pendingParse.customer_name.toLowerCase() !== 'null') ? pendingParse.customer_name : '',
       customerPhone: '',
       description: pendingParse.promise_text,
       status: 'open',
