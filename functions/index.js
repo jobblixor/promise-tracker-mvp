@@ -1573,6 +1573,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     };
     let overrideHour = 12; // default 12pm noon
     let overrideMinute = 0;
+    var hasExplicitTime = false;
     if (lowerText.includes('first thing')) overrideHour = 9;
     else if (lowerText.includes('morning')) overrideHour = 9;
     else if (lowerText.includes('afternoon')) overrideHour = 13;
@@ -1652,11 +1653,13 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       else if (ampm === 'am' && hour === 12) hour = 0;
       else if (!ampm && hour >= 1 && hour <= 7) hour += 12; // assume PM for 1-7 without am/pm
       overrideHour = hour;
+      hasExplicitTime = true;
     }
 
     // Override with "noon"
     if (lowerText.match(/\bnoon\b/i)) {
       overrideHour = 12;
+      hasExplicitTime = true;
     }
 
     // Override with "between X and Y" time window — use start of window
@@ -1665,6 +1668,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
       let startHour = parseInt(windowMatch[1]);
       if (startHour >= 1 && startHour <= 7) startHour += 12; // assume PM for 1-7
       overrideHour = startHour;
+      hasExplicitTime = true;
     }
 
     let skipFinalRollover = false;
@@ -1808,10 +1812,17 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
           parsed.due_date = toLocalISO(d, tzOffset);
           parsed.due_date_readable = fullDayNames[matchedDay.num] + ' ' + monthNames[d.getMonth()].substring(0, 3) + ' ' + d.getDate() + ', ' + formatTime(overrideHour, overrideMinute);
         } else {
-          // No date keyword matched — default to tomorrow at 12pm noon (no weekend skipping)
+          // No date keyword matched
           const d = new Date(localNow);
-          d.setDate(d.getDate() + 1);
-          d.setHours(overrideHour, overrideMinute, 0, 0);
+          if (hasExplicitTime) {
+            // Explicit time given (e.g. "by noon", "around 2:30", "at 3pm") — anchor to TODAY
+            // If the time has already passed, the final-pass rollover will push to tomorrow
+            d.setHours(overrideHour, overrideMinute, 0, 0);
+          } else {
+            // No time reference at all — default to tomorrow at noon
+            d.setDate(d.getDate() + 1);
+            d.setHours(overrideHour, overrideMinute, 0, 0);
+          }
           parsed.due_date = toLocalISO(d, tzOffset);
           parsed.due_date_readable = dayNames[d.getDay()] + ' ' + monthNames[d.getMonth()].substring(0, 3) + ' ' + d.getDate() + ', ' + formatTime(overrideHour, overrideMinute);
         }
