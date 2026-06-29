@@ -1855,6 +1855,29 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     }
     // --- End post-process ---
 
+    // Rewrite due_date_readable with "Today" or "Tomorrow" when applicable
+    if (parsed.due_date && !parsed.due_date_readable.startsWith('Tonight')) {
+      const readableMatch = parsed.due_date.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (readableMatch) {
+        const dueYear = parseInt(readableMatch[1]);
+        const dueMonth = parseInt(readableMatch[2]) - 1;
+        const dueDay = parseInt(readableMatch[3]);
+
+        const todayLocal = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate());
+        const tomorrowLocal = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate() + 1);
+        const dueDate = new Date(dueYear, dueMonth, dueDay);
+
+        const commaIdx = parsed.due_date_readable.lastIndexOf(', ');
+        const timePart = commaIdx !== -1 ? parsed.due_date_readable.substring(commaIdx + 2) : parsed.due_date_readable;
+
+        if (dueDate.getTime() === todayLocal.getTime()) {
+          parsed.due_date_readable = 'Today, ' + timePart;
+        } else if (dueDate.getTime() === tomorrowLocal.getTime()) {
+          parsed.due_date_readable = 'Tomorrow, ' + timePart;
+        }
+      }
+    }
+
     return parsed;
   } catch (err) {
     console.error('[parsePromiseText] error:', err.message);
