@@ -1585,24 +1585,61 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     }
 
     // Convert word-based times to digits for the regex to catch
-    // e.g. "by three" → "by 3", "around two thirty" → "around 2:30"
-    const wordToNum = { 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10', 'eleven': '11', 'twelve': '12' };
-    const minuteWords = { 'thirty': '30', 'fifteen': '15', 'forty five': '45', 'forty-five': '45', 'twenty': '20', 'ten': '10', 'fifty': '50', 'five': '05' };
+    // Full word-to-number converter for hours (1-12) and minutes (0-59)
+    function wordToNumber(word) {
+      const ones = { 'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19 };
+      const tens = { 'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50 };
+      const w = word.toLowerCase().trim().replace(/-/g, ' ');
+      if (ones[w] !== undefined) return ones[w];
+      if (tens[w] !== undefined) return tens[w];
+      // Handle compound: "twenty one", "thirty seven", "forty five", etc.
+      const parts = w.split(/\s+/);
+      if (parts.length === 2 && tens[parts[0]] !== undefined && ones[parts[1]] !== undefined && ones[parts[1]] < 10) {
+        return tens[parts[0]] + ones[parts[1]];
+      }
+      return null;
+    }
+
     let processedText = lowerText;
-    // Replace "X thirty" / "X fifteen" etc. patterns first (e.g. "two thirty" → "2:30")
-    for (const [hourWord, hourNum] of Object.entries(wordToNum)) {
-      for (const [minWord, minNum] of Object.entries(minuteWords)) {
-        const pattern = new RegExp('\\b' + hourWord + '\\s+' + minWord + '\\b', 'gi');
-        processedText = processedText.replace(pattern, hourNum + ':' + minNum);
+    // Remove "o'clock" / "oclock" first
+    processedText = processedText.replace(/\s*o['']?clock\b/gi, '');
+
+    // Build regex patterns for all number words
+    const hourWords = ['one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
+    const minutePatterns = [];
+    // Single words: one through nineteen, twenty, thirty, forty, fifty
+    minutePatterns.push('one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','thirty','forty','fifty');
+    // Compound: twenty-one through fifty-nine (with space or hyphen)
+    for (const t of ['twenty','thirty','forty','fifty']) {
+      for (const o of ['one','two','three','four','five','six','seven','eight','nine']) {
+        minutePatterns.push(t + '[\\s-]' + o);
       }
     }
-    // Replace standalone hour words after time prepositions (e.g. "by three" → "by 3")
-    for (const [word, num] of Object.entries(wordToNum)) {
-      const pattern = new RegExp('(at|by|before|around|after)\\s+' + word + '\\b', 'gi');
-      processedText = processedText.replace(pattern, '$1 ' + num);
+    // Sort longest first so "twenty seven" matches before "twenty" and "seven"
+    minutePatterns.sort((a, b) => b.length - a.length);
+    const minuteRegexStr = minutePatterns.join('|');
+
+    // Replace "HOUR_WORD MINUTE_WORD" after prepositions: "by three thirty seven" → "by 3:37"
+    for (const hw of hourWords) {
+      const pattern = new RegExp('(at|by|before|around|after)\\s+' + hw + '\\s+(' + minuteRegexStr + ')\\b', 'gi');
+      processedText = processedText.replace(pattern, (match, prep, minWord) => {
+        const h = wordToNumber(hw);
+        const m = wordToNumber(minWord.replace(/-/g, ' '));
+        if (h !== null && m !== null) {
+          return prep + ' ' + h + ':' + String(m).padStart(2, '0');
+        }
+        return match;
+      });
     }
-    // Remove "o'clock" / "oclock" (e.g. "three o'clock" already converted to "3", just clean up)
-    processedText = processedText.replace(/\s*o['']?clock\b/gi, '');
+
+    // Replace standalone hour words after prepositions: "by three" → "by 3"
+    for (const hw of hourWords) {
+      const pattern = new RegExp('(at|by|before|around|after)\\s+' + hw + '\\b', 'gi');
+      processedText = processedText.replace(pattern, (match, prep) => {
+        const h = wordToNumber(hw);
+        return h !== null ? prep + ' ' + h : match;
+      });
+    }
 
     // Override with explicit time if present (e.g. "at 3", "by 3pm", "at 3:30")
     const timeMatch = processedText.match(/(?:at|by|before|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);

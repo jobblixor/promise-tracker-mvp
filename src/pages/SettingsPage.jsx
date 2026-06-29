@@ -164,7 +164,7 @@ function getTimezoneOptions() {
 }
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, setUser } = useAuth();
   const { business: subBusiness, plan: subPlan } = useSubscription();
   const toast = useToast();
   const navigate = useNavigate();
@@ -273,6 +273,7 @@ export default function SettingsPage() {
         name: businessName.trim(),
         timezone,
       });
+      setUser(prev => ({ ...prev, businessName: businessName.trim() }));
       toast.success('Business info saved');
     } catch (err) {
       toast.error('Failed to save business info');
