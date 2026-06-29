@@ -273,6 +273,7 @@ export default function SettingsPage() {
         name: businessName.trim(),
         timezone,
       });
+      await updateDoc(doc(db, 'users', user.uid), { businessName: businessName.trim() });
       setUser(prev => ({ ...prev, businessName: businessName.trim() }));
       toast.success('Business info saved');
     } catch (err) {
