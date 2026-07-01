@@ -212,7 +212,7 @@ export function AuthProvider({ children }) {
 
     if (eligibleForTrial) {
       const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 21);
+      trialEnd.setDate(trialEnd.getDate() + 30);
       businessData.plan = 'trial';
       businessData.trialStartDate = serverTimestamp();
       businessData.trialEndDate = Timestamp.fromDate(trialEnd);

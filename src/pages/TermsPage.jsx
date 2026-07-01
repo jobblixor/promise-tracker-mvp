@@ -43,7 +43,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-text-primary mb-3">4. Free Trial</h2>
             <p>
-              Promise Tracker offers a 21-day free trial for new accounts. The free trial provides full access to all features of the Service. No credit card is required to start a free trial. At the end of the 21-day trial period, you must subscribe to a paid plan to continue using the Service. We reserve the right to modify or discontinue the free trial offer at any time.
+              Promise Tracker offers a 30-day free trial for new accounts. The free trial provides full access to all features of the Service. No credit card is required to start a free trial. At the end of the 30-day trial period, you must subscribe to a paid plan to continue using the Service. We reserve the right to modify or discontinue the free trial offer at any time.
             </p>
             <p className="mt-2">
               Each individual is eligible for one free trial only. Additional accounts created by the same person will not receive a free trial and will require an active subscription.

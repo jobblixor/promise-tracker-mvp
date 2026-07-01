@@ -71,7 +71,7 @@ export default function LandingPage() {
       <section className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-40 pb-32 text-center">
         <div className="relative">
           <div className="hero-animate hero-delay-1 inline-block bg-bg-card border border-border text-accent text-xs font-semibold px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
-            21-Day Free Trial · No Credit Card Required
+            30-Day Free Trial · No Credit Card Required
           </div>
           <h1 className="hero-animate hero-delay-2 text-5xl sm:text-6xl lg:text-7xl font-extrabold text-text-primary leading-tight tracking-tight mb-6">
             Your Team Promises to Call Back.{' '}
@@ -271,7 +271,7 @@ export default function LandingPage() {
 
               <ul className="space-y-4 text-sm text-left mb-8">
                 {[
-                  '21-day free trial',
+                  '30-day free trial',
                   'No contracts — cancel anytime',
                   'Unlimited promises',
                   'Unlimited team members',

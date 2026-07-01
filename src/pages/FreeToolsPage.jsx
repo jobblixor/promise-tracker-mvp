@@ -154,7 +154,7 @@ export default function FreeToolsPage() {
             to="/signup"
             className="inline-block bg-accent hover:bg-accent-hover text-white font-semibold px-6 py-2.5 rounded-lg transition-colors duration-150 text-sm"
           >
-            Start Your 21-Day Free Trial
+            Start Your 30-Day Free Trial
           </Link>
         </div>
       </main>

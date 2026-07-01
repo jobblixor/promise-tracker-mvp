@@ -319,7 +319,7 @@ export default function QuoteFollowUpChecklist() {
         <div style={{ background: 'linear-gradient(135deg, #15803d, #22c55e)', borderRadius: '16px', padding: '40px 32px', textAlign: 'center', marginBottom: '40px' }}>
           <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>Never Forget a Follow-Up Again</h2>
           <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.9)', marginBottom: '24px', maxWidth: '500px', margin: '0 auto 24px' }}>Promise Tracker automatically sends text and email reminders when you make a promise to a customer — so nothing slips through the cracks.</p>
-          <a href="/signup" style={{ display: 'inline-block', backgroundColor: '#fff', color: '#15803d', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '16px', textDecoration: 'none' }}>Start Your Free 21-Day Trial</a>
+          <a href="/signup" style={{ display: 'inline-block', backgroundColor: '#fff', color: '#15803d', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '16px', textDecoration: 'none' }}>Start Your Free 30-Day Trial</a>
         </div>
       </div>
 

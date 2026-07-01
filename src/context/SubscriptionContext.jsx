@@ -29,7 +29,7 @@ function checkAccess(business) {
         ? new Date(business.trialEndDate)
         : null;
 
-    if (!endDate) return { hasAccess: true, daysLeft: 21, plan: 'trial' };
+    if (!endDate) return { hasAccess: true, daysLeft: 30, plan: 'trial' };
 
     const now = new Date();
     if (now < endDate) {
@@ -47,7 +47,7 @@ function checkAccess(business) {
 export function SubscriptionProvider({ children }) {
   const { user } = useAuth();
   const [business, setBusiness] = useState(null);
-  const [access, setAccess] = useState({ hasAccess: true, daysLeft: 21, plan: 'trial' });
+  const [access, setAccess] = useState({ hasAccess: true, daysLeft: 30, plan: 'trial' });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
