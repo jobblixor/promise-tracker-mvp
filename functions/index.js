@@ -1629,6 +1629,12 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     }
 
     let processedText = lowerText;
+    // Also strip extracted phone numbers from processedText so they don't confuse the time regex
+    for (const phone of extractedPhones) {
+      processedText = processedText.replace(new RegExp('\\bat\\s+' + phone.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+      processedText = processedText.replace(phone, '');
+    }
+    processedText = processedText.replace(/\s{2,}/g, ' ').trim();
     // Remove "o'clock" / "oclock" first
     processedText = processedText.replace(/\s*o['']?clock\b/gi, '');
 
@@ -1673,14 +1679,19 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
     const timeMatch = processedText.match(/(?:at|by|before|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
     if (timeMatch) {
       let hour = parseInt(timeMatch[1]);
-      const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
-      overrideMinute = minutes;
-      const ampm = timeMatch[3] ? timeMatch[3].toLowerCase() : null;
-      if (ampm === 'pm' && hour < 12) hour += 12;
-      else if (ampm === 'am' && hour === 12) hour = 0;
-      else if (!ampm && hour >= 1 && hour <= 7) hour += 12; // assume PM for 1-7 without am/pm
-      overrideHour = hour;
-      hasExplicitTime = true;
+      // Skip invalid hours (e.g. regex matched part of a phone number or address)
+      if (hour > 23) {
+        // Not a valid time — skip
+      } else {
+        const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+        overrideMinute = minutes;
+        const ampm = timeMatch[3] ? timeMatch[3].toLowerCase() : null;
+        if (ampm === 'pm' && hour < 12) hour += 12;
+        else if (ampm === 'am' && hour === 12) hour = 0;
+        else if (!ampm && hour >= 1 && hour <= 7) hour += 12; // assume PM for 1-7 without am/pm
+        overrideHour = hour;
+        hasExplicitTime = true;
+      }
     }
 
     // Override with "noon"
