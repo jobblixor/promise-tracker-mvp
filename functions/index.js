@@ -2196,11 +2196,18 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
     console.log(`[SMS CONFIRM] YES — promise created for userId=${userId}`);
   } else if (upper === 'EDIT') {
     await db.collection('smsConversations').doc(convoDoc.id).update({
-      state: 'awaiting_promise',
+      state: 'awaiting_edit',
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    await sendSMS(userPhone, "Send your updated promise and I'll re-parse it.");
-    console.log(`[SMS CONFIRM] EDIT — moved to awaiting_promise for userId=${userId}`);
+    await sendSMS(userPhone,
+      "What would you like to change? You can update the customer name, time, date, or description. Examples:\n" +
+      "• 'change it to friday at 3'\n" +
+      "• 'no its for john'\n" +
+      "• 'make it 9am instead'\n" +
+      "• 'add caulking to the job'\n" +
+      "Reply CANCEL to start over."
+    );
+    console.log(`[SMS CONFIRM] EDIT — moved to awaiting_edit for userId=${userId}`);
   } else if (upper === 'CANCEL') {
     await resetConvo();
     await sendSMS(userPhone, 'Cancelled. No promise logged.');
@@ -2269,6 +2276,140 @@ async function handleAwaitingPromise(convoDoc, userId, userPhone, messageText, u
   const confirmMsg = buildConfirmMessage(parsed);
   await sendSMS(userPhone, confirmMsg);
   console.log(`[SMS AWAITING_PROMISE] re-parsed — moved to awaiting_confirm for userId=${userId}`);
+}
+
+/**
+ * Handle the awaiting_edit conversation state (smart GPT delta-merge).
+ */
+async function handleAwaitingEdit(convoDoc, userId, userPhone, messageText, user) {
+  console.log(`[SMS AWAITING_EDIT] userId=${userId} text="${messageText}"`);
+  const convoData = convoDoc.data();
+  const editText = messageText.trim();
+  const timezone = (user && user.timezone) || 'America/New_York';
+
+  // Allow CANCEL to abort
+  if (editText.toUpperCase() === 'CANCEL') {
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'idle',
+      pendingParse: admin.firestore.FieldValue.delete(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    await sendSMS(userPhone, 'Promise cancelled.');
+    console.log(`[SMS AWAITING_EDIT] CANCEL for userId=${userId}`);
+    return;
+  }
+
+  const originalParse = convoData.pendingParse;
+  if (!originalParse) {
+    await db.collection('smsConversations').doc(convoDoc.id).update({ state: 'idle' });
+    await sendSMS(userPhone, 'Something went wrong. Please text your promise again.');
+    console.log(`[SMS AWAITING_EDIT] No pendingParse found for userId=${userId}`);
+    return;
+  }
+
+  // Compute today's date in the business timezone
+  const now = new Date();
+  const localNowStr = now.toLocaleString('en-US', { timeZone: timezone });
+  const localNow = new Date(localNowStr);
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const todayStr = `${dayNames[localNow.getDay()]}, ${monthNames[localNow.getMonth()]} ${localNow.getDate()}, ${localNow.getFullYear()}`;
+
+  const editPrompt = `You are editing an existing promise for Promise Tracker. Here is the current promise data:
+
+Customer: ${originalParse.customer_name || 'none'}
+Promise: ${originalParse.promise_text || 'none'}
+Due date: ${originalParse.due_date_readable || 'none'}
+Due date ISO: ${originalParse.due_date || 'none'}
+
+The user wants to make this change: "${editText}"
+
+Return a JSON object with ONLY the fields that need to change. Possible fields: customer_name, promise_text, due_date, due_date_readable.
+
+Rules:
+- If the user is changing the customer name (e.g., "no its for john", "wrong name its the smiths"), return the new customer_name.
+- If the user is changing the time (e.g., "make it 3pm", "change to 9am", "earlier like 8"), return new due_date and due_date_readable with the updated time but KEEP the same date unless they also changed the date.
+- If the user is changing the date (e.g., "push it to friday", "make it next week", "thursday instead"), return new due_date and due_date_readable with the new date. Keep the same time unless they also changed the time.
+- If the user is changing the description (e.g., "add caulking too", "its a quote not an install", "also check the water heater"), return the updated promise_text that incorporates the change into the existing description.
+- If the user changes multiple things at once (e.g., "change to friday at 3 for the johnsons"), return all changed fields.
+- ONLY return fields that changed. Do NOT return unchanged fields.
+- NEVER extract pronouns as customer names.
+- Preserve honorifics (Mr, Mrs, Ms, Dr).
+- Preserve plural family names (the Wilsons, the Nguyens).
+- For due_date, use ISO 8601 format.
+- For due_date_readable, use the format: "DayName MonthAbbr DayNum, Time" (e.g., "Friday Jul 3, 3pm") or "Today, 3pm" / "Tomorrow, 9am" when applicable.
+- Today is ${todayStr}.
+
+Return ONLY valid JSON, no explanation. Example: {"customer_name": "Johnson", "due_date": "2026-07-03T15:00:00"} or {"promise_text": "Fix the disposal and check the water heater"} or {"due_date_readable": "Friday Jul 3, 3pm", "due_date": "2026-07-03T15:00:00"}`;
+
+  try {
+    const editResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: editPrompt },
+          { role: 'user', content: editText },
+        ],
+        temperature: 0,
+      }),
+    });
+
+    const editData = await editResponse.json();
+    const editContent = editData.choices?.[0]?.message?.content?.trim();
+
+    if (!editContent) {
+      await sendSMS(userPhone, "I didn't understand that change. Try again or reply CANCEL to start over.");
+      console.log(`[SMS AWAITING_EDIT] Empty GPT response for userId=${userId}`);
+      return;
+    }
+
+    let changes;
+    try {
+      const cleanJson = editContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      changes = JSON.parse(cleanJson);
+    } catch (e) {
+      await sendSMS(userPhone, "I didn't understand that change. Try again or reply CANCEL to start over.");
+      console.log(`[SMS AWAITING_EDIT] JSON parse error for userId=${userId}:`, e.message);
+      return;
+    }
+
+    // Merge changes into original parse
+    const updatedParse = { ...originalParse };
+    if (changes.customer_name !== undefined) updatedParse.customer_name = changes.customer_name;
+    if (changes.promise_text !== undefined) updatedParse.promise_text = changes.promise_text;
+    if (changes.due_date !== undefined) updatedParse.due_date = changes.due_date;
+    if (changes.due_date_readable !== undefined) updatedParse.due_date_readable = changes.due_date_readable;
+
+    // Pronoun guard on customer name
+    if (updatedParse.customer_name) {
+      const lcName = updatedParse.customer_name.toLowerCase().trim();
+      const pronouns = ['em', "'em", 'her', 'him', 'them', 'she', 'he', 'us', 'we', 'they', 'me', 'i'];
+      if (pronouns.includes(lcName)) {
+        updatedParse.customer_name = null;
+      }
+    }
+
+    // Update pending parse in Firestore, transition back to awaiting_confirm
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      pendingParse: updatedParse,
+      state: 'awaiting_confirm',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Send updated confirmation
+    const confirmMsg = buildConfirmMessage(updatedParse);
+    await sendSMS(userPhone, confirmMsg);
+    console.log(`[SMS AWAITING_EDIT] Updated and moved to awaiting_confirm for userId=${userId}`);
+
+  } catch (error) {
+    console.error('[SMS AWAITING_EDIT] Error:', error.message);
+    await sendSMS(userPhone, 'Something went wrong processing your edit. Try again or reply CANCEL to start over.');
+  }
 }
 
 // ─── Main Inbound SMS Handler ─────────────────────────────────────────
@@ -2357,6 +2498,11 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       }
       if (confirmState === 'awaiting_promise') {
         await handleAwaitingPromise(confirmConvoDoc, userId, senderPhone, messageText, user);
+        res.status(200).send('OK');
+        return;
+      }
+      if (confirmState === 'awaiting_edit') {
+        await handleAwaitingEdit(confirmConvoDoc, userId, senderPhone, messageText, user);
         res.status(200).send('OK');
         return;
       }
