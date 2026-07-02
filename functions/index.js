@@ -1939,6 +1939,106 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
           parsed.due_date = toLocalISO(d, tzOffset);
           parsed.due_date_readable = dayNames[d.getDay()] + ' ' + monthNames[d.getMonth()].substring(0, 3) + ' ' + d.getDate() + ', ' + formatTime(overrideHour, overrideMinute);
         }
+      }
+      // Check for explicit month + date references (e.g., "nov 15th", "aug 12", "january 31st", "march 3rd")
+      else if (/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?\b/i.test(lowerText)) {
+        const monthDateMatch = lowerText.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?\b/i);
+        const monthStr = monthDateMatch[1].toLowerCase();
+        const dayNum = parseInt(monthDateMatch[2]);
+
+        const monthMap = {
+          'jan': 0, 'january': 0,
+          'feb': 1, 'february': 1,
+          'mar': 2, 'march': 2,
+          'apr': 3, 'april': 3,
+          'may': 4,
+          'jun': 5, 'june': 5,
+          'jul': 6, 'july': 6,
+          'aug': 7, 'august': 7,
+          'sep': 8, 'sept': 8, 'september': 8,
+          'oct': 9, 'october': 9,
+          'nov': 10, 'november': 10,
+          'dec': 11, 'december': 11
+        };
+
+        const targetMonth = monthMap[monthStr];
+        if (targetMonth !== undefined && dayNum >= 1 && dayNum <= 31) {
+          const d = new Date(localNow);
+          let targetYear = d.getFullYear();
+
+          // If the target month+day is in the past this year, schedule for next year
+          const testDate = new Date(targetYear, targetMonth, dayNum);
+          if (testDate < localNow) {
+            targetYear++;
+          }
+
+          // Validate the day exists in the target month
+          const finalDate = new Date(targetYear, targetMonth, dayNum);
+          if (finalDate.getMonth() === targetMonth) {
+            // Check for "before" modifier
+            const beforeMonth = new RegExp('\\bbefore\\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\s+\\d', 'i').test(lowerText);
+            if (beforeMonth) {
+              finalDate.setDate(finalDate.getDate() - 1);
+            }
+
+            d.setFullYear(finalDate.getFullYear());
+            d.setMonth(finalDate.getMonth());
+            d.setDate(finalDate.getDate());
+            d.setHours(overrideHour, overrideMinute, 0, 0);
+            parsed.due_date = toLocalISO(d, tzOffset);
+            parsed.due_date_readable = dayNames[d.getDay()] + ' ' + monthNames[d.getMonth()].substring(0, 3) + ' ' + d.getDate() + ', ' + formatTime(overrideHour, overrideMinute);
+          }
+        }
+      }
+      // Check for "first/second/third/last week of [month]" patterns
+      else if (/\b(first|second|third|fourth|last)\s+week\s+of\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i.test(lowerText)) {
+        const weekOfMatch = lowerText.match(/\b(first|second|third|fourth|last)\s+week\s+of\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i);
+        const weekNum = weekOfMatch[1].toLowerCase();
+        const monthStr2 = weekOfMatch[2].toLowerCase();
+
+        const monthMap2 = {
+          'jan': 0, 'january': 0, 'feb': 1, 'february': 1, 'mar': 2, 'march': 2,
+          'apr': 3, 'april': 3, 'may': 4, 'jun': 5, 'june': 5, 'jul': 6, 'july': 6,
+          'aug': 7, 'august': 7, 'sep': 8, 'sept': 8, 'september': 8,
+          'oct': 9, 'october': 9, 'nov': 10, 'november': 10, 'dec': 11, 'december': 11
+        };
+
+        const targetMonth2 = monthMap2[monthStr2];
+        if (targetMonth2 !== undefined) {
+          const d = new Date(localNow);
+          let targetYear = d.getFullYear();
+
+          // If the target month is in the past this year, use next year
+          if (targetMonth2 < d.getMonth()) {
+            targetYear++;
+          }
+
+          if (weekNum === 'last') {
+            // Last day of the month, then find the Monday of that week
+            const lastDay = new Date(targetYear, targetMonth2 + 1, 0); // last day of month
+            const lastMonday = lastDay.getDate() - ((lastDay.getDay() + 6) % 7);
+            d.setFullYear(targetYear);
+            d.setMonth(targetMonth2);
+            d.setDate(lastMonday);
+          } else {
+            // first=1, second=2, third=3, fourth=4
+            const weekMap = { 'first': 1, 'second': 2, 'third': 3, 'fourth': 4 };
+            const weekIndex = weekMap[weekNum];
+            // Find the first Monday of the month
+            const monthStart = new Date(targetYear, targetMonth2, 1);
+            let firstMonday = 1 + ((8 - monthStart.getDay()) % 7);
+            if (monthStart.getDay() === 1) firstMonday = 1; // If month starts on Monday
+            // Add weeks
+            const targetDay = firstMonday + (weekIndex - 1) * 7;
+            d.setFullYear(targetYear);
+            d.setMonth(targetMonth2);
+            d.setDate(targetDay);
+          }
+
+          d.setHours(overrideHour, overrideMinute, 0, 0);
+          parsed.due_date = toLocalISO(d, tzOffset);
+          parsed.due_date_readable = dayNames[d.getDay()] + ' ' + monthNames[d.getMonth()].substring(0, 3) + ' ' + d.getDate() + ', ' + formatTime(overrideHour, overrideMinute);
+        }
       } else {
         const dayPatterns = [
           { pattern: 'wednesday', num: 3 },
