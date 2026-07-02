@@ -2327,7 +2327,7 @@ The user wants to make this change: "${editText}"
 Return a JSON object with ONLY the fields that need to change. Possible fields: customer_name, promise_text, due_date, due_date_readable.
 
 Rules:
-- If the user is changing the customer name (e.g., "no its for john", "wrong name its the smiths"), return the new customer_name.
+- If the user is changing the customer name (e.g., "no its for john", "wrong name its the smiths"), return the new customer_name AND also return an updated promise_text with the old customer name replaced by the new one. For example, if the original promise_text is 'Call the Hendersons about the roof quote' and the user says 'no its for the petersons', return customer_name='Petersons' AND promise_text='Call the Petersons about the roof quote'.
 - If the user is changing the time (e.g., "make it 3pm", "change to 9am", "earlier like 8"), return new due_date and due_date_readable with the updated time but KEEP the same date unless they also changed the date.
 - If the user is changing the date (e.g., "push it to friday", "make it next week", "thursday instead"), return new due_date and due_date_readable with the new date. Keep the same time unless they also changed the time.
 - If the user is changing the description (e.g., "add caulking too", "its a quote not an install", "also check the water heater"), return the updated promise_text that incorporates the change into the existing description.
