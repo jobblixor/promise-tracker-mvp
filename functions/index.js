@@ -2170,10 +2170,12 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
   const resetConvo = () =>
     db.collection('smsConversations').doc(convoDoc.id).update({
       state: 'idle',
+      lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-  if (upper === 'YES') {
+  const yesResponses = ['YES', 'YEA', 'YEP', 'YEAH', 'YA', 'SI', 'OK', 'Y'];
+  if (yesResponses.includes(upper)) {
     const promiseData = {
       customerName: (pendingParse.customer_name && pendingParse.customer_name.toLowerCase() !== 'null') ? pendingParse.customer_name : '',
       customerPhone: '',
@@ -2197,6 +2199,7 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
   } else if (upper === 'EDIT') {
     await db.collection('smsConversations').doc(convoDoc.id).update({
       state: 'awaiting_edit',
+      lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     await sendSMS(userPhone,
@@ -2243,6 +2246,7 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
     if (newParsed.promise_text) {
       await db.collection('smsConversations').doc(convoDoc.id).update({
         pendingParse: newParsed,
+        lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       const confirmMsg = buildConfirmMessage(newParsed);
@@ -2292,6 +2296,7 @@ async function handleAwaitingEdit(convoDoc, userId, userPhone, messageText, user
     await db.collection('smsConversations').doc(convoDoc.id).update({
       state: 'idle',
       pendingParse: admin.firestore.FieldValue.delete(),
+      lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     await sendSMS(userPhone, 'Promise cancelled.');
@@ -2301,7 +2306,7 @@ async function handleAwaitingEdit(convoDoc, userId, userPhone, messageText, user
 
   const originalParse = convoData.pendingParse;
   if (!originalParse) {
-    await db.collection('smsConversations').doc(convoDoc.id).update({ state: 'idle' });
+    await db.collection('smsConversations').doc(convoDoc.id).update({ state: 'idle', lastOutboundAt: admin.firestore.FieldValue.serverTimestamp() });
     await sendSMS(userPhone, 'Something went wrong. Please text your promise again.');
     console.log(`[SMS AWAITING_EDIT] No pendingParse found for userId=${userId}`);
     return;
@@ -2326,21 +2331,45 @@ The user wants to make this change: "${editText}"
 
 Return a JSON object with ONLY the fields that need to change. Possible fields: customer_name, promise_text, due_date, due_date_readable.
 
-Rules:
-- If the user is changing the customer name (e.g., "no its for john", "wrong name its the smiths"), return the new customer_name AND also return an updated promise_text with the old customer name replaced by the new one. For example, if the original promise_text is 'Call the Hendersons about the roof quote' and the user says 'no its for the petersons', return customer_name='Petersons' AND promise_text='Call the Petersons about the roof quote'.
-- If the user is changing the time (e.g., "make it 3pm", "change to 9am", "earlier like 8"), return new due_date and due_date_readable with the updated time but KEEP the same date unless they also changed the date.
-- If the user is changing the date (e.g., "push it to friday", "make it next week", "thursday instead"), return new due_date and due_date_readable with the new date. Keep the same time unless they also changed the time.
-- If the user is changing the description (e.g., "add caulking too", "its a quote not an install", "also check the water heater"), return the updated promise_text that incorporates the change into the existing description.
-- If the user changes multiple things at once (e.g., "change to friday at 3 for the johnsons"), return all changed fields.
-- ONLY return fields that changed. Do NOT return unchanged fields.
-- NEVER extract pronouns as customer names.
-- Preserve honorifics (Mr, Mrs, Ms, Dr).
-- Preserve plural family names (the Wilsons, the Nguyens).
-- For due_date, use ISO 8601 format.
-- For due_date_readable, use the format: "DayName MonthAbbr DayNum, Time" (e.g., "Friday Jul 3, 3pm") or "Today, 3pm" / "Tomorrow, 9am" when applicable.
-- Today is ${todayStr}.
+CRITICAL RULES:
 
-Return ONLY valid JSON, no explanation. Example: {"customer_name": "Johnson", "due_date": "2026-07-03T15:00:00"} or {"promise_text": "Fix the disposal and check the water heater"} or {"due_date_readable": "Friday Jul 3, 3pm", "due_date": "2026-07-03T15:00:00"}`;
+1. DATE/TIME CHANGES: If the user is ONLY changing the date or time (e.g., "make it 3pm", "push it to thursday", "friday instead", "before the weekend", "tmrw morning"), return ONLY due_date and due_date_readable. Do NOT change promise_text UNLESS the promise_text contains a specific date or time reference that needs updating (e.g., if promise_text says "Have the estimate ready by Friday at 12:00 PM" and the user says "make it 3pm", update promise_text to "Have the estimate ready by Friday at 3:00 PM"). NEVER replace the entire promise_text with the edit instruction itself (e.g., NEVER return promise_text="Push it to Thursday").
+
+2. CUSTOMER NAME CHANGES: If the user is changing the customer name (e.g., "no its for john", "wrong name its the smiths"), return the new customer_name AND also return an updated promise_text with the old customer name replaced by the new one.
+
+3. DESCRIPTION CHANGES: If the user is adding to or modifying the actual work/task description (e.g., "also add the shower door", "its a quote not an install", "nevermind the parts just do the labor estimate"), return the updated promise_text that incorporates the change. Keep any existing detail that wasn't explicitly changed.
+
+4. MULTIPLE CHANGES: If the user changes multiple things at once (e.g., "change it to friday at 2 for the johnsons"), return all changed fields.
+
+5. ONLY return fields that changed. Do NOT return unchanged fields.
+
+6. NEVER extract pronouns as customer names (em, her, him, them, she, he, us, we, they, me, i).
+
+7. Preserve honorifics (Mr, Mrs, Ms, Dr) and plural family names (the Wilsons, the Nguyens).
+
+DATE RESOLUTION — today is ${todayStr}:
+- "tomorrow" / "tmrw" = the next calendar day
+- "monday" through "sunday" = the NEXT upcoming occurrence of that day. If today IS that day, use NEXT week.
+- "first thing" = 9:00 AM
+- "morning" = 9:00 AM
+- "afternoon" = 1:00 PM
+- "evening" = 6:00 PM
+- "eod" / "end of day" = today at 5:00 PM
+- "tonight" = today at 8:00 PM
+- "before the weekend" = this Friday
+- "next week" = next Monday
+- "before they close" = today at 5:00 PM
+- "before dawn" = 6:00 AM
+- "noon" = 12:00 PM
+- "asap" / "right away" = tomorrow at 12:00 PM
+- For ambiguous single numbers 1-7, assume PM. For 8-11, assume AM. 12 = PM.
+- When no AM/PM specified for times like "at 3" or "by 4", assume PM for 1-7 and AM for 8-11.
+
+For due_date, use ISO 8601 format with the EXACT timezone offset from the original due_date. Copy the timezone offset from the original (e.g., if original is "2026-07-03T15:00:00-04:00", keep the "-04:00" part).
+
+For due_date_readable, use format: "DayName MonthAbbr DayNum, Time" (e.g., "Friday Jul 3, 3pm"). Use "Today" or "Tomorrow" when applicable.
+
+Return ONLY valid JSON, no explanation.`;
 
   try {
     const editResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -2383,6 +2412,17 @@ Return ONLY valid JSON, no explanation. Example: {"customer_name": "Johnson", "d
     if (changes.customer_name !== undefined) updatedParse.customer_name = changes.customer_name;
     if (changes.promise_text !== undefined) updatedParse.promise_text = changes.promise_text;
     if (changes.due_date !== undefined) updatedParse.due_date = changes.due_date;
+    // Ensure the timezone offset from the original parse is preserved
+    // GPT might return dates without timezone or with wrong timezone
+    if (changes.due_date && originalParse.due_date) {
+      const origTzMatch = originalParse.due_date.match(/([+-]\d{2}:\d{2})$/);
+      const newTzMatch = changes.due_date.match(/([+-]\d{2}:\d{2})$/);
+      if (origTzMatch && !newTzMatch) {
+        // GPT returned a date without timezone — append the original timezone
+        changes.due_date = changes.due_date.replace(/Z$/, '') + origTzMatch[1];
+        updatedParse.due_date = changes.due_date;
+      }
+    }
     if (changes.due_date_readable !== undefined) updatedParse.due_date_readable = changes.due_date_readable;
 
     // Pronoun guard on customer name
@@ -2398,6 +2438,7 @@ Return ONLY valid JSON, no explanation. Example: {"customer_name": "Johnson", "d
     await db.collection('smsConversations').doc(convoDoc.id).update({
       pendingParse: updatedParse,
       state: 'awaiting_confirm',
+      lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -2488,6 +2529,25 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
     // Check for an active confirm/edit conversation (GPT promise parser flow)
     const confirmConvoId = `${userId}_confirm`;
     const confirmConvoDoc = await db.collection('smsConversations').doc(confirmConvoId).get();
+    // Ghost text guards — prevent Vonage retries from being processed as real messages
+    if (confirmConvoDoc.exists) {
+      const conversationData = confirmConvoDoc.data();
+      // State guard: drop short ghost messages in awaiting_confirm state
+      if (conversationData.state === 'awaiting_confirm') {
+        const validConfirmResponses = ['YES', 'EDIT', 'CANCEL', 'YEA', 'YEP', 'YEAH', 'YA', 'SI', 'OK', 'Y'];
+        if (!validConfirmResponses.includes(messageText.trim().toUpperCase()) && messageText.trim().length < 3) {
+          return res.status(200).send('OK');
+        }
+      }
+      // Timestamp guard: drop short ghost messages that arrive within 2 seconds of an outbound
+      if (conversationData.lastOutboundAt) {
+        const lastOutbound = conversationData.lastOutboundAt.toDate ? conversationData.lastOutboundAt.toDate() : new Date(conversationData.lastOutboundAt);
+        const timeSinceLastOutbound = Date.now() - lastOutbound.getTime();
+        if (timeSinceLastOutbound < 2000 && messageText.trim().length < 3) {
+          return res.status(200).send('OK');
+        }
+      }
+    }
     if (confirmConvoDoc.exists && confirmConvoDoc.data().state !== 'idle') {
       const confirmState = confirmConvoDoc.data().state;
       console.log(`[SMS INBOUND] Active confirm conversation state="${confirmState}" for userId=${userId}`);
