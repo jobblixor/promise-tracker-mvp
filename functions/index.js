@@ -1688,7 +1688,7 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
 
     // Override with explicit time if present (e.g. "at 3", "by 3pm", "at 3:30")
     // Find ALL time matches and use the LAST one (in natural speech, corrections/final decisions come last)
-    const timeRegex = /(?:at|by|before|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/gi;
+    const timeRegex = /(?:at|by|before|around|make it|moved to|changed to|pushed to|pushed it to|so)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/gi;
     let timeMatch = null;
     let tempMatch;
     while ((tempMatch = timeRegex.exec(processedText)) !== null) {
