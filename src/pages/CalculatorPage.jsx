@@ -40,7 +40,7 @@ const FAQS = [
   },
   {
     q: 'What\'s the easiest way to fix this?',
-    a: 'The simplest approach is to track every quote you send and set reminders to follow up. Promise Tracker automates this — log a promise, and it sends escalating SMS and email reminders until you get a yes or no. No more quotes falling through the cracks.',
+    a: 'The simplest approach is to track every quote you send and set reminders to follow up. Promise Tracker automates this — text a promise to your Promise Tracker number and it sends escalating SMS and email reminders until you get a yes or no. No more quotes falling through the cracks.',
   },
   {
     q: 'Does follow-up speed really matter that much?',
@@ -219,7 +219,7 @@ export default function CalculatorPage() {
                 </div>
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                   <p className="mb-3 text-sm text-gray-600">
-                    Promise Tracker automatically reminds your team to follow up on every quote — with escalating SMS and email reminders — until you get a yes or no.
+                    Text your promises to Promise Tracker and it automatically reminds your team to follow up — with escalating SMS and email reminders — until you get a yes or no.
                   </p>
                   <Link
                     to="/signup"
@@ -270,7 +270,7 @@ export default function CalculatorPage() {
             The most common objection is "I don't want to be annoying." But the research says the opposite — RAIN Group data shows that 80% of sales require 5 to 12 follow-up touches, yet 44% of salespeople quit after a single attempt. Following up isn't pushy. It's professional. It shows the customer you actually want their business.
           </p>
           <p>
-            The fix doesn't require a massive CRM or a dedicated sales team. It requires a simple system that tracks which quotes are outstanding and reminds you to follow up. That's exactly what Promise Tracker does — log a customer promise, set the follow-up cadence, and the system sends automatic reminders via SMS and email until you get a definitive answer. No more sticky notes, no more forgotten callbacks, no more revenue left on the table.
+            The fix doesn't require a massive CRM or a dedicated sales team. It requires a simple system that tracks which quotes are outstanding and reminds you to follow up. That's exactly what Promise Tracker does — text the promise to your Promise Tracker number and the system sends automatic reminders via SMS and email until you get a definitive answer. No more sticky notes, no more forgotten callbacks, no more revenue left on the table.
           </p>
         </section>
 
@@ -307,7 +307,7 @@ export default function CalculatorPage() {
             Stop Losing Revenue From Dropped Follow-Ups
           </h2>
           <p className="mb-5 text-gray-600">
-            Promise Tracker sends escalating SMS and email reminders to your team so every customer promise gets kept. Set it up in 5 minutes. $39/month. No contracts.
+            Text your promises in plain English. Promise Tracker parses them, sets reminders, and escalates before anything falls through the cracks. $39/month. No contracts.
           </p>
           <Link
             to="/signup"

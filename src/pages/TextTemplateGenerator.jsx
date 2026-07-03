@@ -267,7 +267,7 @@ export default function TextTemplateGenerator() {
             Want to see how much revenue you're losing from quotes you never follow up on? <Link to="/calculator" className="text-green-600 font-medium hover:text-green-700">Try our free Quote Follow-Up Revenue Calculator</Link> — it takes 30 seconds.
           </p>
           <p>
-            And if you want the follow-ups to happen automatically instead of relying on memory, <Link to="/signup" className="text-green-600 font-medium hover:text-green-700">Promise Tracker</Link> sends escalating SMS and email reminders on your behalf until every quote gets a definitive yes or no. For more tips on the full follow-up process, read our guides on <Link to="/blog/how-to-follow-up-on-a-quote" className="text-green-600 font-medium hover:text-green-700">how to follow up on a quote without being annoying</Link> and <Link to="/blog/how-many-times-to-follow-up-on-estimate" className="text-green-600 font-medium hover:text-green-700">how many times to follow up on an estimate</Link>.
+            And if you want the follow-ups to happen automatically instead of relying on memory, <Link to="/signup" className="text-green-600 font-medium hover:text-green-700">Promise Tracker</Link> — text your promises to Promise Tracker and it sends escalating SMS and email reminders on your behalf until every quote gets a definitive yes or no. For more tips on the full follow-up process, read our guides on <Link to="/blog/how-to-follow-up-on-a-quote" className="text-green-600 font-medium hover:text-green-700">how to follow up on a quote without being annoying</Link> and <Link to="/blog/how-many-times-to-follow-up-on-estimate" className="text-green-600 font-medium hover:text-green-700">how many times to follow up on an estimate</Link>.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900 pt-4">Quick Compliance Notes for Business Texting</h2>
@@ -295,7 +295,7 @@ export default function TextTemplateGenerator() {
         {/* CTA */}
         <section className="mx-auto mt-16 mb-16 max-w-2xl rounded-xl border border-green-200 bg-green-50 p-8 text-center">
           <h2 className="mb-3 text-2xl font-bold text-gray-900">Automate Your Follow-Ups Entirely</h2>
-          <p className="mb-5 text-gray-600">Copying and pasting templates works — but what if the follow-ups sent themselves? Promise Tracker sends escalating SMS and email reminders so every quote gets a yes or no. $39/month. No contracts.</p>
+          <p className="mb-5 text-gray-600">Copying and pasting templates works — but what if the follow-ups sent themselves? Text your promises in plain English. Promise Tracker parses them, sets reminders, and escalates before anything falls through the cracks. $39/month. No contracts.</p>
           <Link to="/signup" className="inline-block rounded-lg bg-green-600 px-8 py-3 text-base font-semibold text-white transition hover:bg-green-700">Start Your Free Trial</Link>
         </section>
       </main>
