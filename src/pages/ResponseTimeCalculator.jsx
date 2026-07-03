@@ -34,7 +34,7 @@ const STATS = [
 const FAQS = [
   {
     q: 'How fast should a service business respond to leads?',
-    a: 'Research from the Harvard Business Review found that firms responding within one hour were nearly 7x more likely to have a meaningful conversation with a decision-maker. For home service businesses, the goal should be under 5 minutes -- especially on shared-lead platforms like Angi or Thumbtack where multiple contractors receive the same lead simultaneously.',
+    a: 'Research from the Harvard Business Review found that firms responding within one hour were nearly 7x more likely to have a meaningful conversation with a decision-maker. For home service businesses, the goal should be under 5 minutes, especially on shared-lead platforms like Angi or Thumbtack where multiple contractors receive the same lead simultaneously.',
   },
   {
     q: 'What percentage of calls to service businesses go unanswered?',
@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: "Do customers leave voicemails when they can't reach a service business?",
-    a: "Almost never. Invoca's platform data shows that fewer than 3% of callers who get pushed to voicemail actually leave a message. About 85% of callers who reach voicemail never call back -- they call a competitor instead.",
+    a: "Almost never. Invoca's platform data shows that fewer than 3% of callers who get pushed to voicemail actually leave a message. About 85% of callers who reach voicemail never call back. They call a competitor instead.",
   },
   {
     q: 'How much revenue do contractors lose from slow response times?',
@@ -91,7 +91,7 @@ export default function ResponseTimeCalculator() {
     document.title = 'Free Response Time Cost Calculator | Promise Tracker';
     let meta = document.querySelector('meta[name="description"]');
     const content =
-      'See how much slow response times are costing your service business -- with trade-specific benchmarks backed by Harvard Business Review and MIT research.';
+      'See how much slow response times are costing your service business, with trade-specific benchmarks backed by Harvard Business Review and MIT research.';
     if (meta) {
       meta.setAttribute('content', content);
     } else {
@@ -195,7 +195,7 @@ export default function ResponseTimeCalculator() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-400">
-                  Typical for {TRADE_DEFAULTS[trade]?.label.toLowerCase()} -- edit to match your business
+                  Typical for {TRADE_DEFAULTS[trade]?.label.toLowerCase()}. Edit to match your business.
                 </p>
               </div>
               <div>
@@ -240,14 +240,14 @@ export default function ResponseTimeCalculator() {
                 <p className="text-5xl">🏆</p>
                 <h3 className="text-2xl font-bold text-green-600">You are Already Fast</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  Responding under 5 minutes puts you ahead of 63% of businesses. Keep it up -- and make sure every callback promise gets followed through too.
+                  Responding under 5 minutes puts you ahead of 63% of businesses. Keep it up, and make sure every callback promise gets followed through too.
                 </p>
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                   <Link
                     to="/signup"
                     className="inline-block rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
                   >
-                    Start Free Trial -- $39/mo
+                    Start Free Trial · $39/mo
                   </Link>
                 </div>
               </div>
@@ -297,13 +297,13 @@ export default function ResponseTimeCalculator() {
                 </label>
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                   <p className="mb-3 text-sm text-gray-600">
-                    Promise Tracker reminds your team to follow up on every promise -- so no lead goes cold.
+                    Promise Tracker reminds your team to follow up on every promise, so no lead goes cold.
                   </p>
                   <Link
                     to="/signup"
                     className="inline-block rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
                   >
-                    Start Free Trial -- $39/mo
+                    Start Free Trial · $39/mo
                   </Link>
                 </div>
               </div>
@@ -320,7 +320,7 @@ export default function ResponseTimeCalculator() {
               <div key={i} className="rounded-xl border border-gray-200 bg-white p-5 text-center shadow-sm">
                 <p className="mb-1 text-3xl font-extrabold text-green-600">{s.value}</p>
                 <p className="mb-2 text-sm text-gray-600">{s.text}</p>
-                <p className="text-xs text-gray-400 italic">-- {s.source}</p>
+                <p className="text-xs text-gray-400 italic">— {s.source}</p>
               </div>
             ))}
           </div>
@@ -334,10 +334,10 @@ export default function ResponseTimeCalculator() {
             If you run a plumbing, HVAC, electrical, roofing, or lawn care business, you are competing on shared-lead platforms where three or four contractors receive the exact same inquiry at the same moment. The research is unambiguous: the first business to respond wins the job. A 2011 Harvard Business Review study of 1.25 million leads found that firms responding within one hour were nearly 7x more likely to qualify a lead than those waiting even a little longer. A separate MIT study found the odds of contact drop 100x if you wait 30 minutes instead of 5.
           </p>
           <p>
-            Yet the average response time across U.S. service businesses is closer to 47 hours -- and 23% of companies never respond at all. Invoca's platform data shows 27% of inbound calls go completely unanswered, jumping to 41% on weekends. Each of those missed calls represents real money: Invoca estimates the average missed service call costs $1,200 in lost revenue.
+            Yet the average response time across U.S. service businesses is closer to 47 hours, and 23% of companies never respond at all. Invoca's platform data shows 27% of inbound calls go completely unanswered, jumping to 41% on weekends. Each of those missed calls represents real money: Invoca estimates the average missed service call costs $1,200 in lost revenue.
           </p>
           <p>
-            The voicemail trap makes it worse. Fewer than 3% of callers sent to voicemail leave a message. The other 97% simply call the next business on their list. By the time you listen to a voicemail -- if it even gets left -- the customer has usually already booked someone else.
+            The voicemail trap makes it worse. Fewer than 3% of callers sent to voicemail leave a message. The other 97% simply call the next business on their list. By the time you listen to a voicemail (if it even gets left), the customer has usually already booked someone else.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900">
@@ -375,18 +375,18 @@ export default function ResponseTimeCalculator() {
             <strong className="text-gray-900">1. Missed-call text-back.</strong> Auto-send an SMS within 30-60 seconds of a missed call. Text messages have roughly a 90-98% open rate compared to about 29% for email. This single fix can recover up to 30% of missed calls.
           </p>
           <p>
-            <strong className="text-gray-900">2. Instant lead alerts.</strong> Make sure website forms and platform leads (Angi, Thumbtack, Google Local Services) trigger a real-time push notification -- not just an email you will check in 3 hours.
+            <strong className="text-gray-900">2. Instant lead alerts.</strong> Make sure website forms and platform leads (Angi, Thumbtack, Google Local Services) trigger a real-time push notification, not just an email you will check in 3 hours.
           </p>
           <p>
             <strong className="text-gray-900">3. After-hours coverage.</strong> A large share of home-service calls arrive outside business hours, and emergency calls are the highest-value. Even a simple auto-reply text saying "Got your message, we will call you back by 8am" keeps the lead warm.
           </p>
           <p>
-            <strong className="text-gray-900">4. Follow-up tracking.</strong> Speed to first response is half the battle. The other half is keeping every callback promise you make. If you tell a customer "I will call you Friday with that estimate," you need a system that reminds you on Friday -- not your memory. Promise Tracker handles this automatically.
+            <strong className="text-gray-900">4. Follow-up tracking.</strong> Speed to first response is half the battle. The other half is keeping every callback promise you make. If you tell a customer "I will call you Friday with that estimate," you need a system that reminds you on Friday, not your memory. Promise Tracker handles this automatically.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900">How This Calculator Works</h2>
           <p>
-            This calculator estimates revenue lost from slow response times using a lead-retention decay curve based on the Harvard Business Review (2011) and MIT / InsideSales.com (2007) studies. Trade-specific booking rates come from ServiceTitan, ranging from 31-43% for answered calls. All defaults are editable -- your actual numbers depend on your market, competition, and lead quality.
+            This calculator estimates revenue lost from slow response times using a lead-retention decay curve based on the Harvard Business Review (2011) and MIT / InsideSales.com (2007) studies. Trade-specific booking rates come from ServiceTitan, ranging from 31-43% for answered calls. All defaults are editable. Your actual numbers depend on your market, competition, and lead quality.
           </p>
         </section>
 
