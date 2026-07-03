@@ -88,14 +88,21 @@ export default function Dashboard() {
 
   // Update sliding indicator
   useEffect(() => {
-    const el = tabsRef.current[activeTab];
-    if (el) {
-      const parent = el.parentElement;
-      setIndicatorStyle({
-        left: el.offsetLeft - parent.offsetLeft,
-        width: el.offsetWidth,
-      });
-    }
+    const updateIndicator = () => {
+      const el = tabsRef.current[activeTab];
+      if (el) {
+        const parentRect = el.parentElement.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        setIndicatorStyle({
+          left: elRect.left - parentRect.left,
+          width: elRect.width,
+        });
+      }
+    };
+
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
   }, [activeTab]);
 
   useEffect(() => {
