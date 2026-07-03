@@ -209,7 +209,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── WHAT HAPPENS AFTER YOU HIT SEND ────────────────────── */}
-      <section className="border-t border-border bg-bg-primary">
+      <section className="border-t border-border bg-bg-card-hover">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             What Happens After You Hit Send
@@ -258,7 +258,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">Escalation Alert</h3>
               <p className="text-text-secondary text-sm leading-relaxed">
-                If a promise passes its deadline without being handled, you get an escalation text. Nothing slips through.
+                If a promise passes its deadline, you get escalation alerts via text and email — every day until it's handled. Nothing slips through.
               </p>
             </div>
 
@@ -267,7 +267,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── NOT ANOTHER BLOATED PLATFORM ────────────────────────── */}
-      <section className="border-t border-border bg-bg-primary">
+      <section className="border-t border-border bg-bg-card-hover">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             Not Another Bloated Platform
@@ -360,7 +360,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── RESOURCES ───────────────────────────────────────────── */}
-      <section className="border-t border-border bg-bg-primary">
+      <section className="border-t border-border bg-bg-card-hover">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
           <h2 className="text-2xl font-extrabold text-text-primary mb-6 tracking-tight">Resources</h2>
           <ul className="space-y-3">
