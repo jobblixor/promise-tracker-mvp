@@ -1439,7 +1439,7 @@ async function handleHelpCommand(userPhone) {
   console.log(`[SMS HELP] userPhone=${userPhone}`);
   await sendSMS(
     userPhone,
-    "PT Commands:\nLIST - see open promises\nDONE # - complete a promise\nDELETE # - remove a promise\nCANCEL - cancel current action\nSTOP/START - unsub/resub\nHELP - this msg\nOr text a promise to log it"
+    "PT Commands:\nLIST - see open promises\nDONE # - complete a promise\nDELETE # - remove a promise\nEDIT - change a pending promise\nCANCEL - cancel current action\nSTOP/START - unsub/resub\nHELP - this msg\nOr text a promise to log it"
   );
 }
 
