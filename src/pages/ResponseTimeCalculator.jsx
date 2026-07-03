@@ -359,7 +359,6 @@ export default function ResponseTimeCalculator() {
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
                   <circle cx="10" cy="10" r="9" fill={row.color} />
                   <circle cx="10" cy="10" r="9" stroke="rgba(0,0,0,0.08)" strokeWidth="1" />
-                  <circle cx="7.5" cy="7.5" r="2.5" fill="rgba(255,255,255,0.35)" />
                 </svg>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">{row.time}</p>
