@@ -349,7 +349,7 @@ export default function Dashboard() {
 
       {/* Tabs with sliding indicator */}
       <div className="relative mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 relative">
+        <div className="flex items-center justify-center gap-1 overflow-x-auto pb-0.5 relative">
           {tabs.map((tab) => (
             <button
               key={tab.key}
