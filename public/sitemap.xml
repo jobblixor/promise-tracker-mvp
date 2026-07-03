@@ -53,6 +53,10 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://promisetracker.app/blog/why-service-businesses-lose-customers</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://promisetracker.app/terms</loc>
     <priority>0.3</priority>
   </url>

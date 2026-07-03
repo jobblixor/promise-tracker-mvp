@@ -35,6 +35,14 @@ const ARTICLES = [
     tag: 'Sales',
     readTime: '15 min read',
   },
+  {
+    to: '/blog/why-service-businesses-lose-customers',
+    title: 'Why Service Businesses Lose Customers (And How to Fix It)',
+    description:
+      "Most customers don't leave over price or bad work. They leave because they felt ignored. Here's the data on why it happens and exactly how to fix it.",
+    tag: 'Customer Retention',
+    readTime: '15 min read',
+  },
 ];
 
 export default function BlogPage() {
