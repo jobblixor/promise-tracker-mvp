@@ -10,17 +10,17 @@ import app from '../config/firebase';
 const functions = getFunctions(app);
 
 const features = [
-  'Unlimited promises',
-  'SMS promise logging (text to track)',
-  'Smart parsing (plain English → structured promises)',
-  'Smart Edit (partial changes via text)',
-  'SMS commands (LIST, DONE, DELETE, HELP)',
-  'Morning briefing (daily 7am summary)',
+  '30-day free trial',
+  'No credit card required',
+  'Text promises in plain English',
+  'Smart date parsing',
+  'Edit promises without retyping',
+  'SMS commands (LIST, DONE, DELETE)',
+  '7am morning briefing',
   '2-hour early reminders',
   'Escalation alerts',
-  'Email reminders',
-  'Dashboard with filters',
-  '30-day free trial',
+  'Email + SMS reminders',
+  'Team dashboard',
   'Cancel anytime',
 ];
 

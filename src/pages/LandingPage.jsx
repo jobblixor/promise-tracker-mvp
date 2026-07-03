@@ -208,6 +208,64 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── WHAT HAPPENS AFTER YOU HIT SEND ────────────────────── */}
+      <section className="border-t border-border bg-bg-primary">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
+            What Happens After You Hit Send
+          </h2>
+          <p className="text-text-secondary text-center mb-12 max-w-xl mx-auto">
+            You text it. We handle everything else.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            {/* Card 1 */}
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+              <div className="w-10 h-10 rounded-full bg-border flex items-center justify-center mb-5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <h3 className="text-text-primary font-bold text-base mb-3">Morning Briefing</h3>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Every morning at 7am, you get a text with everything due today and anything overdue. Start your day knowing exactly what needs to happen.
+              </p>
+            </div>
+
+            {/* Card 2 */}
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+              <div className="w-10 h-10 rounded-full bg-border flex items-center justify-center mb-5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </div>
+              <h3 className="text-text-primary font-bold text-base mb-3">2-Hour Heads Up</h3>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Two hours before a promise is due, you get a reminder. Enough time to handle it, not so early you forget again.
+              </p>
+            </div>
+
+            {/* Card 3 */}
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+              <div className="w-10 h-10 rounded-full bg-border flex items-center justify-center mb-5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <h3 className="text-text-primary font-bold text-base mb-3">Escalation Alert</h3>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                If a promise passes its deadline without being handled, you get an escalation text. Nothing slips through.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* ── NOT ANOTHER BLOATED PLATFORM ────────────────────────── */}
       <section className="border-t border-border bg-bg-primary">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20">
@@ -269,17 +327,19 @@ export default function LandingPage() {
               <div className="text-7xl font-black text-text-primary mb-1">$39</div>
               <div className="text-text-muted text-sm mb-8">per month</div>
 
-              <ul className="space-y-4 text-sm text-left mb-8">
+              <ul className="space-y-3.5 text-sm text-left mb-8">
                 {[
-                  '30-day free trial — no credit card required',
-                  'No contracts — cancel anytime',
-                  'Plain English SMS — text promises the way you actually talk',
-                  'Smart parsing — dates like "first thing Monday" or "eod"',
-                  'Smart Edit — reply EDIT and say what changed',
-                  'SMS commands — LIST, DONE, DELETE, HELP',
-                  'Morning briefing — daily 7am summary',
-                  'Escalation alerts when things slip',
-                  'Dashboard for your whole team',
+                  '30-day free trial',
+                  'No credit card required',
+                  'Text promises in plain English',
+                  'Smart date parsing',
+                  'Edit promises without retyping',
+                  'SMS commands (LIST, DONE, DELETE)',
+                  '7am morning briefing',
+                  '2-hour early reminders',
+                  'Escalation alerts',
+                  'Email + SMS reminders',
+                  'Team dashboard',
                 ].map((item) => (
                   <li key={item} className="flex items-center gap-2.5 text-text-secondary">
                     <span className="text-accent font-bold text-lg leading-none">✓</span>
