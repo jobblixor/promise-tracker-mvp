@@ -44,7 +44,7 @@ const tabs = [
 ];
 
 const emptyMessages = {
-  all: { icon: '📋', title: 'No promises yet. Text your first promise to get started.', subtitle: "Example: 'call the hendersons about the roof quote by friday at 3'" },
+  all: { icon: '📋', title: 'No promises yet. Text or log your first promise here to get started.', subtitle: "Example: 'call the hendersons about the roof quote by friday at 3'" },
   overdue: { icon: '🎉', title: 'No overdue promises — nice work!', subtitle: 'You\'re all caught up' },
   'due-today': { icon: '☀️', title: 'Nothing due today', subtitle: 'Enjoy the breathing room' },
   upcoming: { icon: '📅', title: 'No upcoming promises', subtitle: 'Log a promise to see it here' },
