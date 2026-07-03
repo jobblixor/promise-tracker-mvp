@@ -218,6 +218,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.title = 'Settings — Promise Tracker';
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
       try {

@@ -1,6 +1,22 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function PrivacyPage() {
+  useEffect(() => {
+    document.title = 'Privacy Policy — Promise Tracker';
+    let meta = document.querySelector('meta[name="description"]');
+    const content =
+      'Privacy Policy for Promise Tracker. Learn how we handle your data, SMS messages, and third-party integrations.';
+    if (meta) {
+      meta.setAttribute('content', content);
+    } else {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = content;
+      document.head.appendChild(meta);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-bg-primary px-4 py-12">
       <div className="max-w-3xl mx-auto">

@@ -19,6 +19,21 @@ export default function Signup() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    document.title = 'Sign Up — Promise Tracker';
+    let meta = document.querySelector('meta[name="description"]');
+    const content =
+      'Create your Promise Tracker account. 30-day free trial, no credit card required. Start tracking customer promises via text in seconds.';
+    if (meta) {
+      meta.setAttribute('content', content);
+    } else {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = content;
+      document.head.appendChild(meta);
+    }
+  }, []);
+
+  useEffect(() => {
     const inviteId = searchParams.get('invite');
     if (!inviteId) return;
     setInviteLoading(true);

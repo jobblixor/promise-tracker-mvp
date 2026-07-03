@@ -1,6 +1,22 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function TermsPage() {
+  useEffect(() => {
+    document.title = 'Terms of Service — Promise Tracker';
+    let meta = document.querySelector('meta[name="description"]');
+    const content =
+      'Terms of Service for Promise Tracker, the SMS-based promise tracking tool for service businesses.';
+    if (meta) {
+      meta.setAttribute('content', content);
+    } else {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = content;
+      document.head.appendChild(meta);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-bg-primary px-4 py-12">
       <div className="max-w-3xl mx-auto">
@@ -77,7 +93,7 @@ export default function TermsPage() {
               <li>Provide accurate and complete information when creating your account and using the Service.</li>
               <li>Use the Service only for lawful business purposes.</li>
               <li>Comply with all applicable laws and regulations, including those related to SMS communications (e.g., TCPA, CAN-SPAM).</li>
-              <li>Obtain proper consent from your customers before sending SMS notifications through the Service.</li>
+              <li>Ensure the phone number you provide is your own and that you consent to receiving SMS notifications, reminders, and alerts from the Service.</li>
               <li>Keep your account credentials secure and confidential.</li>
               <li>Not share your account with unauthorized individuals.</li>
             </ul>

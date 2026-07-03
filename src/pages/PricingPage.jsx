@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
@@ -30,6 +30,21 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = 'Pricing — Promise Tracker';
+    let meta = document.querySelector('meta[name="description"]');
+    const content =
+      'Simple pricing for Promise Tracker. $39/month, 30-day free trial, no credit card required. Text promises, get reminders, never drop a customer promise.';
+    if (meta) {
+      meta.setAttribute('content', content);
+    } else {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = content;
+      document.head.appendChild(meta);
+    }
+  }, []);
 
   if (plan === 'pro') {
     return (

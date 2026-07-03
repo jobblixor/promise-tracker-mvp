@@ -37,10 +37,10 @@ const TOOLS = [
 
 export default function FreeToolsPage() {
   useEffect(() => {
-    document.title = 'Free Tools for Service Businesses | Promise Tracker';
+    document.title = 'Free Tools — Promise Tracker';
     let meta = document.querySelector('meta[name="description"]');
     const content =
-      'Free tools built for service businesses: a quote follow-up revenue calculator and ready-to-use follow-up text message templates.';
+      'Free tools for service businesses: quote follow-up calculator, follow-up text templates, and more. From Promise Tracker.';
     if (meta) {
       meta.setAttribute('content', content);
     } else {

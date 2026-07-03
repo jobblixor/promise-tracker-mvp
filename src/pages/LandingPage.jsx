@@ -11,6 +11,21 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    document.title = 'Promise Tracker — Text a Promise, Never Drop the Ball';
+    let meta = document.querySelector('meta[name="description"]');
+    const content =
+      'SMS-based promise tracking for service businesses. Text your promises in plain English, get smart reminders, morning briefings, and escalation alerts. $39/mo, 30-day free trial.';
+    if (meta) {
+      meta.setAttribute('content', content);
+    } else {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = content;
+      document.head.appendChild(meta);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-bg-primary text-text-secondary">
       <style>{`

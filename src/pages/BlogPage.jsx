@@ -47,10 +47,10 @@ export default function BlogPage() {
   }, []);
 
   useEffect(() => {
-    document.title = 'Blog — Follow-Up Tips for Service Businesses | Promise Tracker';
+    document.title = 'Blog — Promise Tracker';
     let meta = document.querySelector('meta[name="description"]');
     const content =
-      'Practical articles on following up with customers, winning more quotes, and growing your service business — from the team at Promise Tracker.';
+      'Tips, guides, and strategies for following up with customers and never dropping the ball. From the team at Promise Tracker.';
     if (meta) {
       meta.setAttribute('content', content);
     } else {

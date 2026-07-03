@@ -221,6 +221,10 @@ export default function TeamPage() {
 
   const isOwner = user?.role === 'owner';
 
+  useEffect(() => {
+    document.title = 'Team — Promise Tracker';
+  }, []);
+
   // Subscribe to team members
   useEffect(() => {
     if (!user?.businessId) {
