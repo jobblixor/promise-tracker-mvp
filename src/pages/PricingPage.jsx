@@ -11,9 +11,16 @@ const functions = getFunctions(app);
 
 const features = [
   'Unlimited promises',
-  'Unlimited team members',
-  'SMS & email reminders',
+  'SMS promise logging (text to track)',
+  'Smart parsing (plain English → structured promises)',
+  'Smart Edit (partial changes via text)',
+  'SMS commands (LIST, DONE, DELETE, HELP)',
+  'Morning briefing (daily 7am summary)',
+  '2-hour early reminders',
   'Escalation alerts',
+  'Email reminders',
+  'Dashboard with filters',
+  '30-day free trial',
   'Cancel anytime',
 ];
 
@@ -69,7 +76,7 @@ export default function PricingPage() {
       <div className="p-5 md:p-10 max-w-xl mx-auto animate-fade-in-up">
         <div className="text-center mb-10">
           <h1 className="text-[28px] font-extrabold text-text-primary tracking-tight">Upgrade to Pro</h1>
-          <p className="text-sm text-text-secondary mt-1.5">Everything you need to track every promise</p>
+          <p className="text-sm text-text-secondary mt-1.5">Text a promise. Get reminded. Never drop the ball.</p>
         </div>
 
         <div className="bg-bg-card border border-border shadow-sm rounded-2xl p-8">

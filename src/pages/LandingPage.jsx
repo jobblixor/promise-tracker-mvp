@@ -74,14 +74,14 @@ export default function LandingPage() {
             30-Day Free Trial · No Credit Card Required
           </div>
           <h1 className="hero-animate hero-delay-2 text-5xl sm:text-6xl lg:text-7xl font-extrabold text-text-primary leading-tight tracking-tight mb-6">
-            Your Team Promises to Call Back.{' '}
+            Never Drop a{' '}
             <span className="text-accent">
-              Promise Tracker
+              Customer Promise
             </span>{' '}
-            Makes Sure They Do.
+            Again.
           </h1>
           <p className="hero-animate hero-delay-3 text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
-            The simple follow-up tool for service businesses. Log every customer promise. Get automatic reminders. Escalate when things slip. Nothing gets forgotten.
+            Text your promises in plain English. Promise Tracker parses them, sets reminders, and escalates before anything falls through the cracks. Built for contractors, home service pros, and anyone who makes promises to customers.
           </p>
           <div className="hero-animate hero-delay-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -178,9 +178,9 @@ export default function LandingPage() {
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 1
               </div>
-              <h3 className="text-text-primary font-bold text-base mb-2">Log the Promise</h3>
+              <h3 className="text-text-primary font-bold text-base mb-2">Text Your Promise</h3>
               <p className="text-text-secondary text-sm leading-relaxed">
-                Customer calls, your receptionist logs who was promised, what was promised, and when it's due. Done in 10 seconds.
+                Text the Promise Tracker number in plain English. "Call the Hendersons about the roof quote by Friday at 3." That's it.
               </p>
             </div>
 
@@ -188,9 +188,9 @@ export default function LandingPage() {
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 2
               </div>
-              <h3 className="text-text-primary font-bold text-base mb-2">Automatic Reminders</h3>
+              <h3 className="text-text-primary font-bold text-base mb-2">Confirm in Seconds</h3>
               <p className="text-text-secondary text-sm leading-relaxed">
-                30 minutes before it's due, the person who made the promise gets reminded via email. No manual follow-up needed.
+                We parse your message instantly — customer name, due date, and task. Reply YES to confirm, EDIT to change anything, or CANCEL.
               </p>
             </div>
 
@@ -198,9 +198,9 @@ export default function LandingPage() {
               <div className="w-14 h-14 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-bold text-xl mb-5 shrink-0">
                 3
               </div>
-              <h3 className="text-text-primary font-bold text-base mb-2">Escalation</h3>
+              <h3 className="text-text-primary font-bold text-base mb-2">Get Reminded, Never Forget</h3>
               <p className="text-text-secondary text-sm leading-relaxed">
-                1 hour overdue? The manager gets alerted. 24 hours? Daily urgent reminders fire until someone handles it. The system never forgets.
+                Morning briefing at 7am with today's promises. 2-hour heads-up before each one is due. Escalation alert if something slips.
               </p>
             </div>
 
@@ -271,11 +271,14 @@ export default function LandingPage() {
 
               <ul className="space-y-4 text-sm text-left mb-8">
                 {[
-                  '30-day free trial',
+                  '30-day free trial — no credit card required',
                   'No contracts — cancel anytime',
-                  'Unlimited promises',
-                  'Unlimited team members',
-                  'Email reminders and escalations',
+                  'Plain English SMS — text promises the way you actually talk',
+                  'Smart parsing — dates like "first thing Monday" or "eod"',
+                  'Smart Edit — reply EDIT and say what changed',
+                  'SMS commands — LIST, DONE, DELETE, HELP',
+                  'Morning briefing — daily 7am summary',
+                  'Escalation alerts when things slip',
                   'Dashboard for your whole team',
                 ].map((item) => (
                   <li key={item} className="flex items-center gap-2.5 text-text-secondary">

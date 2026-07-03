@@ -44,7 +44,7 @@ const tabs = [
 ];
 
 const emptyMessages = {
-  all: { icon: '📋', title: 'No promises yet — your team is on track!', subtitle: 'Log your first promise to start tracking' },
+  all: { icon: '📋', title: 'No promises yet. Text your first promise to get started.', subtitle: "Example: 'call the hendersons about the roof quote by friday at 3'" },
   overdue: { icon: '🎉', title: 'No overdue promises — nice work!', subtitle: 'You\'re all caught up' },
   'due-today': { icon: '☀️', title: 'Nothing due today', subtitle: 'Enjoy the breathing room' },
   upcoming: { icon: '📅', title: 'No upcoming promises', subtitle: 'Log a promise to see it here' },
@@ -398,7 +398,7 @@ export default function Dashboard() {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-                Log Your First Promise
+                Log First Promise or Text It In
               </button>
             )}
           </div>

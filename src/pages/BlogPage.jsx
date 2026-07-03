@@ -140,8 +140,8 @@ export default function BlogPage() {
             Ready to put this into practice?
           </h2>
           <p className="mb-6 text-text-secondary">
-            Promise Tracker automates the entire follow-up process — log a customer promise and it
-            sends escalating reminders until you get a yes or no. Nothing falls through the cracks.
+            Promise Tracker is an SMS-based promise tracking tool. Text a promise in plain English,
+            get reminded before it's due, get escalated if it slips. Nothing falls through the cracks.
           </p>
           <Link
             to="/signup"

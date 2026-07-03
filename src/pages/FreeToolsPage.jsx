@@ -147,8 +147,7 @@ export default function FreeToolsPage() {
             Want to automate your follow-ups entirely?
           </h2>
           <p className="mb-6 text-text-secondary">
-            Promise Tracker logs every customer promise and sends automatic reminders — so nothing
-            falls through the cracks, even on your busiest days.
+            Promise Tracker is an SMS-based promise tracking tool for service businesses. Text your promises, get reminded, never drop the ball.
           </p>
           <Link
             to="/signup"
