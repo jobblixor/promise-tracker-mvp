@@ -26,7 +26,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-text-primary mb-3">2. Description of Service</h2>
             <p>
-              Promise Tracker is a customer follow-up tracking tool designed for service businesses. The Service enables users to create, manage, and track promises made to customers, send SMS reminders and notifications, manage team members, and maintain accountability for customer commitments. The Service is provided via web application accessible at promisetracker.app.
+              Promise Tracker is a customer follow-up tracking tool designed for service businesses. The Service enables users to create, manage, and track promises made to customers, receive SMS reminders and notifications, manage team members, and maintain accountability for customer commitments. The Service is provided via web application accessible at promisetracker.app.
             </p>
           </section>
 
