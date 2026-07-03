@@ -1173,6 +1173,90 @@ exports.onEmailVerified = onDocumentUpdated({
     await sendSMS(after.phone, welcomeMsg);
     console.log(`[onEmailVerified] Welcome SMS sent to ${after.phone}`);
 
+    // Send welcome email
+    try {
+      const userEmail = after.email;
+      if (userEmail) {
+        await gmailTransporter.sendMail({
+          from: '"Promise Tracker" <promisetrackermvp@gmail.com>',
+          to: userEmail,
+          subject: 'Welcome to Promise Tracker — here\'s how to get started',
+          html: `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a1a;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                  <h1 style="font-size: 24px; font-weight: 700; margin: 0;">Welcome to Promise Tracker!</h1>
+                </div>
+                
+                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                  You're all set. From now on, just text your promises to this number and we'll handle the rest:
+                </p>
+                
+                <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                  <p style="font-size: 14px; color: #666; margin: 0 0 4px 0;">Your Promise Tracker Number</p>
+                  <p style="font-size: 28px; font-weight: 700; color: #1a1a1a; margin: 0; letter-spacing: 1px;">
+                    (360) 335-3352
+                  </p>
+                </div>
+                
+                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 8px; font-weight: 600;">
+                  Try it right now — text something like:
+                </p>
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                  <p style="font-size: 16px; color: #1a1a1a; margin: 0; font-style: italic;">
+                    "Call the Hendersons about the roof quote by Friday at 3"
+                  </p>
+                </div>
+                
+                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                  We'll parse your message, confirm the details, and set reminders automatically. You'll get:
+                </p>
+                
+                <ul style="font-size: 15px; line-height: 1.8; padding-left: 20px; margin-bottom: 24px;">
+                  <li><strong>Morning briefing</strong> at 7am with today's promises</li>
+                  <li><strong>2-hour reminder</strong> before each promise is due</li>
+                  <li><strong>Escalation alerts</strong> if anything slips</li>
+                </ul>
+                
+                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 8px; font-weight: 600;">
+                  SMS Commands:
+                </p>
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                  <p style="font-size: 14px; line-height: 2; margin: 0; font-family: monospace;">
+                    LIST — see your open promises<br>
+                    DONE # — mark a promise complete<br>
+                    DELETE # — remove a promise<br>
+                    EDIT — change a pending promise<br>
+                    HELP — see all commands
+                  </p>
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <a href="https://promisetracker.app/dashboard" 
+                     style="display: inline-block; background: #22c55e; color: white; font-size: 16px; font-weight: 600; padding: 14px 32px; border-radius: 8px; text-decoration: none;">
+                    Go to Your Dashboard
+                  </a>
+                </div>
+                
+                <p style="font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 0;">
+                  Questions? Reply to this email or text HELP to your Promise Tracker number.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+                
+                <p style="font-size: 12px; color: #aaa; text-align: center; margin: 0;">
+                  Promise Tracker · promisetracker.app<br>
+                  You're receiving this because you signed up for Promise Tracker.
+                </p>
+              </div>
+            `,
+        });
+        console.log(`Welcome email sent to ${userEmail}`);
+      }
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError);
+      // Don't fail the whole function if email fails — SMS already sent
+    }
+
     // Mark sent so this never fires again for this user
     await event.data.after.ref.update({ welcomeSmsSent: true });
   } catch (error) {
