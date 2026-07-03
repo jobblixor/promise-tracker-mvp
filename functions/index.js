@@ -1513,6 +1513,7 @@ async function handleDeleteConfirmation(convoDoc, userId, userPhone, messageText
     await db.collection('smsConversations').doc(convoDoc.id).update({
       state: 'idle',
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.FieldValue.delete(),
     });
     await db.collection('promises').doc(promiseId).delete();
     await db.collection('smsListMappings').doc(userId).delete().catch(() => {});
@@ -1523,6 +1524,7 @@ async function handleDeleteConfirmation(convoDoc, userId, userPhone, messageText
     await db.collection('smsConversations').doc(convoDoc.id).update({
       state: 'idle',
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.FieldValue.delete(),
     });
     await sendSMS(userPhone, 'Delete cancelled.');
     console.log(`[SMS DELETE CONFIRM] CANCEL/NO branch complete — returning to caller`);
@@ -1530,6 +1532,7 @@ async function handleDeleteConfirmation(convoDoc, userId, userPhone, messageText
     await db.collection('smsConversations').doc(convoDoc.id).update({
       state: 'idle',
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.FieldValue.delete(),
     });
     switch (kw) {
       case 'LIST':
@@ -2296,6 +2299,7 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
       state: 'idle',
       lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.FieldValue.delete(),
     });
 
   const yesResponses = ['YES', 'YEA', 'YEP', 'YEAH', 'YA', 'SI', 'OK', 'Y'];
@@ -2336,6 +2340,7 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
       state: 'awaiting_edit',
       lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     });
     await sendSMS(userPhone,
       "What would you like to change? You can update the customer name, time, date, or description. Examples:\n" +
@@ -2411,6 +2416,7 @@ async function handleAwaitingPromise(convoDoc, userId, userPhone, messageText, u
     state: 'awaiting_confirm',
     pendingParse: parsed,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000),
   });
   const confirmMsg = buildConfirmMessage(parsed);
   await sendSMS(userPhone, confirmMsg);
@@ -2433,6 +2439,7 @@ async function handleAwaitingEdit(convoDoc, userId, userPhone, messageText, user
       pendingParse: admin.firestore.FieldValue.delete(),
       lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.FieldValue.delete(),
     });
     await sendSMS(userPhone, 'Promise cancelled.');
     console.log(`[SMS AWAITING_EDIT] CANCEL for userId=${userId}`);
@@ -2441,7 +2448,7 @@ async function handleAwaitingEdit(convoDoc, userId, userPhone, messageText, user
 
   const originalParse = convoData.pendingParse;
   if (!originalParse) {
-    await db.collection('smsConversations').doc(convoDoc.id).update({ state: 'idle', lastOutboundAt: admin.firestore.FieldValue.serverTimestamp() });
+    await db.collection('smsConversations').doc(convoDoc.id).update({ state: 'idle', lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(), expiresAt: admin.firestore.FieldValue.delete() });
     await sendSMS(userPhone, 'Something went wrong. Please text your promise again.');
     console.log(`[SMS AWAITING_EDIT] No pendingParse found for userId=${userId}`);
     return;
@@ -2575,6 +2582,7 @@ Return ONLY valid JSON, no explanation.`;
       state: 'awaiting_confirm',
       lastOutboundAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     });
 
     // Send updated confirmation
@@ -2725,6 +2733,7 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
         await db.collection('smsConversations').doc(cancelConvoId).update({
           state: 'idle',
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: admin.firestore.FieldValue.delete(),
         });
         await sendSMS(senderPhone, 'Cancelled.');
       } else {
@@ -2747,6 +2756,7 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
           state: 'awaiting_confirm',
           pendingParse: parsed,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
         });
         const confirmMsg = buildConfirmMessage(parsed);
         await sendSMS(senderPhone, confirmMsg);
@@ -2928,4 +2938,45 @@ exports.morningBriefing = onSchedule("every 5 minutes", async (event) => {
 
   console.log("morningBriefing: finished run");
   return null;
+});
+
+// ─── Scheduled function: expire stale SMS conversations every 5 minutes ───────
+exports.expireConversations = onSchedule({
+  schedule: 'every 5 minutes',
+  timeZone: 'America/New_York',
+  memory: '256MiB',
+}, async (event) => {
+  const now = new Date();
+
+  try {
+    // Query all conversations where expiresAt has passed
+    const expiredSnap = await admin.firestore()
+      .collection('smsConversations')
+      .where('expiresAt', '<=', now)
+      .get();
+
+    if (expiredSnap.empty) {
+      console.log('No expired conversations found.');
+      return;
+    }
+
+    console.log(`Found ${expiredSnap.size} expired conversation(s). Resetting...`);
+
+    const batch = admin.firestore().batch();
+
+    expiredSnap.forEach((doc) => {
+      batch.update(doc.ref, {
+        state: 'idle',
+        pendingParse: admin.firestore.FieldValue.delete(),
+        expiresAt: admin.firestore.FieldValue.delete(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    await batch.commit();
+    console.log(`Reset ${expiredSnap.size} expired conversation(s).`);
+
+  } catch (error) {
+    console.error('Error expiring conversations:', error);
+  }
 });
