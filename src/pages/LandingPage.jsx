@@ -258,7 +258,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">Escalation Alert</h3>
               <p className="text-text-secondary text-sm leading-relaxed">
-                If a promise passes its deadline, you get escalation alerts via text and email — every day until it's handled. Nothing slips through.
+                If a promise passes its deadline, you get escalation alerts via text and email every day until it's handled. Nothing slips through.
               </p>
             </div>
 
