@@ -391,6 +391,28 @@ export default function ResponseTimeCalculator() {
           </p>
         </section>
 
+        <section className="mx-auto mt-16 max-w-3xl text-center">
+          <h3 className="mb-4 text-lg font-bold text-gray-900">More Free Tools &amp; Guides</h3>
+          <div className="flex flex-wrap justify-center gap-3">
+            {[
+              { label: 'Quote Follow-Up Revenue Calculator',        href: '/calculator' },
+              { label: 'Follow-Up Text Templates',                  href: '/follow-up-text-templates' },
+              { label: 'Quote Follow-Up Checklist',                 href: '/follow-up-checklist' },
+              { label: 'How to Follow Up Without Being Annoying',   href: '/blog/how-to-follow-up-on-a-quote' },
+              { label: 'What to Do When a Customer Ghosts',         href: '/blog/what-to-do-when-customer-ghosts-estimate' },
+              { label: 'How to Increase Your Close Rate',           href: '/blog/how-to-increase-quote-close-rate' },
+            ].map((link, i) => (
+              <Link
+                key={i}
+                to={link.href}
+                className="rounded-md border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 transition hover:bg-green-100"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section className="mx-auto mt-16 max-w-3xl">
           <h2 className="mb-6 text-2xl font-bold text-gray-900">
             Frequently Asked Questions
