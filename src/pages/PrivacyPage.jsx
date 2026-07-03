@@ -9,7 +9,7 @@ export default function PrivacyPage() {
         </Link>
 
         <h1 className="text-3xl font-extrabold text-text-primary tracking-tight mb-2">Privacy Policy</h1>
-        <p className="text-sm text-text-muted mb-10">Last updated: June 2, 2026</p>
+        <p className="text-sm text-text-muted mb-10">Last updated: July 3, 2026</p>
 
         <div className="space-y-8 text-sm leading-relaxed text-text-secondary">
 
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
               <li>To provide, operate, and maintain the Service.</li>
               <li>To authenticate your identity and manage your account.</li>
               <li>To process payments and manage your subscription.</li>
-              <li>To send SMS notifications and reminders related to your promises (via Vonage).</li>
+              <li>To send you SMS notifications, reminders, and promise confirmations via Vonage.</li>
               <li>To send transactional emails (account verification, password resets, billing receipts).</li>
               <li>To detect and prevent fraud, abuse, and unauthorized access using browser fingerprinting, IP address analysis, and device identification.</li>
               <li>To enforce free trial limits and prevent abuse by tracking device, browser, and network identifiers across account registrations.</li>
@@ -91,7 +91,10 @@ export default function PrivacyPage() {
                 <strong className="text-text-primary">Stripe</strong> — Handles payment processing and subscription billing. Stripe collects and processes your payment information directly. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Stripe's Privacy Policy</a>.
               </li>
               <li>
-                <strong className="text-text-primary">Vonage</strong> — Delivers SMS notifications and reminders to your customers. Phone numbers and message content are processed by Vonage. See <a href="https://www.vonage.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Vonage's Privacy Policy</a>.
+                <strong className="text-text-primary">Vonage</strong> — Delivers SMS notifications, reminders, confirmations, and alerts to you (the account holder). Your phone number and message content are processed by Vonage. See <a href="https://www.vonage.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Vonage's Privacy Policy</a>.
+              </li>
+              <li>
+                <strong className="text-text-primary">OpenAI</strong> — Processes the text content of promises you type to extract structured details (customer name, due date, description). Only the words you type are sent to OpenAI's API for processing — no phone numbers, account information, or customer contact details are shared. See <a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">OpenAI's Privacy Policy</a>.
               </li>
               <li>
                 <strong className="text-text-primary">Firebase / Google Cloud</strong> — Provides authentication, database (Firestore), and hosting infrastructure. See <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Firebase Privacy and Security</a>.
