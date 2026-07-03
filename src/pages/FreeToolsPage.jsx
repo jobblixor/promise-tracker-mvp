@@ -24,6 +24,14 @@ const TOOLS = [
     cta: 'Browse Templates →',
   },
   {
+    to: '/response-time-calculator',
+    badge: 'Free Calculator',
+    title: 'Response Time Cost Calculator',
+    description:
+      'See how much slow response times are costing your service business — with trade-specific benchmarks backed by Harvard Business Review and MIT research.',
+    cta: 'Open Calculator →',
+  },
+  {
     to: '/follow-up-checklist',
     badge: 'Free Checklist',
     preview: '/quote-follow-up-checklist.png',

@@ -25,6 +25,7 @@ import TextTemplateGenerator from './pages/TextTemplateGenerator';
 import FreeToolsPage from './pages/FreeToolsPage';
 import BlogPage from './pages/BlogPage';
 import QuoteFollowUpChecklist from './pages/QuoteFollowUpChecklist';
+import ResponseTimeCalculator from './pages/ResponseTimeCalculator';
 
 const ADMIN_EMAIL = 'promisetrackermvp@gmail.com';
 
@@ -56,6 +57,19 @@ function ActivityTracker() {
   const { user, logout } = useAuth();
   const toast = useToast();
   const location = useLocation();
+
+  // Safety net: whenever the user becomes authenticated (login OR signup) reset the
+  // activity timestamp to now.  This MUST be defined before the inactivity-check
+  // effect below so React runs it first on the same render, preventing a stale
+  // localStorage value from a previous session from triggering an immediate logout.
+  // When the user signs out, clear the key entirely.
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(ACTIVITY_KEY, Date.now().toString());
+    } else {
+      localStorage.removeItem(ACTIVITY_KEY);
+    }
+  }, [user]);
 
   // Update activity timestamp on every navigation for authenticated users
   useEffect(() => {
@@ -138,6 +152,7 @@ export default function App() {
               <Route path="/follow-up-text-templates" element={<TextTemplateGenerator />} />
               <Route path="/free-tools" element={<FreeToolsPage />} />
               <Route path="/follow-up-checklist" element={<QuoteFollowUpChecklist />} />
+              <Route path="/response-time-calculator" element={<ResponseTimeCalculator />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/admin/affiliates" element={<AdminRoute><AdminAffiliatePage /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />

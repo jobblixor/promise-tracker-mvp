@@ -263,6 +263,9 @@ export function AuthProvider({ children }) {
       console.error('Failed to send verification code:', err);
     }
 
+    // Reset the inactivity timer so a stale localStorage value from a previous
+    // session cannot trigger an immediate logout the moment setUser fires.
+    localStorage.setItem('pt_last_activity', Date.now().toString());
     setUser({
       uid,
       email,
@@ -320,6 +323,9 @@ export function AuthProvider({ children }) {
       console.error('Failed to send verification code:', err);
     }
 
+    // Reset the inactivity timer so a stale localStorage value from a previous
+    // session cannot trigger an immediate logout the moment setUser fires.
+    localStorage.setItem('pt_last_activity', Date.now().toString());
     setUser({
       uid,
       email,
