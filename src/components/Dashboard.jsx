@@ -349,7 +349,7 @@ export default function Dashboard() {
 
       {/* Tabs with sliding indicator */}
       <div className="relative mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center justify-center gap-1 overflow-x-auto pb-0.5 relative">
+        <div className="flex items-center justify-center gap-4 overflow-x-auto pb-0.5 relative">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -371,7 +371,7 @@ export default function Dashboard() {
           ))}
           {/* Sliding indicator */}
           <span
-            className="absolute bottom-0 h-full bg-black/[0.07] rounded-[10px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="absolute bottom-0 h-full bg-text-primary/8 rounded-[10px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
           />
         </div>
