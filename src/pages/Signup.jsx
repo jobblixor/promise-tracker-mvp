@@ -62,7 +62,7 @@ export default function Signup() {
         <div className="text-center mb-10">
           <div className="flex justify-center mb-5"><Logo size={56} /></div>
           <h1 className="text-[26px] font-extrabold text-text-primary tracking-tight">{invite ? 'Join your team' : 'Create your account'}</h1>
-          <p className="text-sm text-text-muted mt-1.5">{invite ? 'Complete your account to get started' : "Check your phone after signup — we'll text you everything you need."}</p>
+          <p className="text-sm text-text-muted mt-1.5">{invite ? 'Complete your account to get started' : "We'll text you your Promise Tracker number. Text your first promise to get started."}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
