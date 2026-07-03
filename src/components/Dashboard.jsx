@@ -82,28 +82,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [timezone, setTimezone] = useState('America/New_York');
   const timezoneRef = useRef('America/New_York');
-  const tabsRef = useRef({});
   const rawPromisesRef = useRef([]);
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
-
-  // Update sliding indicator
-  useEffect(() => {
-    const updateIndicator = () => {
-      const el = tabsRef.current[activeTab];
-      if (el) {
-        const parentRect = el.parentElement.getBoundingClientRect();
-        const elRect = el.getBoundingClientRect();
-        setIndicatorStyle({
-          left: elRect.left - parentRect.left,
-          width: elRect.width,
-        });
-      }
-    };
-
-    updateIndicator();
-    window.addEventListener('resize', updateIndicator);
-    return () => window.removeEventListener('resize', updateIndicator);
-  }, [activeTab]);
 
   useEffect(() => {
     if (!user?.businessId) return;
@@ -360,11 +339,10 @@ export default function Dashboard() {
           {tabs.map((tab) => (
             <button
               key={tab.key}
-              ref={(el) => { tabsRef.current[tab.key] = el; }}
               onClick={() => setActiveTab(tab.key)}
-              className={`relative flex items-center gap-2 px-4 py-2 rounded-[10px] text-sm font-semibold whitespace-nowrap transition-colors duration-200 z-10 ${
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-[10px] text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${
                 activeTab === tab.key
-                  ? 'text-text-primary'
+                  ? 'text-text-primary bg-accent/10'
                   : 'text-text-muted hover:text-text-secondary'
               }`}
             >
@@ -376,11 +354,6 @@ export default function Dashboard() {
               )}
             </button>
           ))}
-          {/* Sliding indicator */}
-          <span
-            className="absolute bottom-0 h-full bg-text-primary/8 rounded-[10px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
-            style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
-          />
         </div>
       </div>
 
