@@ -1,6 +1,7 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
+const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 // SMS provider: Vonage Messages API
@@ -1147,6 +1148,40 @@ exports.deleteAccount = onCall(async (request) => {
   return { success: true };
 });
 
+// ─── Welcome SMS on Email Verification ───────────────────────────────
+
+/**
+ * Firestore trigger: fires when a user doc is updated.
+ * When emailVerified changes from false/undefined to true, sends a one-time
+ * welcome SMS so the user knows they can log promises by text right away.
+ */
+exports.onEmailVerified = onDocumentUpdated({
+  document: 'users/{userId}',
+  region: 'us-central1',
+}, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+
+  // Only fire when emailVerified flips to true for the first time
+  if (!after.emailVerified || before.emailVerified || !after.phone || after.welcomeSmsSent) {
+    return null;
+  }
+
+  const welcomeMsg = "Welcome to Promise Tracker! You can now log promises by texting this number anytime. Try it — text something like 'Quote for John by Friday' and I'll track it with reminders. Reply HELP for all commands.";
+
+  try {
+    await sendSMS(after.phone, welcomeMsg);
+    console.log(`[onEmailVerified] Welcome SMS sent to ${after.phone}`);
+
+    // Mark sent so this never fires again for this user
+    await event.data.after.ref.update({ welcomeSmsSent: true });
+  } catch (error) {
+    console.error('[onEmailVerified] Error sending welcome SMS:', error);
+  }
+
+  return null;
+});
+
 // ─── SMS Command Router ───────────────────────────────────────────────
 
 /**
@@ -1244,6 +1279,11 @@ async function handleListCommand(userId, userPhone, userData) {
     msg += `\nShowing 5 of ${allDocs.length}. Reply MORE for rest.`;
   }
   msg += '\nReply DONE # or DELETE #';
+
+  if (!userData.hasSeenDoneHint) {
+    msg += '\n\nTip: Reply DONE # to complete or DELETE # to remove.';
+    await db.collection('users').doc(userId).update({ hasSeenDoneHint: true });
+  }
 
   await sendSMS(userPhone, msg);
 }
@@ -2194,7 +2234,18 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
     }
     await db.collection('promises').add(promiseData);
     await resetConvo();
-    await sendSMS(userPhone, 'Promise logged! Reminders are set.');
+
+    // Check if this is the first confirmed promise — teach LIST command
+    const userDocRef = db.collection('users').doc(userId);
+    const userDocSnap = await userDocRef.get();
+    const userData = userDocSnap.data();
+
+    let confirmMsg = 'Promise logged! Reminders are set.';
+    if (!userData.hasSeenListHint) {
+      confirmMsg += '\n\nTip: Reply LIST anytime to see all your open promises.';
+      await userDocRef.update({ hasSeenListHint: true });
+    }
+    await sendSMS(userPhone, confirmMsg);
     console.log(`[SMS CONFIRM] YES — promise created for userId=${userId}`);
   } else if (upper === 'EDIT') {
     await db.collection('smsConversations').doc(convoDoc.id).update({
