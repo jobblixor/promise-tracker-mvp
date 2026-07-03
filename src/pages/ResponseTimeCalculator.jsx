@@ -345,18 +345,22 @@ export default function ResponseTimeCalculator() {
           </h2>
           <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
             {[
-              { time: 'Under 5 minutes',     icon: '🟢', desc: 'You are ahead of 63% of businesses. Maximizes conversion.' },
-              { time: '5-30 minutes',         icon: '🟡', desc: 'Still competitive, but you are losing 15-20% of viable leads.' },
-              { time: 'About 1 hour',         icon: '🟠', desc: 'You are 7x less likely to qualify a lead (HBR). Significant leakage.' },
-              { time: '4 hours',              icon: '🔴', desc: 'Most urgent leads have already booked a competitor by now.' },
-              { time: 'Same day (8+ hours)',  icon: '🔴', desc: 'You are capturing only ~15% of potential leads. Major revenue leak.' },
-              { time: 'Next day or later',    icon: '⛔', desc: '60x less likely to qualify (HBR). Nearly all leads are gone.' },
+              { time: 'Under 5 minutes',    color: '#16a34a', desc: 'You are ahead of 63% of businesses. Maximizes conversion.' },
+              { time: '5–30 minutes',        color: '#ca8a04', desc: 'Still competitive, but you are losing 15–20% of viable leads.' },
+              { time: 'About 1 hour',        color: '#ea580c', desc: 'You are 7x less likely to qualify a lead (HBR). Significant leakage.' },
+              { time: '4 hours',             color: '#dc2626', desc: 'Most urgent leads have already booked a competitor by now.' },
+              { time: 'Same day (8+ hours)', color: '#dc2626', desc: 'You are capturing only ~15% of potential leads. Major revenue leak.' },
+              { time: 'Next day or later',   color: '#7f1d1d', desc: '60x less likely to qualify (HBR). Nearly all leads are gone.' },
             ].map((row, i, arr) => (
               <div
                 key={i}
-                className={"flex items-start gap-4 px-5 py-4" + (i < arr.length - 1 ? " border-b border-gray-100" : "")}
+                className={"flex items-center gap-4 px-5 py-4" + (i < arr.length - 1 ? " border-b border-gray-100" : "")}
               >
-                <span className="text-xl mt-0.5">{row.icon}</span>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                  <circle cx="10" cy="10" r="9" fill={row.color} />
+                  <circle cx="10" cy="10" r="9" stroke="rgba(0,0,0,0.08)" strokeWidth="1" />
+                  <circle cx="7.5" cy="7.5" r="2.5" fill="rgba(255,255,255,0.35)" />
+                </svg>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">{row.time}</p>
                   <p className="text-sm text-gray-500 mt-0.5">{row.desc}</p>
