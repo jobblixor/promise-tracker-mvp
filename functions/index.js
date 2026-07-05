@@ -2370,6 +2370,49 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
     const userDocSnap = await userDocRef.get();
     const userData = userDocSnap.data();
 
+    // Contact learning: auto-save customer name to /contacts
+    if (pendingParse.customer_name) {
+      try {
+        const customerName = pendingParse.customer_name.trim();
+        const businessId = user.businessId;
+
+        // Check if this customer already exists for this business
+        const existingContact = await admin.firestore()
+          .collection('contacts')
+          .where('businessId', '==', businessId)
+          .where('nameLower', '==', customerName.toLowerCase())
+          .limit(1)
+          .get();
+
+        if (existingContact.empty) {
+          // Create new contact
+          await admin.firestore().collection('contacts').add({
+            businessId: businessId,
+            userId: userId,
+            name: customerName,
+            nameLower: customerName.toLowerCase(),
+            phone: null, // will be populated by post-call prompts in Stage 3
+            firstSeen: admin.firestore.FieldValue.serverTimestamp(),
+            lastContact: admin.firestore.FieldValue.serverTimestamp(),
+            promiseCount: 1,
+            source: 'sms_reply',
+          });
+          console.log(`New contact created: ${customerName} for business ${businessId}`);
+        } else {
+          // Update existing contact
+          const contactDoc = existingContact.docs[0];
+          await contactDoc.ref.update({
+            lastContact: admin.firestore.FieldValue.serverTimestamp(),
+            promiseCount: admin.firestore.FieldValue.increment(1),
+          });
+          console.log(`Contact updated: ${customerName} — promise count incremented`);
+        }
+      } catch (contactError) {
+        // Don't fail the promise confirmation if contact learning fails
+        console.error('Contact learning error:', contactError);
+      }
+    }
+
     let confirmMsg = 'Promise logged! Reminders are set.';
     if (!userData.hasSeenListHint) {
       confirmMsg += '\n\nTip: Reply LIST anytime to see all your open promises.';
@@ -2795,6 +2838,7 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
         const newConfirmConvoId = `${userId}_confirm`;
         await db.collection('smsConversations').doc(newConfirmConvoId).set({
           userId,
+          businessId: user.businessId,
           state: 'awaiting_confirm',
           pendingParse: parsed,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
