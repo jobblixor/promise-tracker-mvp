@@ -51,6 +51,14 @@ const ARTICLES = [
     tag: 'Sales',
     readTime: '12 min read',
   },
+  {
+    to: '/blog/how-to-get-more-repeat-customers',
+    title: 'How to Get More Repeat Customers as a Service Business',
+    description:
+      'The average service business keeps only 38% of customers for a second job. Here\'s how to fix that with maintenance plans, follow-up systems, and reactivation campaigns.',
+    tag: 'Customer Retention',
+    readTime: '13 min read',
+  },
 ];
 
 export default function BlogPage() {

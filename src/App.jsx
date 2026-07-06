@@ -28,6 +28,7 @@ import QuoteFollowUpChecklist from './pages/QuoteFollowUpChecklist';
 import ResponseTimeCalculator from './pages/ResponseTimeCalculator';
 import BlogWhyLoseCustomers from './pages/BlogWhyLoseCustomers';
 import BlogWriteEstimate from './pages/BlogWriteEstimate';
+import BlogRepeatCustomers from './pages/BlogRepeatCustomers';
 
 const ADMIN_EMAIL = 'promisetrackermvp@gmail.com';
 
@@ -157,6 +158,7 @@ export default function App() {
               <Route path="/response-time-calculator" element={<ResponseTimeCalculator />} />
               <Route path="/blog/why-service-businesses-lose-customers" element={<BlogWhyLoseCustomers />} />
               <Route path="/blog/how-to-write-estimate-that-wins" element={<BlogWriteEstimate />} />
+              <Route path="/blog/how-to-get-more-repeat-customers" element={<BlogRepeatCustomers />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/admin/affiliates" element={<AdminRoute><AdminAffiliatePage /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
