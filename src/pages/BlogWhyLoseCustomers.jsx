@@ -103,7 +103,7 @@ export default function BlogWhyLoseCustomers() {
           {[
             { stat: '68%', desc: 'of customers leave because they felt ignored, not because of price or quality', source: 'Rockefeller Corporation' },
             { stat: '5-25x', desc: 'more expensive to acquire a new customer than to keep an existing one', source: 'Harvard Business Review' },
-            { stat: '25-95%', desc: 'profit increase from just a 5% improvement in customer retention', source: 'Bain & Company' }
+            { stat: '25-95%', desc: 'profit increase from just a 5% improvement in customer retention', source: 'Reichheld & Sasser, HBR 1990' }
           ].map((item, i) => (
             <div key={i} className="rounded-xl border border-gray-200 bg-white p-5 text-center shadow-sm">
               <p className="mb-1 text-3xl font-extrabold text-green-600">{item.stat}</p>

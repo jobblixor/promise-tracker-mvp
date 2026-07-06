@@ -101,7 +101,7 @@ export default function BlogRepeatCustomers() {
         <div className="grid gap-4 sm:grid-cols-3 mb-12">
           {[
             { stat: '38%', desc: 'average second-job retention rate for home service businesses', source: 'Industry benchmark' },
-            { stat: '25-95%', desc: 'profit increase from just a 5% improvement in customer retention', source: 'Bain & Company' },
+            { stat: '25-95%', desc: 'profit increase from just a 5% improvement in customer retention', source: 'Reichheld & Sasser, HBR 1990' },
             { stat: '89%', desc: 'retention rate for HVAC customers on maintenance plans vs 42% without', source: 'Industry data' }
           ].map((item, i) => (
             <div key={i} className="rounded-xl border border-gray-200 bg-white p-5 text-center shadow-sm">
