@@ -55,10 +55,6 @@ export default function BlogCloseRate() {
       {/* Article */}
       <article style={{ maxWidth: '720px', margin: '0 auto', padding: '48px 20px 0' }}>
         <div style={{ marginBottom: '32px' }}>
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '999px', fontSize: '13px', fontWeight: 600 }}>Sales</span>
-            <span style={{ color: '#9ca3af', fontSize: '13px' }}>15 min read</span>
-          </div>
           <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#111827', lineHeight: 1.2, marginBottom: '16px' }}>How to Increase Your Quote Close Rate Without Lowering Prices</h1>
           <p style={{ fontSize: '18px', color: '#4b5563', lineHeight: 1.6 }}>Most contractors assume they lose jobs because their prices are too high. The data says otherwise. Here are the changes that actually move the needle.</p>
         </div>
