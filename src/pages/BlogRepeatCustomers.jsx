@@ -93,11 +93,9 @@ export default function BlogRepeatCustomers() {
 
       <main className="mx-auto max-w-3xl px-4 py-10">
         <div className="mb-10 text-center">
-          <span className="inline-block rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 mb-4">Customer Retention</span>
           <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl leading-tight">
             How to Get More Repeat Customers as a Service Business
           </h1>
-          <p className="text-gray-500 text-sm">13 min read</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3 mb-12">
