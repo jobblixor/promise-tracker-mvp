@@ -97,7 +97,7 @@ export default function BlogWhyLoseCustomers() {
           <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl leading-tight">
             Why Service Businesses Lose Customers (And How to Fix It)
           </h1>
-          <p className="text-gray-500 text-sm">15 min read</p>
+          <p className="text-gray-500 text-sm">12 min read</p>
         </div>
 
         {/* Stats Banner */}

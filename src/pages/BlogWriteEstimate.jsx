@@ -97,7 +97,7 @@ export default function BlogWriteEstimate() {
           <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl leading-tight">
             How to Write an Estimate That Wins the Job
           </h1>
-          <p className="text-gray-500 text-sm">15 min read</p>
+          <p className="text-gray-500 text-sm">12 min read</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3 mb-12">
