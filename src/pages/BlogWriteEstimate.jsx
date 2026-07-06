@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: 'How many times should I follow up on an estimate?',
-    a: 'At least 4 to 5 times. Roughly 80% of non-routine sales happen only after at least five follow-ups, but 44% of salespeople give up after one. Zero-follow-up quotes close at about 2%. Going from zero to one follow-up nearly doubles your close rate. A proven cadence is Day 0 (confirm receipt), Day 3 (add value), Day 7 (light nudge), Day 14 (direct close), and Day 28 (graceful final touch).'
+    a: 'At least 4 to 5 times. Roughly 80% of non-routine sales happen only after at least five follow-ups, but 44% of salespeople give up after one. Zero-follow-up quotes close at about 2%. That first follow-up is the single cheapest revenue lift in your business. A proven cadence is Day 0 (confirm receipt), Day 3 (add value), Day 7 (light nudge), Day 14 (direct close), and Day 28 (graceful final touch).'
   },
   {
     q: 'How long should an estimate be valid?',
@@ -205,7 +205,7 @@ export default function BlogWriteEstimate() {
             This is the highest-ROI activity in the entire sales process. Roughly 80% of non-routine sales happen only after at least five follow-ups, but 44% of salespeople give up after one. Only 16% of roofing contractors follow up on unsold estimates the same day, meaning 84% leave the close to chance.
           </p>
           <p>
-            The close rate curve by follow-up count tells the story: zero follow-up closes at about 2%, one follow-up gets you to 15 to 20%, 3 to 5 follow-ups over 14 days push toward 40 to 50%. Going from zero to one nearly doubles your rate. That first follow-up is the cheapest revenue in your business.
+            The close rate curve by follow-up count tells the story: zero follow-up closes at about 2%, one follow-up gets you to 15 to 20%, 3 to 5 follow-ups over 14 days push toward 40 to 50%. That first follow-up is the single cheapest revenue lift in your business.
           </p>
           <p>
             A proven cadence: Day 0 (confirm receipt, offer to answer questions), Day 3 (add value with a scope recap, photo, or review), Day 7 (light nudge about scheduling or financing), Day 14 (direct but easy-out close), and Day 28 (graceful "still on file, no rush" final touch). Stop the instant they reply. Use the <Link to="/follow-up-checklist" className="text-green-600 font-semibold hover:underline">quote follow-up checklist</Link> to build this into a habit, and grab ready-to-send scripts from the <Link to="/follow-up-text-templates" className="text-green-600 font-semibold hover:underline">follow-up text templates</Link>.
