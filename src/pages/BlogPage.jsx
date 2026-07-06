@@ -43,6 +43,14 @@ const ARTICLES = [
     tag: 'Customer Retention',
     readTime: '15 min read',
   },
+  {
+    to: '/blog/how-to-write-estimate-that-wins',
+    title: 'How to Write an Estimate That Wins the Job',
+    description:
+      'Most contractors close only 20-30% of estimates. Top performers close 50-70%. The difference is speed, structure, and follow-up. Here\'s how to write estimates that win.',
+    tag: 'Sales',
+    readTime: '15 min read',
+  },
 ];
 
 export default function BlogPage() {
