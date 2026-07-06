@@ -41,7 +41,7 @@ const ARTICLES = [
     description:
       "Most customers don't leave over price or bad work. They leave because they felt ignored. Here's the data on why it happens and exactly how to fix it.",
     tag: 'Customer Retention',
-    readTime: '15 min read',
+    readTime: '12 min read',
   },
   {
     to: '/blog/how-to-write-estimate-that-wins',
@@ -49,7 +49,7 @@ const ARTICLES = [
     description:
       'Most contractors close only 20-30% of estimates. Top performers close 50-70%. The difference is speed, structure, and follow-up. Here\'s how to write estimates that win.',
     tag: 'Sales',
-    readTime: '15 min read',
+    readTime: '12 min read',
   },
 ];
 
