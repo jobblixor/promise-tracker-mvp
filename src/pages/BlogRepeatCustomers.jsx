@@ -122,7 +122,7 @@ export default function BlogRepeatCustomers() {
             The fix isn't better marketing or lower prices. It's staying in touch. In 52% of cases where a customer didn't come back, they were satisfied with the work. They just forgot your name (29%) or found a different contractor more easily when the next need came up (23%). Only 19% left because they were unhappy. Most retention failures are communication failures, not quality failures.
           </p>
           <p>
-            Fixing this pays disproportionately. A 5% increase in retention raises profits 25 to 95%, according to Bain & Company's research. Acquiring a new customer costs 5 to 25x more than keeping one. And you have a 60 to 70% chance of selling to an existing customer compared to 5 to 20% for a new prospect. Your existing customer list is the most valuable asset in your business, and most contractors never touch it after the invoice.
+            Fixing this pays disproportionately. A 5% increase in retention raises profits 25 to 95%, according to Reichheld and Sasser's research published in Harvard Business Review. Acquiring a new customer costs 5 to 25x more than keeping one. And you have a 60 to 70% chance of selling to an existing customer compared to 5 to 20% for a new prospect. Your existing customer list is the most valuable asset in your business, and most contractors never touch it after the invoice.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900">Why Satisfied Customers Still Leave</h2>
