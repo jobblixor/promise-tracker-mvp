@@ -3180,7 +3180,7 @@ exports.expireConversations = onSchedule({
 
 // ─── Scheduled function: end-of-day recap ────────────────────────────────
 exports.endOfDayRecap = onSchedule({
-  schedule: 'every 5 minutes',
+  schedule: 'every 1 minutes',
   timeZone: 'America/New_York',
   memory: '256MiB',
 }, async (event) => {
@@ -3214,10 +3214,10 @@ exports.endOfDayRecap = onSchedule({
       const currentHour = userNow.getHours();
       const currentMinute = userNow.getMinutes();
 
-      // Check if current time is within the 5-minute window of the recap time
+      // Check if current time is within the 1-minute window of the recap time
       const currentTotalMinutes = currentHour * 60 + currentMinute;
       const recapTotalMinutes = recapHour * 60 + recapMinute;
-      if (currentTotalMinutes < recapTotalMinutes || currentTotalMinutes >= recapTotalMinutes + 5) {
+      if (currentTotalMinutes < recapTotalMinutes || currentTotalMinutes >= recapTotalMinutes + 1) {
         continue; // Not in the recap window
       }
 
