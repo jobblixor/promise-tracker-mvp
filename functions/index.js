@@ -1566,7 +1566,7 @@ async function handleHelpCommand(userPhone) {
   console.log(`[SMS HELP] userPhone=${userPhone}`);
   await sendSMS(
     userPhone,
-    "PT Commands:\nLIST - see open promises\nDONE # - complete a promise\nDELETE # - remove a promise\nEDIT - change a pending promise\nCANCEL - cancel current action\nSTOP/START - unsub/resub\nHELP - this msg\nOr text a promise to log it"
+    "PT Commands:\nLIST - see open promises\nDONE # - complete a promise\nDELETE # - remove a promise\nEDIT - change a pending promise\nSET TIME 6PM - set recap time\nCANCEL - cancel current action\nSTOP/START - unsub/resub\nHELP - this msg\nOr text a promise to log it"
   );
 }
 
@@ -2796,6 +2796,58 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       }
     }
 
+    // Check for awaiting_eod_reply state (phone-keyed conversation)
+    {
+      let eodFormattedPhone = senderPhone.replace(/\D/g, '');
+      if (eodFormattedPhone.length === 10) eodFormattedPhone = '1' + eodFormattedPhone;
+      if (!eodFormattedPhone.startsWith('+')) eodFormattedPhone = '+' + eodFormattedPhone;
+      const eodConvoRef = admin.firestore().collection('smsConversations').doc(eodFormattedPhone);
+      const eodConvoDoc = await eodConvoRef.get();
+      const eodConvoData = eodConvoDoc.exists ? eodConvoDoc.data() : null;
+
+      if (eodConvoData && eodConvoData.state === 'awaiting_eod_reply') {
+        const upperText = messageText.trim().toUpperCase();
+
+        if (upperText === 'NONE' || upperText === 'NO' || upperText === 'NOPE' || upperText === 'NAH' || upperText === 'ALL GOOD' || upperText === 'GOOD') {
+          // User has no more promises
+          await eodConvoRef.update({
+            state: 'idle',
+            expiresAt: admin.firestore.FieldValue.delete(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          // Update the pending prompt
+          if (eodConvoData.pendingPromptId) {
+            await admin.firestore().collection('pendingPrompts').doc(eodConvoData.pendingPromptId).update({
+              respondedAt: admin.firestore.FieldValue.serverTimestamp(),
+              response: 'none',
+            });
+          }
+
+          await sendSMS(senderPhone, 'All clear. Have a good evening!');
+          return res.status(200).send('OK');
+        }
+
+        // Anything else is treated as a new promise — route through the normal parse flow
+        // First update the pending prompt to show they responded
+        if (eodConvoData.pendingPromptId) {
+          await admin.firestore().collection('pendingPrompts').doc(eodConvoData.pendingPromptId).update({
+            respondedAt: admin.firestore.FieldValue.serverTimestamp(),
+            response: 'answered',
+          });
+        }
+
+        // Reset state to idle so the normal promise parsing flow handles it
+        await eodConvoRef.update({
+          state: 'idle',
+          expiresAt: admin.firestore.FieldValue.delete(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // DON'T return — fall through to the normal promise parsing below
+      }
+    }
+
     // Route message: exact single-word commands or keyword+number only.
     // Any keyword followed by natural language text goes to GPT parser.
     const fullTextUpper = messageText.trim().toUpperCase();
@@ -2828,6 +2880,52 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       await handleDoneCommand(userId, senderPhone, user, messageText);
     } else if (keyword === 'DELETE' && /^\d+$/.test(afterKeyword)) {
       await handleDeleteCommand(userId, senderPhone, user, messageText);
+    } else if (fullTextUpper === 'SET TIME OFF' || fullTextUpper === 'RECAP OFF' || fullTextUpper === 'EOD OFF') {
+      await admin.firestore().collection('businesses').doc(user.businessId).update({
+        endOfDayEnabled: false,
+      });
+      await sendSMS(senderPhone, 'End-of-day recap disabled. Text SET TIME 6PM to re-enable.');
+    } else if (fullTextUpper.startsWith('SET TIME ') || fullTextUpper.startsWith('SET EOD ') || fullTextUpper.startsWith('RECAP ')) {
+      const timeStr = messageText.trim().substring(messageText.trim().indexOf(' ', messageText.trim().indexOf(' ') + 1) + 1).trim();
+
+      // Parse the time — accept formats like "6PM", "6:00PM", "18:00", "6 PM", "630pm", "6:30 pm"
+      let hour = null;
+      let minute = 0;
+
+      // Try 24-hour format first: "18:00", "18:30"
+      const match24 = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+      if (match24) {
+        hour = parseInt(match24[1]);
+        minute = parseInt(match24[2]);
+      }
+
+      // Try 12-hour format: "6PM", "6:00PM", "6 PM", "630pm", "6:30 pm"
+      if (hour === null) {
+        const match12 = timeStr.match(/^(\d{1,2})(?::?(\d{2}))?\s*(am|pm)$/i);
+        if (match12) {
+          hour = parseInt(match12[1]);
+          minute = match12[2] ? parseInt(match12[2]) : 0;
+          const ampm = match12[3].toLowerCase();
+          if (ampm === 'pm' && hour < 12) hour += 12;
+          if (ampm === 'am' && hour === 12) hour = 0;
+        }
+      }
+
+      if (hour === null || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        await sendSMS(senderPhone, 'Could not understand the time. Try: SET TIME 6PM or SET TIME 18:00');
+      } else {
+        const timeFormatted = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+        const displayHour = hour % 12 || 12;
+        const displayAmPm = hour >= 12 ? 'PM' : 'AM';
+        const displayTime = minute > 0 ? `${displayHour}:${String(minute).padStart(2, '0')} ${displayAmPm}` : `${displayHour} ${displayAmPm}`;
+
+        await admin.firestore().collection('businesses').doc(user.businessId).update({
+          endOfDayTime: timeFormatted,
+          endOfDayEnabled: true,
+        });
+
+        await sendSMS(senderPhone, `End-of-day recap time set to ${displayTime}. You'll get a daily check-in at this time. Text SET TIME OFF to disable.`);
+      }
     } else {
       console.log(`[SMS INBOUND] GPT parse — text="${messageText}"`);
       const timezone = user.timezone || 'America/New_York';
@@ -3064,5 +3162,158 @@ exports.expireConversations = onSchedule({
 
   } catch (error) {
     console.error('Error expiring conversations:', error);
+  }
+});
+
+// ─── Scheduled function: end-of-day recap ────────────────────────────────
+exports.endOfDayRecap = onSchedule({
+  schedule: 'every 5 minutes',
+  timeZone: 'America/New_York',
+  memory: '256MiB',
+}, async (event) => {
+  try {
+    // Get all businesses
+    const businessesSnap = await admin.firestore().collection('businesses').get();
+
+    if (businessesSnap.empty) {
+      console.log('endOfDayRecap: no businesses found');
+      return;
+    }
+
+    const now = new Date();
+
+    for (const bizDoc of businessesSnap.docs) {
+      const bizData = bizDoc.data();
+      const businessId = bizDoc.id;
+
+      // Check if end-of-day recap is enabled (default true if field doesn't exist)
+      const endOfDayEnabled = bizData.endOfDayEnabled !== false;
+      if (!endOfDayEnabled) continue;
+
+      // Get timezone and recap time
+      const timezone = bizData.timezone || 'America/New_York';
+      const endOfDayTime = bizData.endOfDayTime || '18:00';
+      const [recapHour, recapMinute] = endOfDayTime.split(':').map(Number);
+
+      // Convert current time to user's timezone
+      const userNowStr = now.toLocaleString('en-US', { timeZone: timezone });
+      const userNow = new Date(userNowStr);
+      const currentHour = userNow.getHours();
+      const currentMinute = userNow.getMinutes();
+
+      // Check if current time is within the 5-minute window of the recap time
+      const currentTotalMinutes = currentHour * 60 + currentMinute;
+      const recapTotalMinutes = recapHour * 60 + recapMinute;
+      if (currentTotalMinutes < recapTotalMinutes || currentTotalMinutes >= recapTotalMinutes + 5) {
+        continue; // Not in the recap window
+      }
+
+      // Check if we already sent a recap today (dedup)
+      const todayStr = userNow.getFullYear() + '-' + String(userNow.getMonth() + 1).padStart(2, '0') + '-' + String(userNow.getDate()).padStart(2, '0');
+      const recapId = businessId + '_eod_' + todayStr;
+      const existingRecap = await admin.firestore().collection('pendingPrompts').doc(recapId).get();
+      if (existingRecap.exists) {
+        continue; // Already sent today
+      }
+
+      // Smart recap suppression: skip if user was actively texting in the last 60 minutes
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      const recentConvoSnap = await admin.firestore()
+        .collection('smsConversations')
+        .where('businessId', '==', businessId)
+        .where('updatedAt', '>=', oneHourAgo)
+        .limit(1)
+        .get();
+
+      if (!recentConvoSnap.empty) {
+        console.log(`endOfDayRecap: skipping ${businessId} — active in last 60 min`);
+        // Still create the dedup doc so we don't try again in the next 5-min window
+        await admin.firestore().collection('pendingPrompts').doc(recapId).set({
+          businessId: businessId,
+          type: 'end_of_day',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          response: 'suppressed',
+          reason: 'active_recently',
+        });
+        continue;
+      }
+
+      // Get the business owner's phone number
+      const ownerSnap = await admin.firestore()
+        .collection('users')
+        .where('businessId', '==', businessId)
+        .where('role', '==', 'owner')
+        .limit(1)
+        .get();
+
+      if (ownerSnap.empty) continue;
+      const ownerData = ownerSnap.docs[0].data();
+      const ownerPhone = ownerData.phone;
+      if (!ownerPhone) continue;
+
+      // Check if SMS is enabled for this user
+      if (ownerData.smsEnabled === false) continue;
+
+      // Format phone to E.164
+      let formattedPhone = ownerPhone.replace(/\D/g, '');
+      if (formattedPhone.length === 10) formattedPhone = '1' + formattedPhone;
+      if (!formattedPhone.startsWith('+')) formattedPhone = '+' + formattedPhone;
+
+      // Count promises created today
+      const startOfDay = new Date(userNow);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const todayPromisesSnap = await admin.firestore()
+        .collection('promises')
+        .where('businessId', '==', businessId)
+        .where('createdAt', '>=', startOfDay)
+        .get();
+
+      const promiseCount = todayPromisesSnap.size;
+
+      // Build the recap message
+      let recapMsg;
+      if (promiseCount > 0) {
+        recapMsg = `End of day recap: You logged ${promiseCount} promise${promiseCount === 1 ? '' : 's'} today. Any others to capture before tomorrow? Reply with them or NONE.`;
+      } else {
+        recapMsg = `Daily check-in: Any promises you made today that need tracking? Reply with them or NONE.`;
+      }
+
+      // Send the recap SMS
+      await sendSMS(formattedPhone, recapMsg);
+      console.log(`endOfDayRecap: sent to ${formattedPhone} for business ${businessId} (${promiseCount} promises today)`);
+
+      // Create the pending prompt doc for dedup and tracking
+      await admin.firestore().collection('pendingPrompts').doc(recapId).set({
+        businessId: businessId,
+        userId: ownerSnap.docs[0].id,
+        phone: formattedPhone,
+        type: 'end_of_day',
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        respondedAt: null,
+        response: null,
+        promiseCountAtSend: promiseCount,
+      });
+
+      // Set the conversation state to track the reply
+      const convoRef = admin.firestore().collection('smsConversations').doc(formattedPhone);
+      const convoSnap = await convoRef.get();
+      if (!convoSnap.exists || convoSnap.data().state === 'idle') {
+        await convoRef.set({
+          userId: ownerSnap.docs[0].id,
+          businessId: businessId,
+          phone: formattedPhone,
+          state: 'awaiting_eod_reply',
+          triggerType: 'end_of_day',
+          pendingPromptId: recapId,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        }, { merge: true });
+      }
+    }
+
+    console.log('endOfDayRecap: finished run');
+  } catch (error) {
+    console.error('endOfDayRecap error:', error);
   }
 });
