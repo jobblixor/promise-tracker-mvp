@@ -2824,7 +2824,20 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
             });
           }
 
-          await sendSMS(senderPhone, 'All clear. Have a good evening!');
+          // Time-aware goodbye
+          const bizDoc = await admin.firestore().collection('businesses').doc(eodConvoData.businessId).get();
+          const userTz = bizDoc.data()?.timezone || 'America/New_York';
+          const localNowStr = new Date().toLocaleString('en-US', { timeZone: userTz });
+          const localHour = new Date(localNowStr).getHours();
+          let goodbye;
+          if (localHour < 12) {
+            goodbye = 'All clear. Have a good rest of your morning!';
+          } else if (localHour < 17) {
+            goodbye = 'All clear. Have a good rest of your day!';
+          } else {
+            goodbye = 'All clear. Have a good evening!';
+          }
+          await sendSMS(senderPhone, goodbye);
           return res.status(200).send('OK');
         }
 
