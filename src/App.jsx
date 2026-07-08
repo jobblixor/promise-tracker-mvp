@@ -29,6 +29,7 @@ import ResponseTimeCalculator from './pages/ResponseTimeCalculator';
 import BlogWhyLoseCustomers from './pages/BlogWhyLoseCustomers';
 import BlogWriteEstimate from './pages/BlogWriteEstimate';
 import BlogRepeatCustomers from './pages/BlogRepeatCustomers';
+import ContactsPage from './pages/ContactsPage';
 
 const ADMIN_EMAIL = 'promisetrackermvp@gmail.com';
 
@@ -142,6 +143,7 @@ export default function App() {
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
               <Route path="/promises" element={<ProtectedRoute><PromisesPage /></ProtectedRoute>} />
               <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+              <Route path="/contacts" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
               <Route path="/success" element={<ProtectedRoute><SuccessPage /></ProtectedRoute>} />
