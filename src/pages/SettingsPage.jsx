@@ -189,6 +189,11 @@ export default function SettingsPage() {
     escalationAlerts: true,
   });
 
+  // Daily Recap
+  const [recapEnabled, setRecapEnabled] = useState(false);
+  const [recapTime, setRecapTime] = useState('18:00');
+  const [savingRecap, setSavingRecap] = useState(false);
+
   // Delete account
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -248,6 +253,8 @@ export default function SettingsPage() {
             setBusinessName(bizData.name || '');
             setPlan(bizData.plan || 'free');
             setTimezone(bizData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York');
+            setRecapEnabled(bizData.endOfDayEnabled === true);
+            setRecapTime(bizData.endOfDayTime || '18:00');
           }
         }
       } catch (err) {
@@ -330,6 +337,28 @@ export default function SettingsPage() {
       setNotifications((prev) => ({ ...prev, [key]: !value }));
       toast.error('Failed to update notification preference');
     }
+  };
+
+  const handleSaveRecap = async () => {
+    setSavingRecap(true);
+    try {
+      await updateDoc(doc(db, 'businesses', user.businessId), {
+        endOfDayEnabled: recapEnabled,
+        endOfDayTime: recapTime,
+      });
+      toast.success(recapEnabled ? `Daily recap set to ${formatRecapTime(recapTime)}` : 'Daily recap disabled');
+    } catch (err) {
+      toast.error('Failed to save recap settings');
+    } finally {
+      setSavingRecap(false);
+    }
+  };
+
+  const formatRecapTime = (time24) => {
+    const [h, m] = time24.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return m === 0 ? `${hour12} ${period}` : `${hour12}:${m.toString().padStart(2, '0')} ${period}`;
   };
 
   const handleCancelSubscription = async () => {
@@ -543,6 +572,52 @@ export default function SettingsPage() {
             />
           </div>
           <p className="text-[11px] text-text-muted mt-3">Changes are saved automatically.</p>
+        </div>
+
+        {/* SECTION: Daily Recap */}
+        <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
+          <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Daily Recap
+          </h2>
+          <p className="text-xs text-text-muted mb-4">
+            Get a daily SMS check-in asking about any promises you made today. You can also set this by texting SET TIME to your PT number.
+          </p>
+          <div className="space-y-4">
+            <Toggle
+              label="Enable daily recap"
+              enabled={recapEnabled}
+              onChange={(val) => setRecapEnabled(val)}
+            />
+            {recapEnabled && (
+              <div>
+                <label className="block text-xs font-medium text-text-muted mb-1.5">Recap Time</label>
+                <input
+                  type="time"
+                  value={recapTime}
+                  onChange={(e) => setRecapTime(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+                />
+                <p className="text-[11px] text-text-muted mt-1.5">
+                  Currently set to {formatRecapTime(recapTime)} in your business timezone.
+                </p>
+              </div>
+            )}
+            <div className="flex justify-end pt-1">
+              <button
+                onClick={handleSaveRecap}
+                disabled={savingRecap}
+                className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+              >
+                {savingRecap && (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                )}
+                {savingRecap ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* SECTION 4: Theme */}
