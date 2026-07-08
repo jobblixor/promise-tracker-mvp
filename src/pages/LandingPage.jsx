@@ -235,7 +235,7 @@ export default function LandingPage() {
           <p className="text-text-secondary text-center mb-12 max-w-xl mx-auto">
             You text it. We handle everything else.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
             {/* Card 1 */}
             <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
