@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { doc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db, auth } from '../config/firebase';
@@ -192,7 +193,16 @@ export default function SettingsPage() {
   // Daily Recap
   const [recapEnabled, setRecapEnabled] = useState(false);
   const [recapTime, setRecapTime] = useState('18:00');
+  const [timeFormat, setTimeFormat] = useState('12h');
   const [savingRecap, setSavingRecap] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [pickerStyle, setPickerStyle] = useState({});
+  const timePickerRef = useRef(null);
+  const triggerButtonRef = useRef(null);
+  const pickerDropdownRef = useRef(null);
+  const hourColRef = useRef(null);
+  const minuteColRef = useRef(null);
+  const ampmColRef = useRef(null);
 
   // Delete account
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -255,6 +265,7 @@ export default function SettingsPage() {
             setTimezone(bizData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York');
             setRecapEnabled(bizData.endOfDayEnabled === true);
             setRecapTime(bizData.endOfDayTime || '18:00');
+            setTimeFormat(bizData.timeFormat || '12h');
           }
         }
       } catch (err) {
@@ -272,6 +283,36 @@ export default function SettingsPage() {
       setCancelAtPeriodEnd(!!subBusiness.cancelAtPeriodEnd);
     }
   }, [subBusiness]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const inTrigger = timePickerRef.current?.contains(e.target);
+      const inDropdown = pickerDropdownRef.current?.contains(e.target);
+      if (!inTrigger && !inDropdown) setTimePickerOpen(false);
+    };
+    const handleScroll = (e) => {
+      if (pickerDropdownRef.current?.contains(e.target)) return;
+      setTimePickerOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!timePickerOpen) return;
+    requestAnimationFrame(() => {
+      [hourColRef, minuteColRef, ampmColRef].forEach(ref => {
+        if (!ref.current) return;
+        const sel = ref.current.querySelector('[data-selected="true"]');
+        if (!sel) return;
+        ref.current.scrollTop = sel.offsetTop - ref.current.clientHeight / 2 + sel.offsetHeight / 2;
+      });
+    });
+  }, [timePickerOpen]);
 
   const handleSaveBusiness = async () => {
     if (!businessName.trim()) {
@@ -345,6 +386,7 @@ export default function SettingsPage() {
       await updateDoc(doc(db, 'businesses', user.businessId), {
         endOfDayEnabled: recapEnabled,
         endOfDayTime: recapTime,
+        timeFormat,
       });
       toast.success(recapEnabled ? `Daily recap set to ${formatRecapTime(recapTime)}` : 'Daily recap disabled');
     } catch (err) {
@@ -356,6 +398,9 @@ export default function SettingsPage() {
 
   const formatRecapTime = (time24) => {
     const [h, m] = time24.split(':').map(Number);
+    if (timeFormat === '24h') {
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
     const period = h >= 12 ? 'PM' : 'AM';
     const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
     return m === 0 ? `${hour12} ${period}` : `${hour12}:${m.toString().padStart(2, '0')} ${period}`;
@@ -591,15 +636,104 @@ export default function SettingsPage() {
               enabled={recapEnabled}
               onChange={(val) => setRecapEnabled(val)}
             />
+            <Toggle
+              label="24-hour (military) time"
+              enabled={timeFormat === '24h'}
+              onChange={(val) => setTimeFormat(val ? '24h' : '12h')}
+            />
             {recapEnabled && (
               <div>
                 <label className="block text-xs font-medium text-text-muted mb-1.5">Recap Time</label>
-                <input
-                  type="time"
-                  value={recapTime}
-                  onChange={(e) => setRecapTime(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
-                />
+                <div ref={timePickerRef} className="relative">
+                  <button
+                    type="button"
+                    ref={triggerButtonRef}
+                    onClick={() => {
+                      if (!timePickerOpen && triggerButtonRef.current) {
+                        const rect = triggerButtonRef.current.getBoundingClientRect();
+                        setPickerStyle({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+                      }
+                      setTimePickerOpen(prev => !prev);
+                    }}
+                    className={`w-full px-3.5 py-2.5 rounded-xl bg-bg-card border text-sm text-text-primary text-left flex items-center justify-between transition-all duration-200 ${timePickerOpen ? 'border-accent/50 ring-1 ring-accent/25' : 'border-border/40 hover:border-border/70'}`}
+                  >
+                    <span>{formatRecapTime(recapTime)}</span>
+                    <svg className={`w-4 h-4 shrink-0 transition-colors ${timePickerOpen ? 'text-accent' : 'text-text-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  {timePickerOpen && createPortal(
+                    <div ref={pickerDropdownRef} style={{ position: 'fixed', ...pickerStyle, zIndex: 9999 }} className="bg-bg-card border border-border/40 rounded-2xl shadow-2xl shadow-black/15">
+                      <div className={`grid border-b border-border/20 ${timeFormat === '12h' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                        {['Hour', 'Min', ...(timeFormat === '12h' ? ['—'] : [])].map(label => (
+                          <div key={label} className="py-2 text-center text-[10px] font-semibold uppercase tracking-widest text-text-muted">{label}</div>
+                        ))}
+                      </div>
+                      <div className={`grid ${timeFormat === '12h' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                        <div ref={hourColRef} className="h-96 overflow-y-auto pt-1.5 pb-6 border-r border-border/20 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                          {(timeFormat === '24h'
+                            ? Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
+                            : [12, ...Array.from({ length: 11 }, (_, i) => i + 1)].map(String)
+                          ).map(val => {
+                            const h = parseInt(recapTime.split(':')[0]);
+                            const cur = timeFormat === '24h' ? h.toString().padStart(2, '0') : (h === 0 ? '12' : h > 12 ? (h - 12).toString() : h.toString());
+                            const selected = val === cur;
+                            return (
+                              <button key={val} data-selected={selected}
+                                onClick={() => {
+                                  const mStr = recapTime.split(':')[1];
+                                  if (timeFormat === '24h') { setRecapTime(`${val}:${mStr}`); }
+                                  else {
+                                    const h12 = parseInt(val);
+                                    const isPM = parseInt(recapTime.split(':')[0]) >= 12;
+                                    const h24 = isPM ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+                                    setRecapTime(`${h24.toString().padStart(2, '0')}:${mStr}`);
+                                  }
+                                }}
+                                className="w-full px-2 py-0.5 focus:outline-none"
+                              >
+                                <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{val}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div ref={minuteColRef} className={`h-96 overflow-y-auto pt-1.5 pb-6 [&::-webkit-scrollbar]:hidden ${timeFormat === '12h' ? 'border-r border-border/20' : ''}`} style={{ scrollbarWidth: 'none' }}>
+                          {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(val => {
+                            const selected = val === recapTime.split(':')[1];
+                            return (
+                              <button key={val} data-selected={selected}
+                                onClick={() => setRecapTime(`${recapTime.split(':')[0]}:${val}`)}
+                                className="w-full px-2 py-0.5 focus:outline-none"
+                              >
+                                <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{val}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {timeFormat === '12h' && (
+                          <div ref={ampmColRef} className="h-96 overflow-y-auto pt-1.5 pb-6 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                            {['AM', 'PM'].map(period => {
+                              const selected = (period === 'PM') === (parseInt(recapTime.split(':')[0]) >= 12);
+                              return (
+                                <button key={period} data-selected={selected}
+                                  onClick={() => {
+                                    const h = parseInt(recapTime.split(':')[0]);
+                                    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                                    const newH24 = period === 'PM' ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+                                    setRecapTime(`${newH24.toString().padStart(2, '0')}:${recapTime.split(':')[1]}`);
+                                  }}
+                                  className="w-full px-2 py-0.5 focus:outline-none"
+                                >
+                                  <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{period}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  , document.body)}
+                </div>
                 <p className="text-[11px] text-text-muted mt-1.5">
                   Currently set to {formatRecapTime(recapTime)} in your business timezone.
                 </p>
