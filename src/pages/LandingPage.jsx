@@ -453,24 +453,42 @@ export default function LandingPage() {
           <h2 className="text-2xl font-extrabold text-text-primary mb-6 tracking-tight">Resources</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="rounded-2xl border border-border bg-bg-card p-6">
-              <div className="text-xs font-semibold text-accent uppercase tracking-widest mb-4">Free Tools</div>
-              <ul className="space-y-3">
-                <li><Link to="/calculator" className="text-sm text-text-secondary hover:text-accent transition-colors">Quote Follow-Up Revenue Calculator</Link></li>
-                <li><Link to="/response-time-calculator" className="text-sm text-text-secondary hover:text-accent transition-colors">Response Time Calculator</Link></li>
-                <li><Link to="/follow-up-checklist" className="text-sm text-text-secondary hover:text-accent transition-colors">Quote Follow-Up Checklist</Link></li>
-                <li><Link to="/follow-up-text-templates" className="text-sm text-text-secondary hover:text-accent transition-colors">Follow-Up Text Message Templates</Link></li>
+              <div className="text-xs font-bold text-accent uppercase tracking-widest pb-4 mb-2 border-b border-border">Free Tools</div>
+              <ul>
+                {[
+                  { to: '/calculator', label: 'Quote Follow-Up Revenue Calculator' },
+                  { to: '/response-time-calculator', label: 'Response Time Calculator' },
+                  { to: '/follow-up-checklist', label: 'Quote Follow-Up Checklist' },
+                  { to: '/follow-up-text-templates', label: 'Follow-Up Text Message Templates' },
+                ].map(({ to, label }) => (
+                  <li key={to}>
+                    <Link to={to} className="group flex items-center justify-between py-3 border-b border-border/40 last:border-0 text-sm text-text-secondary hover:text-accent transition-colors duration-150">
+                      {label}
+                      <span className="text-text-muted group-hover:text-accent transition-colors duration-150 ml-3 shrink-0">→</span>
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
             <div className="rounded-2xl border border-border bg-bg-card p-6">
-              <div className="text-xs font-semibold text-accent uppercase tracking-widest mb-4">Articles</div>
-              <ul className="space-y-3">
-                <li><Link to="/blog/how-to-follow-up-on-a-quote" className="text-sm text-text-secondary hover:text-accent transition-colors">How to Follow Up on a Quote</Link></li>
-                <li><Link to="/blog/how-many-times-to-follow-up-on-estimate" className="text-sm text-text-secondary hover:text-accent transition-colors">How Many Times to Follow Up on an Estimate</Link></li>
-                <li><Link to="/blog/close-rate-service-businesses" className="text-sm text-text-secondary hover:text-accent transition-colors">How to Improve Your Close Rate</Link></li>
-                <li><Link to="/blog/customer-ghosted-estimate" className="text-sm text-text-secondary hover:text-accent transition-colors">What to Do When a Customer Ghosts Your Estimate</Link></li>
-                <li><Link to="/blog/how-to-write-estimate" className="text-sm text-text-secondary hover:text-accent transition-colors">How to Write an Estimate That Wins the Job</Link></li>
-                <li><Link to="/blog/why-service-businesses-lose-customers" className="text-sm text-text-secondary hover:text-accent transition-colors">Why Service Businesses Lose Customers</Link></li>
-                <li><Link to="/blog/how-to-get-more-repeat-customers" className="text-sm text-text-secondary hover:text-accent transition-colors">How to Get More Repeat Customers</Link></li>
+              <div className="text-xs font-bold text-accent uppercase tracking-widest pb-4 mb-2 border-b border-border">Articles</div>
+              <ul>
+                {[
+                  { to: '/blog/how-to-follow-up-on-a-quote', label: 'How to Follow Up on a Quote' },
+                  { to: '/blog/how-many-times-to-follow-up-on-estimate', label: 'How Many Times to Follow Up on an Estimate' },
+                  { to: '/blog/close-rate-service-businesses', label: 'How to Improve Your Close Rate' },
+                  { to: '/blog/customer-ghosted-estimate', label: 'What to Do When a Customer Ghosts Your Estimate' },
+                  { to: '/blog/how-to-write-estimate', label: 'How to Write an Estimate That Wins the Job' },
+                  { to: '/blog/why-service-businesses-lose-customers', label: 'Why Service Businesses Lose Customers' },
+                  { to: '/blog/how-to-get-more-repeat-customers', label: 'How to Get More Repeat Customers' },
+                ].map(({ to, label }) => (
+                  <li key={to}>
+                    <Link to={to} className="group flex items-center justify-between py-3 border-b border-border/40 last:border-0 text-sm text-text-secondary hover:text-accent transition-colors duration-150">
+                      {label}
+                      <span className="text-text-muted group-hover:text-accent transition-colors duration-150 ml-3 shrink-0">→</span>
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
