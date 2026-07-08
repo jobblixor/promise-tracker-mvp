@@ -94,6 +94,12 @@ export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, can
                 {relativeTime}
               </span>
             )}
+            {promise.source && promise.source !== 'web' && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent/10 text-accent text-[10px] font-medium">
+                {promise.source === 'sms' && 'SMS'}
+                {promise.source === 'eod_recap' && 'Recap'}
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />

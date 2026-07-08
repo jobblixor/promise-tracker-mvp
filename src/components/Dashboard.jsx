@@ -220,6 +220,7 @@ export default function Dashboard() {
       createdAt: serverTimestamp(),
       businessId: user.businessId,
       completedAt: null,
+      source: 'web',
     });
     toast.success('Promise logged successfully');
   };
