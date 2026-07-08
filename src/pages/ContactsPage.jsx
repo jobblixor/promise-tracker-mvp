@@ -254,11 +254,6 @@ export default function ContactsPage() {
               {/* Inline add form */}
               {showAddForm && (
                 <div className="flex items-center gap-3.5 px-4 py-3">
-                  <div className="w-10 h-10 rounded-full bg-accent/15 text-accent flex items-center justify-center shrink-0 ring-1 ring-accent/20">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                  </div>
                   <div className="flex items-center gap-2 flex-1">
                     <input
                       type="text"
