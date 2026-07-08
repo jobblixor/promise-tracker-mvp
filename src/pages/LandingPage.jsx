@@ -95,8 +95,11 @@ export default function LandingPage() {
             </span>{' '}
             Again.
           </h1>
-          <p className="hero-animate hero-delay-3 text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="hero-animate hero-delay-3 text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto mb-4 leading-relaxed">
             Text your promises in plain English. Promise Tracker parses them, sets reminders, and escalates before anything falls through the cracks. Built for contractors, home service pros, and anyone who makes promises to customers.
+          </p>
+          <p className="hero-animate hero-delay-3 text-sm font-semibold text-accent max-w-2xl mx-auto mb-10">
+            No app to download. No login required. Works from your phone's texting app.
           </p>
           <div className="hero-animate hero-delay-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -277,6 +280,23 @@ export default function LandingPage() {
               </p>
             </div>
 
+            {/* Card 4 */}
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8 transition-all duration-300 hover:-translate-y-1">
+              <div className="w-10 h-10 rounded-full bg-border flex items-center justify-center mb-5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                  <line x1="9" y1="10" x2="15" y2="10"/>
+                  <line x1="9" y1="14" x2="15" y2="14"/>
+                  <line x1="9" y1="18" x2="12" y2="18"/>
+                </svg>
+              </div>
+              <h3 className="text-text-primary font-bold text-base mb-3">End-of-Day Recap</h3>
+              <p className="text-text-secondary text-sm leading-relaxed">
+                Forgot to log a promise? PT checks in at the end of every workday — "Any promises you made today?" Just text them back.
+              </p>
+            </div>
+
           </div>
         </div>
       </section>
@@ -320,6 +340,57 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── COST OF DOING NOTHING ───────────────────────────────── */}
+      <section className="border-t border-border bg-bg-card-hover">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
+            The cost of doing nothing
+          </h2>
+          <p className="text-text-secondary text-center mb-12 max-w-xl mx-auto">
+            Real quotes from 1-star reviews of businesses that forgot to call customers back:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8">
+              <div className="flex items-center gap-1 mb-4">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </div>
+              <p className="text-text-secondary text-sm leading-relaxed italic mb-4">
+                "I've called 5 times. Every time they tell me the manager is gonna call me back. Still nothing."
+              </p>
+              <span className="text-red-400 text-xs font-semibold">$20,000+ customer — lost</span>
+            </div>
+
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8">
+              <div className="flex items-center gap-1 mb-4">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </div>
+              <p className="text-text-secondary text-sm leading-relaxed italic mb-4">
+                "They said they'd call back Monday. It's been 2.5 months."
+              </p>
+              <span className="text-red-400 text-xs font-semibold">Plumbing company</span>
+            </div>
+
+            <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8">
+              <div className="flex items-center gap-1 mb-4">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </div>
+              <p className="text-text-secondary text-sm leading-relaxed italic mb-4">
+                "Called 7 times over 2 months trying to give them my business. Nobody tracked my request."
+              </p>
+              <span className="text-red-400 text-xs font-semibold">HVAC company</span>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* ── PRICING ─────────────────────────────────────────────── */}
       <section className="border-t border-border bg-bg-card-hover">
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
@@ -354,6 +425,8 @@ export default function LandingPage() {
                   '2-hour early reminders',
                   'Escalation alerts',
                   'Email + SMS reminders',
+                  'End-of-day recap',
+                  'Self-building contact directory',
                   'Team dashboard',
                 ].map((item) => (
                   <li key={item} className="flex items-center gap-2.5 text-text-secondary">
@@ -377,29 +450,74 @@ export default function LandingPage() {
       {/* ── RESOURCES ───────────────────────────────────────────── */}
       <section className="border-t border-border bg-bg-card-hover">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
-          <h2 className="text-2xl font-extrabold text-text-primary mb-6 tracking-tight">Resources</h2>
-          <ul className="space-y-3">
-            <li>
-              <Link to="/calculator" className="text-accent hover:underline text-sm font-medium">
-                Quote Follow-Up Revenue Calculator
-              </Link>
-            </li>
-            <li>
-              <Link to="/blog/how-to-follow-up-on-a-quote" className="text-accent hover:underline text-sm font-medium">
-                How to Follow Up on a Quote
-              </Link>
-            </li>
-            <li>
-              <Link to="/blog/how-many-times-to-follow-up-on-estimate" className="text-accent hover:underline text-sm font-medium">
-                How Many Times to Follow Up on an Estimate
-              </Link>
-            </li>
-            <li>
-              <Link to="/follow-up-text-templates" className="text-accent hover:underline text-sm font-medium">
-                Follow-Up Text Message Templates
-              </Link>
-            </li>
-          </ul>
+          <h2 className="text-2xl font-extrabold text-text-primary mb-8 tracking-tight">Resources</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-8">
+            <div>
+              <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3">Free Tools</h3>
+              <ul className="space-y-3">
+                <li>
+                  <Link to="/calculator" className="text-accent hover:underline text-sm font-medium">
+                    Quote Follow-Up Revenue Calculator
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/response-time-calculator" className="text-accent hover:underline text-sm font-medium">
+                    Response Time Calculator
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/follow-up-checklist" className="text-accent hover:underline text-sm font-medium">
+                    Quote Follow-Up Checklist
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/follow-up-text-templates" className="text-accent hover:underline text-sm font-medium">
+                    Follow-Up Text Message Templates
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3">Articles</h3>
+              <ul className="space-y-3">
+                <li>
+                  <Link to="/blog/how-to-follow-up-on-a-quote" className="text-accent hover:underline text-sm font-medium">
+                    How to Follow Up on a Quote
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog/how-many-times-to-follow-up-on-estimate" className="text-accent hover:underline text-sm font-medium">
+                    How Many Times to Follow Up on an Estimate
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog/close-rate-service-businesses" className="text-accent hover:underline text-sm font-medium">
+                    How to Improve Your Close Rate
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog/customer-ghosted-estimate" className="text-accent hover:underline text-sm font-medium">
+                    What to Do When a Customer Ghosts Your Estimate
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog/how-to-write-estimate" className="text-accent hover:underline text-sm font-medium">
+                    How to Write an Estimate That Wins the Job
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog/why-service-businesses-lose-customers" className="text-accent hover:underline text-sm font-medium">
+                    Why Service Businesses Lose Customers
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog/how-to-get-more-repeat-customers" className="text-accent hover:underline text-sm font-medium">
+                    How to Get More Repeat Customers
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 

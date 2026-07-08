@@ -180,7 +180,7 @@ export default function BlogFollowUpTimes() {
             The solution isn't more willpower — it's a system that does the remembering for you. Whether that's a whiteboard in your office, a recurring phone alarm, or a dedicated tool, the point is that follow-up happens because it's scheduled, not because someone happens to remember.
           </p>
           <p>
-            <Link to="/signup" className="text-green-600 font-medium hover:text-green-700">Promise Tracker</Link> was built specifically for this. Log a customer promise or open quote, set the reminder schedule, and the system sends escalating SMS and email reminders to you and your team until the quote gets a definitive yes or no. No sticky notes, no mental load, no dropped quotes.
+            <Link to="/signup" className="text-green-600 font-medium hover:text-green-700">Promise Tracker</Link> was built specifically for this. Text a promise to your Promise Tracker number in plain English, and the system sends escalating SMS and email reminders to you and your team until the quote gets a definitive yes or no. No sticky notes, no mental load, no dropped quotes.
           </p>
           <p>
             Want to see how much those dropped quotes are actually costing you? <Link to="/calculator" className="text-green-600 font-medium hover:text-green-700">Try our free Quote Follow-Up Revenue Calculator</Link> — it takes 30 seconds and doesn't require a signup.

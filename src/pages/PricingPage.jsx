@@ -20,6 +20,8 @@ const features = [
   '2-hour early reminders',
   'Escalation alerts',
   'Email + SMS reminders',
+  'End-of-day recap',
+  'Self-building contact directory',
   'Team dashboard',
   'Cancel anytime',
 ];
@@ -133,7 +135,7 @@ export default function PricingPage() {
                 Redirecting to checkout...
               </>
             ) : (
-              'Start Subscription'
+              'Upgrade to Pro'
             )}
           </button>
         </div>
