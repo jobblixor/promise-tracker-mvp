@@ -462,9 +462,8 @@ export default function LandingPage() {
                   { to: '/follow-up-text-templates', label: 'Follow-Up Text Message Templates' },
                 ].map(({ to, label }) => (
                   <li key={to}>
-                    <Link to={to} className="group flex items-center justify-between py-3 border-b border-border/40 last:border-0 text-sm text-text-secondary hover:text-accent transition-colors duration-150">
+                    <Link to={to} className="flex items-center py-3 border-b border-border/40 last:border-0 text-sm text-text-secondary hover:text-accent transition-colors duration-150">
                       {label}
-                      <span className="text-text-muted group-hover:text-accent transition-colors duration-150 ml-3 shrink-0">→</span>
                     </Link>
                   </li>
                 ))}
@@ -483,9 +482,8 @@ export default function LandingPage() {
                   { to: '/blog/how-to-get-more-repeat-customers', label: 'How to Get More Repeat Customers' },
                 ].map(({ to, label }) => (
                   <li key={to}>
-                    <Link to={to} className="group flex items-center justify-between py-3 border-b border-border/40 last:border-0 text-sm text-text-secondary hover:text-accent transition-colors duration-150">
+                    <Link to={to} className="flex items-center py-3 border-b border-border/40 last:border-0 text-sm text-text-secondary hover:text-accent transition-colors duration-150">
                       {label}
-                      <span className="text-text-muted group-hover:text-accent transition-colors duration-150 ml-3 shrink-0">→</span>
                     </Link>
                   </li>
                 ))}
