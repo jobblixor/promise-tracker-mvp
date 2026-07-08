@@ -163,6 +163,29 @@ async function getCreatorEmail(createdBy) {
 }
 
 /**
+ * Check whether a business's subscription is currently active.
+ * Returns true for pro subscribers and trial users whose trial hasn't expired.
+ */
+async function isSubscriptionActive(businessId) {
+  if (!businessId) return false;
+  const bizDoc = await db.collection('businesses').doc(businessId).get();
+  if (!bizDoc.exists) return false;
+  const data = bizDoc.data();
+
+  // Pro subscribers are always active
+  if (data.plan === 'pro') return true;
+
+  // Trial users are active if trialEnd hasn't passed
+  if (data.plan === 'trial' && data.trialEnd) {
+    const trialEnd = data.trialEnd.toDate ? data.trialEnd.toDate() : new Date(data.trialEnd);
+    return trialEnd > new Date();
+  }
+
+  // Everything else (trial_expired, expired, missing plan) is inactive
+  return false;
+}
+
+/**
  * Look up the business owner's email address for escalation.
  */
 async function getBusinessOwnerEmail(businessId) {
@@ -411,6 +434,11 @@ exports.checkPromises = onSchedule("every 5 minutes", async (event) => {
       try {
         const promise = docSnap.data();
         const promiseId = docSnap.id;
+
+        // Skip reminders for inactive/expired accounts silently
+        const subActive = await isSubscriptionActive(promise.businessId);
+        if (!subActive) continue;
+
         const dueDate = promise.dueDate;
 
         if (!dueDate || !dueDate.toDate) {
@@ -2874,6 +2902,15 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
     const afterKeyword = messageText.trim().substring(keyword.length).trim();
     console.log(`[SMS INBOUND] Routing fullTextUpper="${fullTextUpper}" keyword="${keyword}" afterKeyword="${afterKeyword}"`);
 
+    // Allow STOP, START, HELP regardless of subscription status (10DLC compliance)
+    if (!['STOP', 'START', 'HELP'].includes(fullTextUpper)) {
+      const subActive = await isSubscriptionActive(user.businessId);
+      if (!subActive) {
+        await sendSMS(senderPhone, 'Your Promise Tracker account is inactive. Visit promisetracker.app to subscribe and keep tracking promises.');
+        return res.status(200).send('OK');
+      }
+    }
+
     if (fullTextUpper === 'LIST' || fullTextUpper === 'STATUS') {
       await handleListCommand(userId, senderPhone, user);
     } else if (fullTextUpper === 'MORE') {
@@ -3043,6 +3080,12 @@ exports.morningBriefing = onSchedule("every 5 minutes", async (event) => {
       const businessId = bizDoc.id;
       const bizData = bizDoc.data();
       const bizTimezone = bizData.timezone || "America/New_York";
+
+      // Skip briefing for inactive/expired accounts
+      const isActive = bizData.plan === 'pro' ||
+        (bizData.plan === 'trial' && bizData.trialEnd &&
+         (bizData.trialEnd.toDate ? bizData.trialEnd.toDate() : new Date(bizData.trialEnd)) > new Date());
+      if (!isActive) continue;
 
       // Check if it's 7:00–7:04 AM in this business's timezone
       const localTime = new Date().toLocaleString('en-US', { timeZone: bizTimezone });
@@ -3251,6 +3294,12 @@ exports.endOfDayRecap = onSchedule({
       // Check if end-of-day recap is enabled (must be explicitly set to true)
       const endOfDayEnabled = bizData.endOfDayEnabled === true;
       if (!endOfDayEnabled) continue;
+
+      // Skip recap for inactive/expired accounts
+      const isActive = bizData.plan === 'pro' ||
+        (bizData.plan === 'trial' && bizData.trialEnd &&
+         (bizData.trialEnd.toDate ? bizData.trialEnd.toDate() : new Date(bizData.trialEnd)) > new Date());
+      if (!isActive) continue;
 
       // Get timezone and recap time
       const timezone = bizData.timezone || 'America/New_York';
