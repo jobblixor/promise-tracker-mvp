@@ -450,73 +450,52 @@ export default function LandingPage() {
       {/* ── RESOURCES ───────────────────────────────────────────── */}
       <section className="border-t border-border bg-bg-card-hover">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
-          <h2 className="text-2xl font-extrabold text-text-primary mb-8 tracking-tight">Resources</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-8">
-            <div>
-              <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3">Free Tools</h3>
-              <ul className="space-y-3">
-                <li>
-                  <Link to="/calculator" className="text-accent hover:underline text-sm font-medium">
-                    Quote Follow-Up Revenue Calculator
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/response-time-calculator" className="text-accent hover:underline text-sm font-medium">
-                    Response Time Calculator
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/follow-up-checklist" className="text-accent hover:underline text-sm font-medium">
-                    Quote Follow-Up Checklist
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/follow-up-text-templates" className="text-accent hover:underline text-sm font-medium">
-                    Follow-Up Text Message Templates
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3">Articles</h3>
-              <ul className="space-y-3">
-                <li>
-                  <Link to="/blog/how-to-follow-up-on-a-quote" className="text-accent hover:underline text-sm font-medium">
-                    How to Follow Up on a Quote
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/blog/how-many-times-to-follow-up-on-estimate" className="text-accent hover:underline text-sm font-medium">
-                    How Many Times to Follow Up on an Estimate
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/blog/close-rate-service-businesses" className="text-accent hover:underline text-sm font-medium">
-                    How to Improve Your Close Rate
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/blog/customer-ghosted-estimate" className="text-accent hover:underline text-sm font-medium">
-                    What to Do When a Customer Ghosts Your Estimate
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/blog/how-to-write-estimate" className="text-accent hover:underline text-sm font-medium">
-                    How to Write an Estimate That Wins the Job
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/blog/why-service-businesses-lose-customers" className="text-accent hover:underline text-sm font-medium">
-                    Why Service Businesses Lose Customers
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/blog/how-to-get-more-repeat-customers" className="text-accent hover:underline text-sm font-medium">
-                    How to Get More Repeat Customers
-                  </Link>
-                </li>
-              </ul>
-            </div>
+          <h2 className="text-2xl font-extrabold text-text-primary mb-6 tracking-tight">Resources</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-2">
+            <Link to="/calculator" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Tool</span>
+              Quote Follow-Up Revenue Calculator
+            </Link>
+            <Link to="/response-time-calculator" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Tool</span>
+              Response Time Calculator
+            </Link>
+            <Link to="/follow-up-checklist" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Tool</span>
+              Quote Follow-Up Checklist
+            </Link>
+            <Link to="/follow-up-text-templates" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Tool</span>
+              Follow-Up Text Message Templates
+            </Link>
+            <Link to="/blog/how-to-follow-up-on-a-quote" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Article</span>
+              How to Follow Up on a Quote
+            </Link>
+            <Link to="/blog/how-many-times-to-follow-up-on-estimate" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Article</span>
+              How Many Times to Follow Up on an Estimate
+            </Link>
+            <Link to="/blog/close-rate-service-businesses" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Article</span>
+              How to Improve Your Close Rate
+            </Link>
+            <Link to="/blog/customer-ghosted-estimate" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Article</span>
+              What to Do When a Customer Ghosts Your Estimate
+            </Link>
+            <Link to="/blog/how-to-write-estimate" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Article</span>
+              How to Write an Estimate That Wins the Job
+            </Link>
+            <Link to="/blog/why-service-businesses-lose-customers" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Article</span>
+              Why Service Businesses Lose Customers
+            </Link>
+            <Link to="/blog/how-to-get-more-repeat-customers" className="text-accent hover:underline text-sm font-medium py-1.5 flex items-center gap-2">
+              <span className="text-text-muted text-xs font-medium shrink-0">Article</span>
+              How to Get More Repeat Customers
+            </Link>
           </div>
         </div>
       </section>
