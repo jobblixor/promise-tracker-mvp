@@ -278,6 +278,13 @@ export default function ContactsPage() {
                     >
                       Save
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddForm(false); setAddName(''); }}
+                      className="px-3 py-2 text-xs font-medium text-text-muted hover:text-text-secondary transition-colors duration-200 shrink-0"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               )}
