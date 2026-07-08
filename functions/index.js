@@ -92,6 +92,10 @@ async function getBusinessOwnerPhone(businessId) {
       console.warn(`Owner user ${ownerId} not found`);
       return null;
     }
+    if (userDoc.data().smsEnabled === false) {
+      console.warn(`Owner ${ownerId} has smsEnabled=false — skipping SMS`);
+      return null;
+    }
     const phone = userDoc.data().phone;
     if (!phone) {
       console.warn(`Owner ${ownerId} has no phone number`);
@@ -115,6 +119,10 @@ async function getCreatorPhone(createdBy) {
     console.log(`[getCreatorPhone] Query returned ${userSnap.size} doc(s) for email "${createdBy}"`);
     if (userSnap.empty) {
       console.warn(`Creator user with email ${createdBy} not found`);
+      return null;
+    }
+    if (userSnap.docs[0].data().smsEnabled === false) {
+      console.warn(`Creator ${createdBy} has smsEnabled=false — skipping SMS`);
       return null;
     }
     const phone = userSnap.docs[0].data().phone;
@@ -2868,6 +2876,49 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
 
     if (fullTextUpper === 'LIST' || fullTextUpper === 'STATUS') {
       await handleListCommand(userId, senderPhone, user);
+    } else if (fullTextUpper === 'MORE') {
+      // Show remaining promises beyond the first 5
+      const businessId = user.businessId;
+      if (!businessId) {
+        await sendSMS(senderPhone, 'Your account is not linked to a business.');
+      } else {
+        const snapshot = await db.collection('promises')
+          .where('businessId', '==', businessId)
+          .where('status', 'in', ['open', 'overdue'])
+          .orderBy('dueDate', 'asc')
+          .get();
+
+        if (snapshot.size <= 5) {
+          await sendSMS(senderPhone, "You're seeing all your promises. Reply LIST to refresh.");
+        } else {
+          const remainingDocs = snapshot.docs.slice(5);
+          const nowMs = Date.now();
+          const lines = remainingDocs.map((doc, i) => {
+            const p = doc.data();
+            const customerName = p.customerName || '?';
+            const description = p.description || '(no description)';
+            let dueStr;
+            if (p.status === 'overdue' && p.dueDate && p.dueDate.toDate) {
+              const daysOverdue = Math.max(1, Math.floor((nowMs - p.dueDate.toDate().getTime()) / (24 * 60 * 60 * 1000)));
+              dueStr = daysOverdue + ' day' + (daysOverdue !== 1 ? 's' : '') + ' overdue';
+            } else {
+              dueStr = p.dueDate && p.dueDate.toDate ? p.dueDate.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '?';
+            }
+            return (i + 6) + ') ' + customerName + ' - ' + description + ' - ' + dueStr;
+          });
+
+          // Update smsListMappings to include ALL promise IDs so DONE 6, DONE 7 etc. work
+          const allIds = snapshot.docs.map(d => d.id);
+          await db.collection('smsListMappings').doc(userId).set({
+            promiseIds: allIds,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          let msg = lines.join('\n');
+          msg += '\nReply DONE # or DELETE #';
+          await sendSMS(senderPhone, msg);
+        }
+      }
     } else if (fullTextUpper === 'HELP') {
       await handleHelpCommand(senderPhone);
     } else if (fullTextUpper === 'STOP') {
@@ -2887,9 +2938,9 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       } else {
         await sendSMS(senderPhone, 'Nothing to cancel.');
       }
-    } else if (keyword === 'DONE' && /^\d+$/.test(afterKeyword)) {
+    } else if (keyword === 'DONE') {
       await handleDoneCommand(userId, senderPhone, user, messageText);
-    } else if (keyword === 'DELETE' && /^\d+$/.test(afterKeyword)) {
+    } else if (keyword === 'DELETE') {
       await handleDeleteCommand(userId, senderPhone, user, messageText);
     } else if (fullTextUpper === 'SET TIME OFF' || fullTextUpper === 'RECAP OFF' || fullTextUpper === 'EOD OFF') {
       await admin.firestore().collection('businesses').doc(user.businessId).update({

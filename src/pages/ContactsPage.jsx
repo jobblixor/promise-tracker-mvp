@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -13,6 +13,8 @@ export default function ContactsPage() {
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addName, setAddName] = useState('');
 
   useEffect(() => {
     document.title = 'Contacts — Promise Tracker';
@@ -50,6 +52,38 @@ export default function ContactsPage() {
         return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       })()
     : '—';
+
+  const handleAddContact = async () => {
+    const trimmed = addName.trim();
+    if (!trimmed) {
+      toast.error('Name cannot be empty');
+      return;
+    }
+    const nameLower = trimmed.toLowerCase();
+    if (contacts.some(c => c.nameLower === nameLower)) {
+      toast.error('Contact already exists');
+      return;
+    }
+    try {
+      const docRef = await addDoc(collection(db, 'contacts'), {
+        businessId: user.businessId,
+        userId: user.uid,
+        name: trimmed,
+        nameLower,
+        phone: null,
+        firstSeen: serverTimestamp(),
+        lastContact: serverTimestamp(),
+        promiseCount: 0,
+        source: 'manual',
+      });
+      setContacts(prev => [{ id: docRef.id, businessId: user.businessId, userId: user.uid, name: trimmed, nameLower, phone: null, promiseCount: 0, source: 'manual' }, ...prev]);
+      setAddName('');
+      setShowAddForm(false);
+      toast.success('Contact added');
+    } catch (err) {
+      toast.error('Failed to add contact');
+    }
+  };
 
   const handleSaveEdit = async (contactId) => {
     if (!editName.trim()) {
@@ -154,12 +188,24 @@ export default function ContactsPage() {
         {/* Card */}
         <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
           {/* Section header */}
-          <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
-            All Contacts
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
+              <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+              </svg>
+              All Contacts
+            </h2>
+            <button
+              onClick={() => { setShowAddForm(true); setAddName(''); }}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 rounded-lg transition-all duration-200"
+              title="Add contact"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add
+            </button>
+          </div>
 
           {/* Search */}
           {contacts.length > 0 && (
@@ -202,8 +248,38 @@ export default function ContactsPage() {
           )}
 
           {/* Contact list */}
-          {filtered.length > 0 && (
+          {(showAddForm || filtered.length > 0) && (
             <div className="divide-y divide-border/30 stagger-children">
+              {/* Inline add form */}
+              {showAddForm && (
+                <div className="flex items-center gap-3.5 px-4 py-3">
+                  <div className="w-10 h-10 rounded-full bg-accent/15 text-accent flex items-center justify-center shrink-0 ring-1 ring-accent/20">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="text"
+                      value={addName}
+                      onChange={(e) => setAddName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddContact();
+                        if (e.key === 'Escape') { setShowAddForm(false); setAddName(''); }
+                      }}
+                      autoFocus
+                      placeholder="Contact name"
+                      className="flex-1 pl-3 pr-3 py-2 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+                    />
+                    <button
+                      onClick={handleAddContact}
+                      className="px-3 py-2 text-xs font-medium text-white bg-accent hover:bg-accent/90 rounded-lg transition-all duration-200 shrink-0"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              )}
               {filtered.map((contact) => (
                 <div key={contact.id} className="relative flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 hover:bg-bg-card-hover group overflow-hidden before:content-[''] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:h-0 before:bg-accent before:rounded-full group-hover:before:h-6 before:transition-all before:duration-200">
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -282,7 +358,7 @@ export default function ContactsPage() {
           )}
 
           {/* No search results */}
-          {contacts.length > 0 && filtered.length === 0 && (
+          {contacts.length > 0 && filtered.length === 0 && !showAddForm && (
             <p className="text-sm text-text-muted text-center py-8">No contacts matching "{search}"</p>
           )}
         </div>
