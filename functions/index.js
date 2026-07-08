@@ -175,9 +175,9 @@ async function isSubscriptionActive(businessId) {
   // Pro subscribers are always active
   if (data.plan === 'pro') return true;
 
-  // Trial users are active if trialEnd hasn't passed
-  if (data.plan === 'trial' && data.trialEnd) {
-    const trialEnd = data.trialEnd.toDate ? data.trialEnd.toDate() : new Date(data.trialEnd);
+  // Trial users are active if trialEndDate hasn't passed
+  if (data.plan === 'trial' && data.trialEndDate) {
+    const trialEnd = data.trialEndDate.toDate ? data.trialEndDate.toDate() : new Date(data.trialEndDate);
     return trialEnd > new Date();
   }
 
@@ -3083,8 +3083,8 @@ exports.morningBriefing = onSchedule("every 5 minutes", async (event) => {
 
       // Skip briefing for inactive/expired accounts
       const isActive = bizData.plan === 'pro' ||
-        (bizData.plan === 'trial' && bizData.trialEnd &&
-         (bizData.trialEnd.toDate ? bizData.trialEnd.toDate() : new Date(bizData.trialEnd)) > new Date());
+        (bizData.plan === 'trial' && bizData.trialEndDate &&
+         (bizData.trialEndDate.toDate ? bizData.trialEndDate.toDate() : new Date(bizData.trialEndDate)) > new Date());
       if (!isActive) continue;
 
       // Check if it's 7:00–7:04 AM in this business's timezone
@@ -3297,8 +3297,8 @@ exports.endOfDayRecap = onSchedule({
 
       // Skip recap for inactive/expired accounts
       const isActive = bizData.plan === 'pro' ||
-        (bizData.plan === 'trial' && bizData.trialEnd &&
-         (bizData.trialEnd.toDate ? bizData.trialEnd.toDate() : new Date(bizData.trialEnd)) > new Date());
+        (bizData.plan === 'trial' && bizData.trialEndDate &&
+         (bizData.trialEndDate.toDate ? bizData.trialEndDate.toDate() : new Date(bizData.trialEndDate)) > new Date());
       if (!isActive) continue;
 
       // Get timezone and recap time
