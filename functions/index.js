@@ -3197,8 +3197,8 @@ exports.endOfDayRecap = onSchedule({
       const bizData = bizDoc.data();
       const businessId = bizDoc.id;
 
-      // Check if end-of-day recap is enabled (default true if field doesn't exist)
-      const endOfDayEnabled = bizData.endOfDayEnabled !== false;
+      // Check if end-of-day recap is enabled (must be explicitly set to true)
+      const endOfDayEnabled = bizData.endOfDayEnabled === true;
       if (!endOfDayEnabled) continue;
 
       // Get timezone and recap time
