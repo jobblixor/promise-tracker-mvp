@@ -360,7 +360,7 @@ export default function LandingPage() {
               <p className="text-text-secondary text-sm leading-relaxed italic mb-4">
                 "I've called 5 times. Every time they tell me the manager is gonna call me back. Still nothing."
               </p>
-              <span className="text-red-400 text-xs font-semibold">$20,000+ customer — lost</span>
+              <span className="text-red-400 text-xs font-semibold">$20,000+ customer, lost</span>
             </div>
 
             <div className="bg-bg-card border border-border shadow-sm rounded-xl p-8">
