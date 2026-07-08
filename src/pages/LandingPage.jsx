@@ -228,7 +228,7 @@ export default function LandingPage() {
 
       {/* ── WHAT HAPPENS AFTER YOU HIT SEND ────────────────────── */}
       <section className="border-t border-border bg-bg-card-hover">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary text-center mb-4 tracking-tight">
             What Happens After You Hit Send
           </h2>
@@ -293,7 +293,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-text-primary font-bold text-base mb-3">End-of-Day Recap</h3>
               <p className="text-text-secondary text-sm leading-relaxed">
-                Forgot to log a promise? PT checks in at the end of every workday — "Any promises you made today?" Just text them back.
+                Forgot to log a promise? PT checks in at the end of every workday: "Any promises you made today?" Just text them back.
               </p>
             </div>
 
