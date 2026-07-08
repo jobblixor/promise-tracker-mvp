@@ -2796,12 +2796,10 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       }
     }
 
-    // Check for awaiting_eod_reply state (phone-keyed conversation)
+    // Check for awaiting_eod_reply state (userId-keyed conversation)
     {
-      let eodFormattedPhone = senderPhone.replace(/\D/g, '');
-      if (eodFormattedPhone.length === 10) eodFormattedPhone = '1' + eodFormattedPhone;
-      if (!eodFormattedPhone.startsWith('+')) eodFormattedPhone = '+' + eodFormattedPhone;
-      const eodConvoRef = admin.firestore().collection('smsConversations').doc(eodFormattedPhone);
+      const eodConvoId = userId + '_eod';
+      const eodConvoRef = admin.firestore().collection('smsConversations').doc(eodConvoId);
       const eodConvoDoc = await eodConvoRef.get();
       const eodConvoData = eodConvoDoc.exists ? eodConvoDoc.data() : null;
 
@@ -3309,7 +3307,8 @@ exports.endOfDayRecap = onSchedule({
       });
 
       // Set the conversation state to track the reply
-      const convoRef = admin.firestore().collection('smsConversations').doc(formattedPhone);
+      const eodConvoId = ownerSnap.docs[0].id + '_eod';
+      const convoRef = admin.firestore().collection('smsConversations').doc(eodConvoId);
       const convoSnap = await convoRef.get();
       if (!convoSnap.exists || convoSnap.data().state === 'idle') {
         await convoRef.set({
