@@ -227,7 +227,8 @@ export default function Dashboard() {
 
   const handleEditPromise = async (formData) => {
     const newDueDate = Timestamp.fromDate(new Date(formData.dueDate));
-    const oldDueDateMs = editingPromise.dueDate?.toDate?.()?.getTime();
+    // editingPromise.dueDate is an ISO string (converted in onSnapshot), not a Firestore Timestamp
+    const oldDueDateMs = editingPromise.dueDate ? new Date(editingPromise.dueDate).getTime() : null;
     const newDueDateMs = newDueDate.toDate().getTime();
     const dueDateChanged = oldDueDateMs !== newDueDateMs;
 
@@ -240,6 +241,7 @@ export default function Dashboard() {
     if (dueDateChanged) {
       updateData.reminderSent = false;
       updateData.escalated = false;
+      updateData.reminderEmailSent = false;
     }
     await updateDoc(doc(db, 'promises', editingPromise.id), updateData);
     toast.success('Promise updated');

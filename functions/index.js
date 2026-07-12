@@ -2402,6 +2402,7 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
     if (pendingParse._dueDateChanged) {
       promiseData.reminderSent = false;
       promiseData.escalated = false;
+      promiseData.reminderEmailSent = false;
     }
     await db.collection('promises').add(promiseData);
     await resetConvo();
