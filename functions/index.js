@@ -9,12 +9,13 @@ const nodemailer = require("nodemailer");
 admin.initializeApp();
 const db = admin.firestore();
 
-// Initialize Gmail SMTP transporter
-const gmailTransporter = nodemailer.createTransport({
-  service: "gmail",
+// Initialize SMTP2GO transporter
+const transporter = nodemailer.createTransport({
+  host: 'mail.smtp2go.com',
+  port: 2525,
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
+    user: process.env.SMTP2GO_USERNAME || 'promisetracker',
+    pass: process.env.SMTP2GO_PASSWORD,
   },
 });
 
@@ -218,14 +219,14 @@ async function getBusinessOwnerEmail(businessId) {
 }
 
 /**
- * Send an email via Gmail SMTP. Logs and swallows errors so one failure
+ * Send an email via SMTP2GO. Logs and swallows errors so one failure
  * doesn't stop processing the remaining promises.
  */
 async function sendEmail(to, subject, htmlBody) {
   try {
     console.log(`Sending email to ${to}: ${subject}`);
-    const info = await gmailTransporter.sendMail({
-      from: '"Promise Tracker" <support@promisetracker.app>',
+    const info = await transporter.sendMail({
+      from: '"Promise Tracker" <noreply@promisetracker.app>',
       to,
       subject,
       html: htmlBody,
@@ -1213,8 +1214,8 @@ exports.onEmailVerified = onDocumentUpdated({
     try {
       const userEmail = after.email;
       if (userEmail) {
-        await gmailTransporter.sendMail({
-          from: '"Promise Tracker" <promisetrackermvp@gmail.com>',
+        await transporter.sendMail({
+          from: '"Promise Tracker" <noreply@promisetracker.app>',
           to: userEmail,
           subject: 'Welcome to Promise Tracker — here\'s how to get started',
           html: `
