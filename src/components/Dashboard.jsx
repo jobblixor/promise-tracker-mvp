@@ -226,12 +226,22 @@ export default function Dashboard() {
   };
 
   const handleEditPromise = async (formData) => {
-    await updateDoc(doc(db, 'promises', editingPromise.id), {
+    const newDueDate = Timestamp.fromDate(new Date(formData.dueDate));
+    const oldDueDateMs = editingPromise.dueDate?.toDate?.()?.getTime();
+    const newDueDateMs = newDueDate.toDate().getTime();
+    const dueDateChanged = oldDueDateMs !== newDueDateMs;
+
+    const updateData = {
       customerName: formData.customerName,
       customerPhone: formData.customerPhone,
       description: formData.description,
-      dueDate: Timestamp.fromDate(new Date(formData.dueDate)),
-    });
+      dueDate: newDueDate,
+    };
+    if (dueDateChanged) {
+      updateData.reminderSent = false;
+      updateData.escalated = false;
+    }
+    await updateDoc(doc(db, 'promises', editingPromise.id), updateData);
     toast.success('Promise updated');
   };
 

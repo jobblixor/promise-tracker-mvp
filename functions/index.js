@@ -2399,6 +2399,10 @@ async function handleConfirmConversation(convoDoc, userId, userPhone, messageTex
     } else {
       promiseData.dueDate = null;
     }
+    if (pendingParse._dueDateChanged) {
+      promiseData.reminderSent = false;
+      promiseData.escalated = false;
+    }
     await db.collection('promises').add(promiseData);
     await resetConvo();
 
@@ -2676,6 +2680,7 @@ Return ONLY valid JSON, no explanation.`;
     if (changes.customer_name !== undefined) updatedParse.customer_name = changes.customer_name;
     if (changes.promise_text !== undefined) updatedParse.promise_text = changes.promise_text;
     if (changes.due_date !== undefined) updatedParse.due_date = changes.due_date;
+    if (changes.due_date !== undefined) updatedParse._dueDateChanged = true;
     // Ensure the timezone offset from the original parse is preserved
     // GPT might return dates without timezone or with wrong timezone
     if (changes.due_date && originalParse.due_date) {
