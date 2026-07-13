@@ -3436,3 +3436,131 @@ exports.endOfDayRecap = onSchedule({
     console.error('endOfDayRecap error:', error);
   }
 });
+
+// ─── Scheduled function: trial-ending nudge (3 days before trialEndDate) ──────
+exports.trialEndingNudge = onSchedule({
+  schedule: 'every 60 minutes',
+  timeZone: 'America/New_York',
+}, async (event) => {
+  console.log("trialEndingNudge: starting run at", new Date().toISOString());
+
+  const now = new Date();
+  const nowMs = now.getTime();
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+  let businessesSnap;
+  try {
+    businessesSnap = await db.collection("businesses").where("plan", "==", "trial").get();
+  } catch (err) {
+    console.error("trialEndingNudge: failed to query businesses:", err.message);
+    return null;
+  }
+
+  for (const doc of businessesSnap.docs) {
+    try {
+      const data = doc.data();
+
+      // Skip if nudge already sent or no trialEndDate
+      if (data.trialNudgeSent === true) continue;
+      if (!data.trialEndDate) continue;
+
+      const trialEnd = data.trialEndDate.toDate
+        ? data.trialEndDate.toDate()
+        : new Date(data.trialEndDate);
+      const msUntilEnd = trialEnd.getTime() - nowMs;
+
+      // Only nudge when within 0–3 days of expiry
+      if (msUntilEnd <= 0 || msUntilEnd > THREE_DAYS_MS) continue;
+
+      const ownerId = data.ownerId;
+      if (!ownerId) {
+        console.warn(`trialEndingNudge: business ${doc.id} has no ownerId — skipping`);
+        continue;
+      }
+
+      // Look up owner user doc for phone and email
+      const userDoc = await db.collection("users").doc(ownerId).get();
+      if (!userDoc.exists) {
+        console.warn(`trialEndingNudge: owner ${ownerId} not found for business ${doc.id} — skipping`);
+        continue;
+      }
+      const userData = userDoc.data();
+
+      // Format trial end date for email body
+      const formattedTrialEnd = trialEnd.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+
+      // SMS — respect smsEnabled === false
+      if (userData.smsEnabled !== false && userData.phone) {
+        await sendSMS(
+          userData.phone,
+          "Your Promise Tracker trial ends in 3 days. Keep your promises tracked — upgrade anytime at promisetracker.app/pricing"
+        );
+      }
+
+      // Email — same template style as reminder emails
+      if (userData.email) {
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border:1px solid #d1d5db;border-radius:12px;overflow:hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #d1d5db;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:32px;height:32px;">
+                    <img src="https://promisetracker.app/logo.jpeg" alt="P" width="32" height="32" style="display:block;border-radius:8px;" />
+                  </td>
+                  <td style="padding-left:12px;font-size:18px;font-weight:700;color:#111827;">Promise Tracker</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#111827;">Your trial ends in 3 days</h1>
+              <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#4b5563;">Your Promise Tracker free trial wraps up on ${formattedTrialEnd}. If it&rsquo;s helped you keep even one promise, that&rsquo;s a customer saved for $39/month. Upgrade anytime to keep your reminders running.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px;">
+                <tr>
+                  <td style="background-color:#22c55e;border-radius:8px;">
+                    <a href="https://promisetracker.app/pricing" target="_blank" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Upgrade to Pro</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #d1d5db;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">Promise Tracker &mdash; <a href="mailto:support@promisetracker.app" style="color:#16a34a;text-decoration:none;">support@promisetracker.app</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+        await sendEmail(userData.email, "Your Promise Tracker trial ends soon", html);
+      }
+
+      // Flag business so this nudge is never sent twice
+      await doc.ref.update({ trialNudgeSent: true });
+      console.log(`Trial nudge sent for business ${doc.id}`);
+    } catch (err) {
+      console.error(`trialEndingNudge: error processing business ${doc.id}:`, err.message);
+    }
+  }
+
+  console.log("trialEndingNudge: finished run");
+  return null;
+});
