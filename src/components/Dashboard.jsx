@@ -79,6 +79,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editingPromise, setEditingPromise] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [timezone, setTimezone] = useState('America/New_York');
   const timezoneRef = useRef('America/New_York');
@@ -259,6 +261,48 @@ export default function Dashboard() {
     setEditingPromise(null);
   };
 
+  const handleToggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleSelectAll = () => setSelectedIds(new Set(filtered.map((p) => p.id)));
+  const handleDeselectAll = () => setSelectedIds(new Set());
+
+  const handleBulkMarkDone = async () => {
+    const ids = [...selectedIds];
+    try {
+      await Promise.all(
+        ids.map((id) => updateDoc(doc(db, 'promises', id), { status: 'done', completedAt: serverTimestamp() }))
+      );
+      toast.success(`${ids.length} promise${ids.length !== 1 ? 's' : ''} marked done`);
+      exitSelectMode();
+    } catch {
+      toast.error('Failed to mark some promises done');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedIds];
+    if (!window.confirm(`Delete ${ids.length} promise${ids.length !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+    try {
+      await Promise.all(ids.map((id) => deleteDoc(doc(db, 'promises', id))));
+      toast.success(`${ids.length} promise${ids.length !== 1 ? 's' : ''} deleted`);
+      exitSelectMode();
+    } catch {
+      toast.error('Failed to delete some promises');
+    }
+  };
+
   const statCards = [
     { label: 'Overdue', count: counts.overdue, color: 'text-red-400', bg: 'bg-red-500/8', borderColor: 'border-red-500/15', glow: counts.overdue > 0 ? 'animate-pulse-glow' : '' },
     { label: 'Due Today', count: counts['due-today'], color: 'text-yellow-400', bg: 'bg-yellow-500/8', borderColor: 'border-yellow-500/15', glow: '' },
@@ -348,6 +392,12 @@ export default function Dashboard() {
 
       {/* Tabs with sliding indicator */}
       <div className="relative mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <button
+          onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+          className="absolute right-0 top-0 z-10 text-sm font-semibold text-text-muted hover:text-text-secondary transition-colors duration-200 px-2 py-2"
+        >
+          {selectMode ? 'Cancel' : 'Select'}
+        </button>
         <div className="flex items-center justify-center gap-4 overflow-x-auto pb-0.5 relative">
           {tabs.map((tab) => (
             <button
@@ -369,6 +419,32 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+
+      {/* Selection Bar */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="bg-bg-card border border-border/40 rounded-xl px-4 py-3 mb-3 flex items-center gap-3 animate-fade-in-up">
+          <span className="text-sm font-semibold text-text-primary">{selectedIds.size} selected</span>
+          <button
+            onClick={selectedIds.size === filtered.length ? handleDeselectAll : handleSelectAll}
+            className="text-sm text-text-muted hover:text-text-secondary font-medium transition-colors duration-200"
+          >
+            {selectedIds.size === filtered.length ? 'Deselect all' : 'Select all'}
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={handleBulkMarkDone}
+            className="px-3.5 py-1.5 text-xs font-semibold rounded-[8px] bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20 transition-all duration-150 active:scale-95"
+          >
+            Mark Done
+          </button>
+          <button
+            onClick={handleBulkDelete}
+            className="px-3.5 py-1.5 text-xs font-semibold rounded-[8px] bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20 transition-all duration-150 active:scale-95"
+          >
+            Delete
+          </button>
+        </div>
+      )}
 
       {/* Promise List */}
       <div className="space-y-3 stagger-children">
@@ -406,6 +482,9 @@ export default function Dashboard() {
               canDelete={user?.role === 'owner' || user?.email === promise.createdBy}
               disabled={!hasAccess}
               timezone={timezone}
+              selectable={selectMode}
+              selected={selectedIds.has(promise.id)}
+              onToggleSelect={handleToggleSelect}
             />
           ))
         )}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, canDelete, disabled, timezone = 'America/New_York' }) {
+export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, canDelete, disabled, timezone = 'America/New_York', selectable = false, selected = false, onToggleSelect }) {
   const [completing, setCompleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -69,11 +69,26 @@ export default function PromiseCard({ promise, onMarkDone, onDelete, onEdit, can
   return (
     <div className={`relative bg-bg-card border ${status.border} rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-black/15 hover:-translate-y-[1px] hover:border-white/10 group animate-fade-in-up ${
       completing || deleting ? 'opacity-60 scale-[0.98]' : ''
-    }`}>
+    } ${selected ? 'ring-1 ring-accent/30 bg-accent/[0.02]' : ''}` }>
       {/* Left accent border */}
       <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${status.left} rounded-l-xl`} />
 
       <div className="flex items-start justify-between gap-3 p-5 pl-5">
+        {selectable && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleSelect?.(promise.id); }}
+            aria-label={selected ? 'Deselect promise' : 'Select promise'}
+            className={`shrink-0 mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-all duration-150 active:scale-95 focus:outline-none focus:ring-1 focus:ring-accent/40 ${
+              selected ? 'bg-accent border-accent' : 'border-border/40'
+            }`}
+          >
+            {selected && (
+              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            )}
+          </button>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5 mb-2">
             <h3 className="text-[15px] font-bold text-text-primary truncate">{promise.customerName}</h3>
