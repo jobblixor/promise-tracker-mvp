@@ -363,18 +363,30 @@ export default function Dashboard() {
           <h1 className="text-[28px] font-extrabold text-text-primary tracking-tight">Dashboard</h1>
           <p className="text-sm text-text-secondary mt-1.5 font-normal">Track and manage customer promises</p>
         </div>
-        <button
-          onClick={() => { setEditingPromise(null); setFormOpen(true); }}
-          disabled={!hasAccess}
-          className={`flex items-center gap-2.5 px-5 py-2.5 bg-accent hover:bg-accent-hover text-white font-semibold rounded-[10px] text-sm transition-all duration-200 hover:shadow-[0_0_20px_rgba(34,197,94,0.25)] hover:scale-[1.02] active:scale-[0.98] shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none ${
-            promises.length === 0 && !loading && hasAccess ? 'animate-pulse-soft' : ''
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          New Promise
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+            className={`px-4 py-2.5 text-sm font-semibold rounded-[10px] border transition-all duration-200 active:scale-[0.98] ${
+              selectMode
+                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                : 'border-border/40 text-text-muted hover:text-text-secondary hover:border-border'
+            }`}
+          >
+            {selectMode ? 'Cancel' : 'Select'}
+          </button>
+          <button
+            onClick={() => { setEditingPromise(null); setFormOpen(true); }}
+            disabled={!hasAccess}
+            className={`flex items-center gap-2.5 px-5 py-2.5 bg-accent hover:bg-accent-hover text-white font-semibold rounded-[10px] text-sm transition-all duration-200 hover:shadow-[0_0_20px_rgba(34,197,94,0.25)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none ${
+              promises.length === 0 && !loading && hasAccess ? 'animate-pulse-soft' : ''
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            New Promise
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -392,12 +404,6 @@ export default function Dashboard() {
 
       {/* Tabs with sliding indicator */}
       <div className="relative mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <button
-          onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
-          className="absolute right-0 top-0 z-10 text-sm font-semibold text-text-muted hover:text-text-secondary transition-colors duration-200 px-2 py-2"
-        >
-          {selectMode ? 'Cancel' : 'Select'}
-        </button>
         <div className="flex items-center justify-center gap-4 overflow-x-auto pb-0.5 relative">
           {tabs.map((tab) => (
             <button
