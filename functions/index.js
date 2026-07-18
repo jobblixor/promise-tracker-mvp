@@ -1538,6 +1538,66 @@ async function handleDeleteCommand(userId, userPhone, userData, messageText) {
   await sendSMS(userPhone, `Delete '${desc}'? Reply YES to confirm.`);
 }
 
+async function handleClearDoneCommand(userId, userPhone, userData) {
+  console.log(`[SMS CLEAR DONE] userId=${userId}`);
+  const businessId = userData.businessId;
+  if (!businessId) {
+    await sendSMS(userPhone, 'Your account is not linked to a business.');
+    return;
+  }
+
+  const snapshot = await db.collection('promises')
+    .where('businessId', '==', businessId)
+    .where('status', '==', 'done')
+    .get();
+
+  if (snapshot.empty) {
+    await sendSMS(userPhone, 'No completed promises to clear.');
+    return;
+  }
+
+  const batch = db.batch();
+  for (const doc of snapshot.docs) {
+    batch.delete(doc.ref);
+  }
+  await batch.commit();
+
+  await sendSMS(userPhone, `Cleared ${snapshot.size} completed promise${snapshot.size !== 1 ? 's' : ''}.`);
+}
+
+async function handleDeleteAllCommand(userId, userPhone, userData) {
+  console.log(`[SMS DELETE ALL] userId=${userId}`);
+  const businessId = userData.businessId;
+  if (!businessId) {
+    await sendSMS(userPhone, 'Your account is not linked to a business.');
+    return;
+  }
+
+  const snapshot = await db.collection('promises')
+    .where('businessId', '==', businessId)
+    .where('status', 'in', ['open', 'overdue'])
+    .get();
+
+  if (snapshot.empty) {
+    await sendSMS(userPhone, 'You have no open promises to delete.');
+    return;
+  }
+
+  const count = snapshot.size;
+  const convoId = `${userId}_deleteall`;
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  await db.collection('smsConversations').doc(convoId).set({
+    userId,
+    state: 'awaiting_delete_all_confirm',
+    count,
+    expiresAt,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  await sendSMS(userPhone, `Delete all ${count} open promise${count !== 1 ? 's' : ''}? This cannot be undone. Reply DELETE ALL YES to confirm.`);
+}
+
 async function handleDeleteConfirmation(convoDoc, userId, userPhone, messageText, user) {
   console.log(`[SMS DELETE CONFIRM] userId=${userId} text="${messageText}"`);
   const convoData = convoDoc.data();
@@ -1599,11 +1659,63 @@ async function handleDeleteConfirmation(convoDoc, userId, userPhone, messageText
   }
 }
 
+// Returns true if the message was fully handled (caller should return 200).
+// Returns false if routing should fall through to normal command handling.
+async function handleDeleteAllConfirmation(convoDoc, userId, userPhone, messageText, user) {
+  console.log(`[SMS DELETE ALL CONFIRM] userId=${userId} text="${messageText}"`);
+  const upper = messageText.trim().toUpperCase();
+
+  if (upper === 'DELETE ALL YES') {
+    // Re-query fresh at confirmation time
+    const businessId = user.businessId;
+    const snapshot = await db.collection('promises')
+      .where('businessId', '==', businessId)
+      .where('status', 'in', ['open', 'overdue'])
+      .get();
+
+    const batch = db.batch();
+    for (const doc of snapshot.docs) {
+      batch.delete(doc.ref);
+    }
+    await batch.commit();
+
+    await db.collection('smsListMappings').doc(userId).delete().catch(() => {});
+
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'idle',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.FieldValue.delete(),
+    });
+
+    await sendSMS(userPhone, `Deleted ${snapshot.size} promise${snapshot.size !== 1 ? 's' : ''}.`);
+    console.log(`[SMS DELETE ALL CONFIRM] Deleted ${snapshot.size} promises for userId=${userId}`);
+    return true;
+  } else if (upper === 'CANCEL' || upper === 'NO') {
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'idle',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.FieldValue.delete(),
+    });
+    await sendSMS(userPhone, 'Cancelled. Your promises are safe.');
+    console.log(`[SMS DELETE ALL CONFIRM] CANCEL/NO for userId=${userId}`);
+    return true;
+  } else {
+    // Reset state and let the message fall through to normal routing
+    await db.collection('smsConversations').doc(convoDoc.id).update({
+      state: 'idle',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.FieldValue.delete(),
+    });
+    console.log(`[SMS DELETE ALL CONFIRM] unrecognized input — state reset, falling through for userId=${userId}`);
+    return false;
+  }
+}
+
 async function handleHelpCommand(userPhone) {
   console.log(`[SMS HELP] userPhone=${userPhone}`);
   await sendSMS(
     userPhone,
-    "PT Commands:\nLIST - see open promises\nDONE # - complete a promise\nDELETE # - remove a promise\nEDIT - change a pending promise\nSET TIME 6PM - set recap time\nCANCEL - cancel current action\nSTOP/START - unsub/resub\nHELP - this msg\nOr text a promise to log it"
+    "PT Commands:\nLIST - see open promises\nDONE # - complete a promise\nDELETE # - remove a promise\nDELETE ALL - remove all open promises\nCLEAR DONE - remove completed promises\nEDIT - edit a promise\nSET TIME 6PM - set recap time\nCANCEL - cancel action\nSTOP/START - unsub/resub\nHELP - this msg\nOr text a promise to log it"
   );
 }
 
@@ -2797,6 +2909,20 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       }
     }
 
+    // Check for awaiting_delete_all_confirm conversation
+    {
+      const deleteAllConvoId = `${userId}_deleteall`;
+      const deleteAllConvoDoc = await db.collection('smsConversations').doc(deleteAllConvoId).get();
+      if (deleteAllConvoDoc.exists && deleteAllConvoDoc.data().state === 'awaiting_delete_all_confirm') {
+        const handled = await handleDeleteAllConfirmation(deleteAllConvoDoc, userId, senderPhone, messageText, user);
+        if (handled) {
+          res.status(200).send('OK');
+          return;
+        }
+        // else fall through to normal routing
+      }
+    }
+
     // Check for an active confirm/edit conversation (GPT promise parser flow)
     const confirmConvoId = `${userId}_confirm`;
     const confirmConvoDoc = await db.collection('smsConversations').doc(confirmConvoId).get();
@@ -2984,6 +3110,10 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
       }
     } else if (keyword === 'DONE') {
       await handleDoneCommand(userId, senderPhone, user, messageText);
+    } else if (fullTextUpper === 'CLEAR DONE') {
+      await handleClearDoneCommand(userId, senderPhone, user);
+    } else if (fullTextUpper === 'DELETE ALL') {
+      await handleDeleteAllCommand(userId, senderPhone, user);
     } else if (keyword === 'DELETE') {
       await handleDeleteCommand(userId, senderPhone, user, messageText);
     } else if (fullTextUpper === 'SET TIME OFF' || fullTextUpper === 'RECAP OFF' || fullTextUpper === 'EOD OFF') {
