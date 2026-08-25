@@ -10,6 +10,7 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
+  const [hearAboutUs, setHearAboutUs] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [invite, setInvite] = useState(null);
@@ -61,7 +62,7 @@ export default function Signup() {
       if (invite) {
         await inviteSignup(email, password, phone, invite);
       } else {
-        await signup(email, password, businessName, phone, detectedTimezone);
+        await signup(email, password, businessName, phone, detectedTimezone, hearAboutUs);
       }
       navigate('/verify');
     } catch (err) {
@@ -147,6 +148,25 @@ export default function Signup() {
               className="w-full px-3.5 py-2.5 bg-bg-card border border-border rounded-[10px] text-sm text-text-secondary placeholder:text-text-muted/40 focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/10 focus:shadow-[0_0_0_3px_rgba(34,197,94,0.06)] transition-all duration-200"
             />
           </div>
+
+          {!invite && (
+            <div>
+              <label className="block text-sm font-semibold text-text-secondary mb-2">How did you hear about us?</label>
+              <select
+                value={hearAboutUs}
+                onChange={(e) => setHearAboutUs(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 bg-bg-card border border-border rounded-[10px] text-sm text-text-secondary focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/10 focus:shadow-[0_0_0_3px_rgba(34,197,94,0.06)] transition-all duration-200 appearance-none cursor-pointer"
+              >
+                <option value="" disabled>Select one</option>
+                <option value="Facebook">Facebook</option>
+                <option value="Reddit">Reddit</option>
+                <option value="A friend">A friend</option>
+                <option value="The calculator">The calculator</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          )}
 
           <button
             type="submit"

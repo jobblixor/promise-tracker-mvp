@@ -153,7 +153,7 @@ export default function ResponseTimeCalculator() {
             <Link to="/free-tools" className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Free Tools</Link>
             <Link to="/blog"       className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Blogs</Link>
             <Link to="/login"      className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Sign In</Link>
-            <Link to="/signup"     className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700">
+            <Link to="/signup?ref=response-time"     className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700">
               Start Free Trial
             </Link>
           </div>
@@ -244,7 +244,7 @@ export default function ResponseTimeCalculator() {
                 </p>
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                   <Link
-                    to="/signup"
+                    to="/signup?ref=response-time"
                     className="inline-block rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
                   >
                     Start Free Trial · $39/mo
@@ -300,7 +300,7 @@ export default function ResponseTimeCalculator() {
                     Promise Tracker reminds your team to follow up on every promise, so no lead goes cold.
                   </p>
                   <Link
-                    to="/signup"
+                    to="/signup?ref=response-time"
                     className="inline-block rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
                   >
                     Start Free Trial · $39/mo
@@ -446,7 +446,7 @@ export default function ResponseTimeCalculator() {
             Promise Tracker is an SMS-based promise tracking tool for service businesses. Text your promises, get reminded before they are due, never drop the ball. Set it up in 5 minutes. $39/month. No contracts.
           </p>
           <Link
-            to="/signup"
+            to="/signup?ref=response-time"
             className="inline-block rounded-lg bg-green-600 px-8 py-3 text-base font-semibold text-white transition hover:bg-green-700"
           >
             Start Your Free Trial

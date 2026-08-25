@@ -124,7 +124,7 @@ export default function CalculatorPage() {
             <Link to="/free-tools" className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Free Tools</Link>
             <Link to="/blog" className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Blogs</Link>
             <Link to="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5">Sign In</Link>
-            <Link to="/signup" className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700">
+            <Link to="/signup?ref=calculator" className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700">
               Start Free Trial
             </Link>
           </div>
@@ -222,7 +222,7 @@ export default function CalculatorPage() {
                     Text your promises to Promise Tracker and it automatically reminds your team to follow up — with escalating SMS and email reminders — until you get a yes or no.
                   </p>
                   <Link
-                    to="/signup"
+                    to="/signup?ref=calculator"
                     className="inline-block rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
                   >
                     Start Free Trial — $39/mo
@@ -310,7 +310,7 @@ export default function CalculatorPage() {
             Text your promises in plain English. Promise Tracker parses them, sets reminders, and escalates before anything falls through the cracks. $39/month. No contracts.
           </p>
           <Link
-            to="/signup"
+            to="/signup?ref=calculator"
             className="inline-block rounded-lg bg-green-600 px-8 py-3 text-base font-semibold text-white transition hover:bg-green-700"
           >
             Start Your Free Trial

@@ -1117,6 +1117,8 @@ exports.sendVerificationCode = onCall(async (request) => {
   try {
     let businessName = "Unknown";
     const userDoc = await db.collection("users").doc(userId).get();
+    const hearAboutUs = userDoc.exists ? userDoc.data().hearAboutUs : null;
+    const referralCode = userDoc.exists ? userDoc.data().referralCode : null;
     if (userDoc.exists && userDoc.data().businessId) {
       const bizDoc = await db.collection("businesses").doc(userDoc.data().businessId).get();
       if (bizDoc.exists && bizDoc.data().name) {
@@ -1127,8 +1129,8 @@ exports.sendVerificationCode = onCall(async (request) => {
     console.log(`[sendVerificationCode] About to call sendOwnerNotification for ${email}`);
     await sendOwnerNotification(
       `New Signup: ${email}`,
-      `${email} just created an account for business '${businessName}' at ${timestamp}`,
-      `New signup: ${businessName} - ${email}`
+      `${email} just created an account for business '${businessName}' at ${timestamp} | Src: ${hearAboutUs || 'none'} | ref: ${referralCode || 'none'}`,
+      `New signup: ${businessName} - ${email} | Src: ${hearAboutUs || 'none'} | ref: ${referralCode || 'none'}`
     );
     console.log(`[sendVerificationCode] sendOwnerNotification completed for ${email}`);
   } catch (err) {

@@ -150,7 +150,7 @@ export default function QuoteFollowUpChecklist() {
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <a href="/free-tools" style={{ color: '#4b5563', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Free Tools</a>
           <a href="/blog" style={{ color: '#4b5563', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Blog</a>
-          <a href="/signup" style={{ backgroundColor: '#22c55e', color: 'white', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Start Free Trial</a>
+          <a href="/signup?ref=checklist" style={{ backgroundColor: '#22c55e', color: 'white', padding: '8px 16px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Start Free Trial</a>
         </div>
       </nav>
 
@@ -276,7 +276,7 @@ export default function QuoteFollowUpChecklist() {
           <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>Text messaging is the ideal channel for service business follow-ups because it's fast, non-intrusive, and gets read. Unlike email, which sits in an inbox competing with promotional noise, a text message lands directly on the customer's phone and gets opened within minutes. Housecall Pro's sales team found that adding SMS to their workflow increased their close rate by 15% and improved connection rates by 25 to 50%.</p>
           <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>The key is keeping your messages short, personal, and spaced out. Messages under 100 characters get 2 to 5 times higher response rates than longer ones. This checklist uses text as the default channel for most touches and reserves phone calls for high-ticket jobs or stalled deals where a live conversation can break through.</p>
           <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>Want to see how much revenue you're losing from quotes you never follow up on? <a href="/calculator" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>Try our free Quote Follow-Up Revenue Calculator</a> — it takes 30 seconds.</p>
-          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>And if you want the follow-ups to happen automatically instead of relying on memory, <a href="/signup" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>Promise Tracker</a> — text your promises to Promise Tracker and it sends escalating SMS and email reminders on your behalf until every quote gets a definitive yes or no. For more tips on the full follow-up process, read our guides on <a href="/blog/how-to-follow-up-on-a-quote" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>how to follow up on a quote without being annoying</a> and <a href="/blog/how-many-times-to-follow-up-on-estimate" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>how many times to follow up on an estimate</a>.</p>
+          <p style={{ fontSize: '16px', color: '#374151', lineHeight: 1.8, marginBottom: '16px' }}>And if you want the follow-ups to happen automatically instead of relying on memory, <a href="/signup?ref=checklist" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>Promise Tracker</a> — text your promises to Promise Tracker and it sends escalating SMS and email reminders on your behalf until every quote gets a definitive yes or no. For more tips on the full follow-up process, read our guides on <a href="/blog/how-to-follow-up-on-a-quote" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>how to follow up on a quote without being annoying</a> and <a href="/blog/how-many-times-to-follow-up-on-estimate" style={{ color: '#22c55e', fontWeight: 600, textDecoration: 'none' }}>how many times to follow up on an estimate</a>.</p>
         </div>
 
         {/* Key stats */}
@@ -319,7 +319,7 @@ export default function QuoteFollowUpChecklist() {
         <div style={{ background: 'linear-gradient(135deg, #15803d, #22c55e)', borderRadius: '16px', padding: '40px 32px', textAlign: 'center', marginBottom: '40px' }}>
           <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>Never Forget a Follow-Up Again</h2>
           <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.9)', marginBottom: '24px', maxWidth: '500px', margin: '0 auto 24px' }}>Text a promise to your Promise Tracker number in plain English. We parse it, set reminders, and escalate before anything slips through the cracks.</p>
-          <a href="/signup" style={{ display: 'inline-block', backgroundColor: '#fff', color: '#15803d', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '16px', textDecoration: 'none' }}>Start Your Free 30-Day Trial</a>
+          <a href="/signup?ref=checklist" style={{ display: 'inline-block', backgroundColor: '#fff', color: '#15803d', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '16px', textDecoration: 'none' }}>Start Your Free 30-Day Trial</a>
         </div>
       </div>
 

@@ -169,12 +169,13 @@ export function AuthProvider({ children }) {
     });
   };
 
-  const signup = async (email, password, businessName, phone, timezone) => {
+  const signup = async (email, password, businessName, phone, timezone, hearAboutUs) => {
     console.log('[SIGNUP DEBUG] === SIGNUP START ===');
 
-    // Read referral cookie before creating the account
+    // Read referral: prefer the ?ref= URL param, fall back to the pt_ref cookie
+    const urlRef = new URLSearchParams(window.location.search).get('ref');
     const refMatch = document.cookie.match(/(?:^|;\s*)pt_ref=([^;]+)/);
-    const referralCode = refMatch ? decodeURIComponent(refMatch[1]) : null;
+    const referralCode = urlRef || (refMatch ? decodeURIComponent(refMatch[1]) : null);
     if (referralCode) {
       console.log('[SIGNUP DEBUG] Referral code found in cookie:', referralCode);
     }
@@ -241,6 +242,7 @@ export function AuthProvider({ children }) {
       userDocData.referralCode = referralCode;
       userDocData.referredAt = serverTimestamp();
     }
+    if (hearAboutUs) { userDocData.hearAboutUs = hearAboutUs; }
     await setDoc(doc(db, 'users', uid), userDocData);
     console.log('[SIGNUP DEBUG] Step 4 OK - user doc created');
 
