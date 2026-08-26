@@ -57,7 +57,7 @@ export function AuthProvider({ children }) {
    * Run anti-abuse fingerprint checks BEFORE creating the Firebase Auth account.
    * Never blocks account creation — only determines free-trial eligibility.
    */
-  const runAbuseChecks = async (phone) => {
+  const runAbuseChecks = async (phone, email) => {
     const fingerprint = getBrowserFingerprint();
     const ip = await getIpAddress();
     const deviceId = getDeviceId();
@@ -78,6 +78,23 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('[SIGNUP DEBUG] fingerprints by phone FAILED:', err.code, err.message);
       // Don't block signup for abuse check failures
+    }
+
+    // Check normalized phone (digits only, last 10) — catches formatting variants of the same number
+    const normalizedPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+    if (eligibleForTrial && normalizedPhone) {
+      try {
+        console.log('[SIGNUP DEBUG] querying fingerprints by phoneNormalized...');
+        const phoneNormSnap = await getDocs(
+          query(collection(db, 'fingerprints'), where('phoneNormalized', '==', normalizedPhone))
+        );
+        console.log('[SIGNUP DEBUG] fingerprints by phoneNormalized - OK, count:', phoneNormSnap.size);
+        if (phoneNormSnap.docs.some((d) => d.data().trialUsed === true)) {
+          eligibleForTrial = false;
+        }
+      } catch (err) {
+        console.error('[SIGNUP DEBUG] fingerprints by phoneNormalized FAILED:', err.code, err.message);
+      }
     }
 
     // Check browser fingerprint
@@ -128,6 +145,23 @@ export function AuthProvider({ children }) {
       }
     }
 
+    // Check email — lowercase/trim the comparison value only (no gmail dot/plus canonicalization)
+    if (eligibleForTrial && email) {
+      try {
+        const normalizedEmail = email.trim().toLowerCase();
+        console.log('[SIGNUP DEBUG] querying fingerprints by email...');
+        const emailSnap = await getDocs(
+          query(collection(db, 'fingerprints'), where('email', '==', normalizedEmail))
+        );
+        console.log('[SIGNUP DEBUG] fingerprints by email - OK, count:', emailSnap.size);
+        if (emailSnap.docs.some((d) => d.data().trialUsed === true)) {
+          eligibleForTrial = false;
+        }
+      } catch (err) {
+        console.error('[SIGNUP DEBUG] fingerprints by email FAILED:', err.code, err.message);
+      }
+    }
+
     return { canCreateAccount: true, eligibleForTrial, fingerprint, ip, deviceId };
   };
 
@@ -141,7 +175,8 @@ export function AuthProvider({ children }) {
       browserFingerprint: fingerprint,
       ipAddress: ip,
       phone,
-      email,
+      phoneNormalized: phone ? phone.replace(/\D/g, '').slice(-10) : null,
+      email: email ? email.trim().toLowerCase() : email,
       userId,
       businessId,
       trialUsed,
@@ -198,7 +233,7 @@ export function AuthProvider({ children }) {
     }
 
     console.log('[SIGNUP DEBUG] Step 2: runAbuseChecks...');
-    const { eligibleForTrial, fingerprint, ip, deviceId } = await runAbuseChecks(phone);
+    const { eligibleForTrial, fingerprint, ip, deviceId } = await runAbuseChecks(phone, email);
     console.log('[SIGNUP DEBUG] Step 2 OK - eligibleForTrial:', eligibleForTrial);
 
     // Create the business doc — trial or trial_expired based on eligibility
@@ -251,7 +286,8 @@ export function AuthProvider({ children }) {
     await storeFingerprint({
       fingerprint, ip, deviceId, phone, email,
       userId: uid, businessId: businessRef.id,
-      trialUsed: eligibleForTrial,
+      // Blocked signups must also arm the guard, so a denied attempt propagates ineligibility to every key it exposed.
+      trialUsed: true,
     });
     console.log('[SIGNUP DEBUG] Step 5 OK - fingerprint stored');
 
