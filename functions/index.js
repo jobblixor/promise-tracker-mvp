@@ -3696,3 +3696,168 @@ exports.trialEndingNudge = onSchedule({
   console.log("trialEndingNudge: finished run");
   return null;
 });
+
+// ─── Server-Side Signup: Business Creation ───────────────────────────
+
+const { HttpsError } = require("firebase-functions/v2/https");
+
+/**
+ * Canonicalize an email for abuse checks: lowercase/trim, strip anything from
+ * a '+' onward in the local part, and for Gmail domains (which ignore dots)
+ * also remove all dots — so "j.o.hn+x@gmail.com" matches "john@gmail.com".
+ */
+function canonicalizeEmail(email) {
+  if (!email) return null;
+  const lowered = email.trim().toLowerCase();
+  const atIndex = lowered.lastIndexOf("@");
+  if (atIndex === -1) return lowered;
+  let local = lowered.slice(0, atIndex);
+  const domain = lowered.slice(atIndex + 1);
+  const plusIndex = local.indexOf("+");
+  if (plusIndex !== -1) local = local.slice(0, plusIndex);
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    local = local.replace(/\./g, "");
+  }
+  return `${local}@${domain}`;
+}
+
+/**
+ * Report whether any fingerprints doc with `field` == `value` has
+ * trialUsed === true. Fails open (returns false on query errors or empty
+ * values) so an abuse-check failure never blocks signup — same philosophy
+ * as the client's runAbuseChecks.
+ */
+async function fingerprintHasUsedTrial(field, value) {
+  if (!value) return false;
+  try {
+    const snap = await db.collection("fingerprints").where(field, "==", value).get();
+    return snap.docs.some((d) => d.data().trialUsed === true);
+  } catch (err) {
+    console.error(`[createBusinessForSignup] fingerprint check by ${field} failed:`, err.message);
+    return false;
+  }
+}
+
+/**
+ * Callable function: creates the businesses doc for a new signup, deciding
+ * trial eligibility server-side with the same fingerprint checks the client's
+ * runAbuseChecks performs today (phone, phoneNormalized, browserFingerprint,
+ * ipAddress, visitorId, email) plus a canonicalized-email check. The plan
+ * value is never accepted from the client. Idempotent: if the caller already
+ * owns a business, returns it untouched so client retries are safe.
+ *
+ * Called by the client's signup() in src/context/AuthContext.jsx.
+ */
+exports.createBusinessForSignup = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required");
+  }
+
+  const uid = request.auth.uid;
+  // hearAboutUs is accepted now so the client payload doesn't change in Stage 2,
+  // but it belongs to the users doc, which stays client-written in this stage.
+  const { businessName, phone, timezone, referralCode, hearAboutUs, browserFingerprint, visitorId, ipAddress } = request.data || {};
+
+  if (!businessName) {
+    throw new HttpsError("invalid-argument", "Missing businessName");
+  }
+
+  try {
+    // Idempotency first: if this user already owns a business, return it and
+    // do nothing else.
+    const existingSnap = await db.collection("businesses").where("ownerId", "==", uid).limit(1).get();
+    if (!existingSnap.empty) {
+      console.log(`[createBusinessForSignup] Business already exists for ${uid}: ${existingSnap.docs[0].id}`);
+      return { businessId: existingSnap.docs[0].id, alreadyExisted: true };
+    }
+
+    // The signup email comes from the verified auth token, never the payload.
+    let email = request.auth.token.email || null;
+    if (!email) {
+      const authUser = await admin.auth().getUser(uid);
+      email = authUser.email || null;
+    }
+    const normalizedEmail = email ? email.trim().toLowerCase() : null;
+    const emailCanonical = canonicalizeEmail(email);
+    const phoneNormalized = phone ? phone.replace(/\D/g, "").slice(-10) : null;
+
+    // Same sequential checks as the client's runAbuseChecks, plus emailCanonical.
+    // A trialUsed:true match on ANY signal means no free trial.
+    let eligibleForTrial = true;
+    if (await fingerprintHasUsedTrial("phone", phone)) eligibleForTrial = false;
+    if (eligibleForTrial && await fingerprintHasUsedTrial("phoneNormalized", phoneNormalized)) eligibleForTrial = false;
+    if (eligibleForTrial && await fingerprintHasUsedTrial("browserFingerprint", browserFingerprint)) eligibleForTrial = false;
+    if (eligibleForTrial && await fingerprintHasUsedTrial("ipAddress", ipAddress)) eligibleForTrial = false;
+    if (eligibleForTrial && await fingerprintHasUsedTrial("visitorId", visitorId)) eligibleForTrial = false;
+    if (eligibleForTrial && await fingerprintHasUsedTrial("email", normalizedEmail)) eligibleForTrial = false;
+    if (eligibleForTrial && await fingerprintHasUsedTrial("emailCanonical", emailCanonical)) eligibleForTrial = false;
+
+    console.log(`[createBusinessForSignup] uid=${uid} eligibleForTrial=${eligibleForTrial}`);
+
+    // Same business doc shape the client's signup() writes today.
+    const businessData = {
+      name: businessName,
+      ownerId: uid,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      timezone: timezone || "America/New_York",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    if (eligibleForTrial) {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 30);
+      businessData.plan = "trial";
+      businessData.trialStartDate = admin.firestore.FieldValue.serverTimestamp();
+      businessData.trialEndDate = admin.firestore.Timestamp.fromDate(trialEnd);
+    } else {
+      businessData.plan = "trial_expired";
+      businessData.trialStartDate = null;
+      businessData.trialEndDate = null;
+    }
+    if (referralCode) {
+      businessData.referralCode = referralCode;
+    }
+
+    const businessRef = await db.collection("businesses").add(businessData);
+    console.log(`[createBusinessForSignup] Created business ${businessRef.id} for ${uid} (plan: ${businessData.plan})`);
+
+    // Fingerprint doc — same fields the client's storeFingerprint writes today,
+    // plus emailCanonical. Written AFTER the business doc so a failed signup
+    // retry re-runs eligibility without seeing its own fingerprint.
+    // trialUsed = !eligibleForTrial: a denied signup arms the guard on every
+    // key it exposed; a granted trial records false.
+    await db.collection("fingerprints").add({
+      visitorId: visitorId || null,
+      browserFingerprint: browserFingerprint || null,
+      ipAddress: ipAddress || null,
+      phone: phone || null,
+      phoneNormalized,
+      email: normalizedEmail,
+      emailCanonical,
+      userId: uid,
+      businessId: businessRef.id,
+      trialUsed: !eligibleForTrial,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Phone registration — same fields the client's storeFingerprint wrote to
+    // registeredPhones (phone, userId, createdAt). Sits behind the idempotency
+    // early-return above, so a retried signup never adds a duplicate.
+    await db.collection("registeredPhones").add({
+      phone: phone || null,
+      userId: uid,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {
+      businessId: businessRef.id,
+      plan: businessData.plan,
+      eligibleForTrial,
+      alreadyExisted: false,
+    };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    console.error(`[createBusinessForSignup] Failed for ${uid}:`, err.message);
+    throw new HttpsError("internal", "Failed to create business");
+  }
+});

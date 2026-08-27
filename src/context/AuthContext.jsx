@@ -13,10 +13,7 @@ import {
   collection,
   addDoc,
   getDocs,
-  query,
-  where,
   serverTimestamp,
-  Timestamp,
 } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { auth, db } from '../config/firebase';
@@ -54,119 +51,9 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Run anti-abuse fingerprint checks BEFORE creating the Firebase Auth account.
-   * Never blocks account creation — only determines free-trial eligibility.
-   */
-  const runAbuseChecks = async (phone, email) => {
-    const fingerprint = getBrowserFingerprint();
-    const ip = await getIpAddress();
-    const deviceId = getDeviceId();
-    let eligibleForTrial = true;
-
-    console.log('[SIGNUP DEBUG] runAbuseChecks - starting, auth uid:', auth.currentUser?.uid);
-
-    // Check if phone was used by an account that had a trial
-    try {
-      console.log('[SIGNUP DEBUG] querying fingerprints by phone...');
-      const phoneSnap = await getDocs(
-        query(collection(db, 'fingerprints'), where('phone', '==', phone))
-      );
-      console.log('[SIGNUP DEBUG] fingerprints by phone - OK, count:', phoneSnap.size);
-      if (phoneSnap.docs.some((d) => d.data().trialUsed === true)) {
-        eligibleForTrial = false;
-      }
-    } catch (err) {
-      console.error('[SIGNUP DEBUG] fingerprints by phone FAILED:', err.code, err.message);
-      // Don't block signup for abuse check failures
-    }
-
-    // Check normalized phone (digits only, last 10) — catches formatting variants of the same number
-    const normalizedPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
-    if (eligibleForTrial && normalizedPhone) {
-      try {
-        console.log('[SIGNUP DEBUG] querying fingerprints by phoneNormalized...');
-        const phoneNormSnap = await getDocs(
-          query(collection(db, 'fingerprints'), where('phoneNormalized', '==', normalizedPhone))
-        );
-        console.log('[SIGNUP DEBUG] fingerprints by phoneNormalized - OK, count:', phoneNormSnap.size);
-        if (phoneNormSnap.docs.some((d) => d.data().trialUsed === true)) {
-          eligibleForTrial = false;
-        }
-      } catch (err) {
-        console.error('[SIGNUP DEBUG] fingerprints by phoneNormalized FAILED:', err.code, err.message);
-      }
-    }
-
-    // Check browser fingerprint
-    if (eligibleForTrial) {
-      try {
-        console.log('[SIGNUP DEBUG] querying fingerprints by browserFingerprint...');
-        const fpSnap = await getDocs(
-          query(collection(db, 'fingerprints'), where('browserFingerprint', '==', fingerprint))
-        );
-        console.log('[SIGNUP DEBUG] fingerprints by browserFingerprint - OK, count:', fpSnap.size);
-        if (fpSnap.docs.some((d) => d.data().trialUsed === true)) {
-          eligibleForTrial = false;
-        }
-      } catch (err) {
-        console.error('[SIGNUP DEBUG] fingerprints by browserFingerprint FAILED:', err.code, err.message);
-      }
-    }
-
-    // Check IP address
-    if (eligibleForTrial && ip) {
-      try {
-        console.log('[SIGNUP DEBUG] querying fingerprints by ipAddress...');
-        const ipSnap = await getDocs(
-          query(collection(db, 'fingerprints'), where('ipAddress', '==', ip))
-        );
-        console.log('[SIGNUP DEBUG] fingerprints by ipAddress - OK, count:', ipSnap.size);
-        if (ipSnap.docs.some((d) => d.data().trialUsed === true)) {
-          eligibleForTrial = false;
-        }
-      } catch (err) {
-        console.error('[SIGNUP DEBUG] fingerprints by ipAddress FAILED:', err.code, err.message);
-      }
-    }
-
-    // Check device ID
-    if (eligibleForTrial) {
-      try {
-        console.log('[SIGNUP DEBUG] querying fingerprints by visitorId...');
-        const deviceSnap = await getDocs(
-          query(collection(db, 'fingerprints'), where('visitorId', '==', deviceId))
-        );
-        console.log('[SIGNUP DEBUG] fingerprints by visitorId - OK, count:', deviceSnap.size);
-        if (deviceSnap.docs.some((d) => d.data().trialUsed === true)) {
-          eligibleForTrial = false;
-        }
-      } catch (err) {
-        console.error('[SIGNUP DEBUG] fingerprints by visitorId FAILED:', err.code, err.message);
-      }
-    }
-
-    // Check email — lowercase/trim the comparison value only (no gmail dot/plus canonicalization)
-    if (eligibleForTrial && email) {
-      try {
-        const normalizedEmail = email.trim().toLowerCase();
-        console.log('[SIGNUP DEBUG] querying fingerprints by email...');
-        const emailSnap = await getDocs(
-          query(collection(db, 'fingerprints'), where('email', '==', normalizedEmail))
-        );
-        console.log('[SIGNUP DEBUG] fingerprints by email - OK, count:', emailSnap.size);
-        if (emailSnap.docs.some((d) => d.data().trialUsed === true)) {
-          eligibleForTrial = false;
-        }
-      } catch (err) {
-        console.error('[SIGNUP DEBUG] fingerprints by email FAILED:', err.code, err.message);
-      }
-    }
-
-    return { canCreateAccount: true, eligibleForTrial, fingerprint, ip, deviceId };
-  };
-
-  /**
    * Store fingerprint data and register the phone number after successful signup.
+   * Invite signups only — owner signups get their fingerprints and
+   * registeredPhones docs written server-side by createBusinessForSignup.
    */
   const storeFingerprint = async ({ fingerprint, ip, deviceId, phone, email, userId, businessId, trialUsed }) => {
     console.log('[SIGNUP DEBUG] storeFingerprint - addDoc to fingerprints...');
@@ -215,61 +102,94 @@ export function AuthProvider({ children }) {
       console.log('[SIGNUP DEBUG] Referral code found in cookie:', referralCode);
     }
     
-    // Create auth account FIRST so we're authenticated for Firestore queries
+    // Create auth account FIRST so we're authenticated for Firestore queries.
+    // If the email already has an account, this may be a retry of an unfinished
+    // signup — sign in with the same credentials and resume; the server-side
+    // business creation is idempotent, so completing the flow again is safe.
+    // A wrong password means it isn't their account: surface the original error.
     console.log('[SIGNUP DEBUG] Step 1: createUserWithEmailAndPassword...');
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    let cred;
+    let isNewAccount = true;
+    try {
+      cred = await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      if (err.code !== 'auth/email-already-in-use') throw err;
+      try {
+        cred = await signInWithEmailAndPassword(auth, email, password);
+      } catch {
+        throw err;
+      }
+      isNewAccount = false;
+      // Resume is ONLY for unfinished signups — a users doc means signup
+      // already completed (owner or invited member), and proceeding would
+      // overwrite it (and detach a member from their team's business). Those
+      // accounts get the original email-already-in-use error instead.
+      const priorDoc = await getDoc(doc(db, 'users', cred.user.uid));
+      if (priorDoc.exists()) {
+        await signOut(auth);
+        throw err;
+      }
+      console.log('[SIGNUP DEBUG] Step 1: unfinished signup, resuming as uid:', cred.user.uid);
+    }
     const uid = cred.user.uid;
     console.log('[SIGNUP DEBUG] Step 1 OK - uid:', uid, 'auth.currentUser:', auth.currentUser?.uid);
 
     // Duplicate phone check — must run after auth creation (Firestore rules require auth).
-    // If the phone is already in use, delete the newly created auth account and surface
-    // a clear error so the caller can show it to the user.
+    // If the phone is already in use, surface a clear error so the caller can show it to
+    // the user. Only an account created by THIS call is rolled back — a resumed account
+    // predates this attempt (and may already own a business), so it must survive.
     if (phone) {
-      const isDuplicate = await checkDuplicatePhone(phone);
+      const isDuplicate = await checkDuplicatePhone(phone, uid);
       if (isDuplicate) {
-        await cred.user.delete();
+        if (isNewAccount) {
+          await cred.user.delete();
+        } else {
+          await signOut(auth);
+        }
         throw new Error('This phone number is already linked to another account.');
       }
     }
 
-    console.log('[SIGNUP DEBUG] Step 2: runAbuseChecks...');
-    const { eligibleForTrial, fingerprint, ip, deviceId } = await runAbuseChecks(phone, email);
-    console.log('[SIGNUP DEBUG] Step 2 OK - eligibleForTrial:', eligibleForTrial);
-
-    // Create the business doc — trial or trial_expired based on eligibility
-    const businessData = {
-      name: businessName,
-      ownerId: uid,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      timezone: timezone || 'America/New_York',
-      createdAt: serverTimestamp(),
-    };
-
-    if (eligibleForTrial) {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 30);
-      businessData.plan = 'trial';
-      businessData.trialStartDate = serverTimestamp();
-      businessData.trialEndDate = Timestamp.fromDate(trialEnd);
-    } else {
-      businessData.plan = 'trial_expired';
-      businessData.trialStartDate = null;
-      businessData.trialEndDate = null;
+    // Server-side business creation: the callable owns trial eligibility and
+    // the businesses, fingerprints, and registeredPhones docs. Idempotent — a
+    // retry returns the existing business instead of creating a duplicate.
+    console.log('[SIGNUP DEBUG] Step 2: createBusinessForSignup...');
+    const browserFingerprint = getBrowserFingerprint();
+    const ipAddress = await getIpAddress();
+    const visitorId = getDeviceId();
+    let businessId;
+    try {
+      const functions = getFunctions(app);
+      const createBusinessForSignup = httpsCallable(functions, 'createBusinessForSignup');
+      const result = await createBusinessForSignup({
+        businessName,
+        phone,
+        timezone,
+        referralCode,
+        hearAboutUs,
+        browserFingerprint,
+        visitorId,
+        ipAddress,
+      });
+      businessId = result.data.businessId;
+    } catch (err) {
+      // No users doc may point at a business that doesn't exist. The auth
+      // account is left in place — retrying signup resumes and completes it.
+      console.error('[SIGNUP DEBUG] Step 2 FAILED - createBusinessForSignup:', err.code, err.message);
+      throw new Error("We couldn't finish setting up your account. Please try signing up again.");
     }
+    console.log('[SIGNUP DEBUG] Step 2 OK - businessId:', businessId);
 
-    console.log('[SIGNUP DEBUG] Step 3: addDoc to businesses...');
-    const businessRef = await addDoc(collection(db, 'businesses'), businessData);
-    console.log('[SIGNUP DEBUG] Step 3 OK - businessId:', businessRef.id);
-
-    // Create the user doc with businessId
-    console.log('[SIGNUP DEBUG] Step 4: setDoc to users/', uid);
+    // Create the user doc with businessId from the callable. The resume guard
+    // above guarantees no users doc exists yet; merge keeps the write safe if
+    // one ever appears between the guard and here.
+    console.log('[SIGNUP DEBUG] Step 3: setDoc to users/', uid);
     const userDocData = {
       uid,
       email,
       phone,
       businessName,
-      businessId: businessRef.id,
+      businessId,
       role: 'owner',
       createdAt: serverTimestamp(),
     };
@@ -278,21 +198,12 @@ export function AuthProvider({ children }) {
       userDocData.referredAt = serverTimestamp();
     }
     if (hearAboutUs) { userDocData.hearAboutUs = hearAboutUs; }
-    await setDoc(doc(db, 'users', uid), userDocData);
-    console.log('[SIGNUP DEBUG] Step 4 OK - user doc created');
+    await setDoc(doc(db, 'users', uid), userDocData, { merge: true });
+    console.log('[SIGNUP DEBUG] Step 3 OK - user doc created');
 
-    // Store fingerprint data
-    console.log('[SIGNUP DEBUG] Step 5: storeFingerprint...');
-    await storeFingerprint({
-      fingerprint, ip, deviceId, phone, email,
-      userId: uid, businessId: businessRef.id,
-      // Blocked signups must also arm the guard, so a denied attempt propagates ineligibility to every key it exposed.
-      trialUsed: true,
-    });
-    console.log('[SIGNUP DEBUG] Step 5 OK - fingerprint stored');
-
-    // Send verification code email
-    console.log('[SIGNUP DEBUG] Step 6: sendVerificationCode...');
+    // Send verification code email (fingerprints and registeredPhones are now
+    // written server-side by createBusinessForSignup)
+    console.log('[SIGNUP DEBUG] Step 4: sendVerificationCode...');
     try {
       const functions = getFunctions(app);
       const sendVerificationCode = httpsCallable(functions, 'sendVerificationCode');
@@ -309,7 +220,7 @@ export function AuthProvider({ children }) {
       email,
       phone,
       businessName,
-      businessId: businessRef.id,
+      businessId,
       role: 'owner',
       emailVerified: false,
     });
