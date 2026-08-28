@@ -11,7 +11,6 @@ import {
   getDoc,
   updateDoc,
   collection,
-  addDoc,
   getDocs,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -48,34 +47,6 @@ export function AuthProvider({ children }) {
         emailVerified: userData.emailVerified || false,
       });
     }
-  };
-
-  /**
-   * Store fingerprint data and register the phone number after successful signup.
-   * Invite signups only — owner signups get their fingerprints and
-   * registeredPhones docs written server-side by createBusinessForSignup.
-   */
-  const storeFingerprint = async ({ fingerprint, ip, deviceId, phone, email, userId, businessId, trialUsed }) => {
-    console.log('[SIGNUP DEBUG] storeFingerprint - addDoc to fingerprints...');
-    await addDoc(collection(db, 'fingerprints'), {
-      visitorId: deviceId,
-      browserFingerprint: fingerprint,
-      ipAddress: ip,
-      phone,
-      phoneNormalized: phone ? phone.replace(/\D/g, '').slice(-10) : null,
-      email: email ? email.trim().toLowerCase() : email,
-      userId,
-      businessId,
-      trialUsed,
-      createdAt: serverTimestamp(),
-    });
-    console.log('[SIGNUP DEBUG] storeFingerprint - fingerprints doc OK, now addDoc to registeredPhones...');
-    await addDoc(collection(db, 'registeredPhones'), {
-      phone,
-      userId,
-      createdAt: serverTimestamp(),
-    });
-    console.log('[SIGNUP DEBUG] storeFingerprint - registeredPhones doc OK');
   };
 
   // Returns true if the phone (normalized to last 10 digits) is already stored on
@@ -254,14 +225,26 @@ export function AuthProvider({ children }) {
       createdAt: serverTimestamp(),
     });
 
-    await updateDoc(doc(db, 'invites', invite.id), { status: 'accepted' });
+    // Server-side fingerprint write. The callable requires the invite to still be
+    // 'pending', so it must run BEFORE the status flip below. It derives email and
+    // businessId server-side; only the invite id and fingerprint inputs go up.
+    // Idempotent — if it fails here, the invite stays pending and a retry is safe.
+    try {
+      const functions = getFunctions(app);
+      const registerInviteSignup = httpsCallable(functions, 'registerInviteSignup');
+      await registerInviteSignup({
+        inviteId: invite.id,
+        phone,
+        browserFingerprint: fingerprint,
+        visitorId: deviceId,
+        ipAddress: ip,
+      });
+    } catch (err) {
+      console.error('[SIGNUP DEBUG] registerInviteSignup FAILED:', err.code, err.message);
+      throw new Error("We couldn't finish setting up your account. Please try again.");
+    }
 
-    // Store fingerprint data (trialUsed false — invited user doesn't consume a trial)
-    await storeFingerprint({
-      fingerprint, ip, deviceId, phone, email,
-      userId: uid, businessId: invite.businessId,
-      trialUsed: false,
-    });
+    await updateDoc(doc(db, 'invites', invite.id), { status: 'accepted' });
 
     // Send verification code email
     try {
