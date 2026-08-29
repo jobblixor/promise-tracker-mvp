@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { db } from '../config/firebase';
 import app from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -28,47 +26,25 @@ export default function VerifyEmailPage() {
     setError('');
     setLoading(true);
     try {
-      // Query for verification codes for this user (no orderBy to avoid index requirement)
-      const q = query(
-        collection(db, 'verificationCodes'),
-        where('userId', '==', user.uid)
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) {
-        setError('No verification code found. Please request a new one.');
-        setLoading(false);
-        return;
-      }
-
-      // Sort client-side to get the latest code
-      const sorted = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      const data = sorted[0];
-
-      // Check expiry
-      const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
-      if (new Date() > expiresAt) {
-        setError('This code has expired. Please request a new one.');
-        setLoading(false);
-        return;
-      }
-
-      // Check code
-      if (data.code !== code.trim()) {
-        setError('Incorrect code. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      // Mark user as verified
-      await updateDoc(doc(db, 'users', user.uid), { emailVerified: true });
+      const verifyEmailCode = httpsCallable(functions, 'verifyEmailCode');
+      await verifyEmailCode({ code: code.trim() });
       await refreshUser();
       toast.success('Email verified successfully!');
       navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error('[VERIFY DEBUG] Verification error:', err.code, err.message, err);
-      setError('Verification failed. Please try again.');
+      // err.code is 'functions/<code>' in the modular SDK; strip the prefix so
+      // either form maps correctly.
+      const errCode = (err?.code || '').replace(/^functions\//, '');
+      if (errCode === 'not-found') {
+        setError('No verification code found. Please request a new one.');
+      } else if (errCode === 'deadline-exceeded') {
+        setError('This code has expired. Please request a new one.');
+      } else if (errCode === 'invalid-argument') {
+        setError('Incorrect code. Please try again.');
+      } else {
+        setError('Verification failed. Please try again.');
+      }
     }
     setLoading(false);
   };
