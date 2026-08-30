@@ -282,13 +282,13 @@ export default function TeamPage() {
         createdAt: serverTimestamp(),
         status: 'pending',
       });
-      toast.success('Invite sent successfully');
+      toast.success('Invite created');
       setInviteEmail('');
       setInvitePhone('');
       setInviteRole('tech');
       setShowInviteForm(false);
     } catch {
-      toast.error('Failed to send invite');
+      toast.error('Failed to create invite');
     }
     setInviting(false);
   };
@@ -389,8 +389,8 @@ export default function TeamPage() {
                   className="px-5 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-semibold rounded-[10px] transition-all duration-200 hover:shadow-[0_0_20px_rgba(34,197,94,0.25)] flex items-center gap-2"
                 >
                   {inviting ? (
-                    <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Sending...</>
-                  ) : 'Send Invite'}
+                    <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating...</>
+                  ) : 'Create Invite'}
                 </button>
                 <button
                   type="button"
@@ -408,6 +408,7 @@ export default function TeamPage() {
         {invites.length > 0 && (
           <div className="mb-8">
             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Pending Invites</h3>
+            <p className="text-xs text-text-muted mb-3">Invites aren't emailed automatically. Copy the link and send it to your team member so they can join.</p>
             <div className="space-y-3 stagger-children">
               {invites.map((invite) => (
                 <PendingInviteCard key={invite.id} invite={invite} onCopyLink={handleCopyLink} />
