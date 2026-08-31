@@ -46,7 +46,10 @@ body {
 /* Keyframes */
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  /* End at `none` (not translateY(0)) so the element doesn't keep a stacking
+     context after the animation — a retained transform traps child dropdowns'
+     z-index below later siblings. */
+  to { opacity: 1; transform: none; }
 }
 @keyframes fade-in {
   from { opacity: 0; }
