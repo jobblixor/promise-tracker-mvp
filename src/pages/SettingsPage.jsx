@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import { isValidUSPhone } from '../utils/phone';
 import Layout from '../components/Layout';
 
 function Toggle({ enabled, onChange, label }) {
@@ -340,6 +341,13 @@ export default function SettingsPage() {
     try {
       const trimmedPhone = phone.trim();
       if (trimmedPhone) {
+        // Validate before the duplicate check and the save. An empty phone is
+        // allowed here (saving without touching the phone must not be blocked);
+        // only a present value has to be a deliverable US number.
+        if (!isValidUSPhone(trimmedPhone)) {
+          toast.error('Please enter a valid 10-digit US phone number.');
+          return;
+        }
         // Server-side duplicate check — the excluded uid comes from the auth
         // token, and numbers shorter than 10 digits are never duplicates. A
         // callable error throws into the catch below, so the save FAILS rather

@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
+import { isValidUSPhone } from '../utils/phone';
 import Logo from '../components/Logo';
 
 export default function Signup() {
@@ -56,6 +57,12 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    // Validate before any account creation so bad input never reaches Auth
+    // or gets stored (SMS sends to a malformed number fail silently later).
+    if (!isValidUSPhone(phone)) {
+      setError('Please enter a valid 10-digit US phone number.');
+      return;
+    }
     setLoading(true);
     try {
       const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
