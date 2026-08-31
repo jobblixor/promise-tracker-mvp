@@ -9,7 +9,7 @@ import Logo from '../components/Logo';
 const functions = getFunctions(app);
 
 export default function VerifyEmailPage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [code, setCode] = useState('');
@@ -60,6 +60,20 @@ export default function VerifyEmailPage() {
       toast.error('Failed to resend code. Please try again.');
     }
     setResending(false);
+  };
+
+  // Escape hatch for a mistyped signup email: the code went to an address the
+  // user can't read, so let them drop this unverified session and re-signup
+  // with the correct email. Reuses the shared logout so the session is cleared
+  // the same way as everywhere else in the app.
+  const handleStartOver = async () => {
+    try {
+      await logout();
+    } catch {
+      toast.error('Sign out failed. Please try again.');
+      return;
+    }
+    navigate('/signup', { replace: true });
   };
 
   return (
@@ -119,6 +133,16 @@ export default function VerifyEmailPage() {
             {resending ? 'Sending...' : 'Resend Code'}
           </button>
         </div>
+
+        <p className="text-center text-sm text-text-muted mt-4">
+          Wrong email?{' '}
+          <button
+            onClick={handleStartOver}
+            className="text-accent hover:underline font-medium transition-colors duration-200"
+          >
+            Sign out and start over
+          </button>
+        </p>
 
         <p className="text-center text-xs text-[#64748b] mt-8">
           Didn&apos;t receive the code? Check spam or email{' '}
