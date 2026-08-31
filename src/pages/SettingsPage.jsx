@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { doc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db, auth } from '../config/firebase';
 import app from '../config/firebase';
@@ -340,18 +340,15 @@ export default function SettingsPage() {
     try {
       const trimmedPhone = phone.trim();
       if (trimmedPhone) {
-        const normalized = trimmedPhone.replace(/\D/g, '').slice(-10);
-        if (normalized.length === 10) {
-          const usersSnap = await getDocs(collection(db, 'users'));
-          const duplicate = usersSnap.docs.some((docSnap) => {
-            if (docSnap.id === user.uid) return false;
-            const stored = docSnap.data().phone;
-            return stored && stored.replace(/\D/g, '').slice(-10) === normalized;
-          });
-          if (duplicate) {
-            toast.error('This phone number is already linked to another account.');
-            return;
-          }
+        // Server-side duplicate check — the excluded uid comes from the auth
+        // token, and numbers shorter than 10 digits are never duplicates. A
+        // callable error throws into the catch below, so the save FAILS rather
+        // than silently allowing a possible duplicate.
+        const checkDuplicatePhone = httpsCallable(functions, 'checkDuplicatePhone');
+        const result = await checkDuplicatePhone({ phone: trimmedPhone });
+        if (result.data.isDuplicate) {
+          toast.error('This phone number is already linked to another account.');
+          return;
         }
       }
       await updateDoc(doc(db, 'users', user.uid), {

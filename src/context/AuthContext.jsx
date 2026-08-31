@@ -7,12 +7,8 @@ import {
 } from 'firebase/auth';
 import {
   doc,
-  setDoc,
   getDoc,
   updateDoc,
-  collection,
-  getDocs,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { auth, db } from '../config/firebase';
@@ -47,19 +43,6 @@ export function AuthProvider({ children }) {
         emailVerified: userData.emailVerified || false,
       });
     }
-  };
-
-  // Returns true if the phone (normalized to last 10 digits) is already stored on
-  // another user account. excludeUid lets the Settings page skip the current user.
-  const checkDuplicatePhone = async (phone, excludeUid = null) => {
-    const normalized = phone.replace(/\D/g, '').slice(-10);
-    if (normalized.length < 10) return false;
-    const snap = await getDocs(collection(db, 'users'));
-    return snap.docs.some((docSnap) => {
-      if (excludeUid && docSnap.id === excludeUid) return false;
-      const stored = docSnap.data().phone;
-      return stored && stored.replace(/\D/g, '').slice(-10) === normalized;
-    });
   };
 
   const signup = async (email, password, businessName, phone, timezone, hearAboutUs) => {
@@ -105,13 +88,17 @@ export function AuthProvider({ children }) {
     const uid = cred.user.uid;
     console.log('[SIGNUP DEBUG] Step 1 OK - uid:', uid, 'auth.currentUser:', auth.currentUser?.uid);
 
-    // Duplicate phone check — must run after auth creation (Firestore rules require auth).
-    // If the phone is already in use, surface a clear error so the caller can show it to
-    // the user. Only an account created by THIS call is rolled back — a resumed account
-    // predates this attempt (and may already own a business), so it must survive.
+    // Duplicate phone check — server-side callable; the excluded uid comes from the
+    // auth token, so it must run after auth creation. If the phone is already in use,
+    // surface a clear error so the caller can show it to the user. Only an account
+    // created by THIS call is rolled back — a resumed account predates this attempt
+    // (and may already own a business), so it must survive. A callable error is NOT
+    // treated as "no duplicate": it propagates and aborts signup.
     if (phone) {
-      const isDuplicate = await checkDuplicatePhone(phone, uid);
-      if (isDuplicate) {
+      const functions = getFunctions(app);
+      const checkDuplicatePhone = httpsCallable(functions, 'checkDuplicatePhone');
+      const dupResult = await checkDuplicatePhone({ phone });
+      if (dupResult.data.isDuplicate) {
         if (isNewAccount) {
           await cred.user.delete();
         } else {
@@ -151,26 +138,10 @@ export function AuthProvider({ children }) {
     }
     console.log('[SIGNUP DEBUG] Step 2 OK - businessId:', businessId);
 
-    // Create the user doc with businessId from the callable. The resume guard
-    // above guarantees no users doc exists yet; merge keeps the write safe if
-    // one ever appears between the guard and here.
-    console.log('[SIGNUP DEBUG] Step 3: setDoc to users/', uid);
-    const userDocData = {
-      uid,
-      email,
-      phone,
-      businessName,
-      businessId,
-      role: 'owner',
-      createdAt: serverTimestamp(),
-    };
-    if (referralCode) {
-      userDocData.referralCode = referralCode;
-      userDocData.referredAt = serverTimestamp();
-    }
-    if (hearAboutUs) { userDocData.hearAboutUs = hearAboutUs; }
-    await setDoc(doc(db, 'users', uid), userDocData, { merge: true });
-    console.log('[SIGNUP DEBUG] Step 3 OK - user doc created');
+    // The users doc is now created server-side by createBusinessForSignup
+    // (create-if-missing), including referralCode/hearAboutUs — the payload
+    // above already carries them. The client no longer writes users/{uid};
+    // app state below is built from in-scope values instead.
 
     // Send verification code email (fingerprints and registeredPhones are now
     // written server-side by createBusinessForSignup)
@@ -206,29 +177,25 @@ export function AuthProvider({ children }) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
 
-    // Duplicate phone check — roll back auth if phone already in use.
+    // Duplicate phone check — server-side callable (the excluded uid comes from the
+    // auth token). Roll back auth if phone already in use. A callable error is NOT
+    // treated as "no duplicate": it propagates and aborts signup.
     if (phone) {
-      const isDuplicate = await checkDuplicatePhone(phone);
-      if (isDuplicate) {
+      const functions = getFunctions(app);
+      const checkDuplicatePhone = httpsCallable(functions, 'checkDuplicatePhone');
+      const dupResult = await checkDuplicatePhone({ phone });
+      if (dupResult.data.isDuplicate) {
         await cred.user.delete();
         throw new Error('This phone number is already linked to another account.');
       }
     }
 
-    await setDoc(doc(db, 'users', uid), {
-      uid,
-      email,
-      phone,
-      businessName: invite.businessName,
-      businessId: invite.businessId,
-      role: invite.role,
-      createdAt: serverTimestamp(),
-    });
-
-    // Server-side fingerprint write. The callable requires the invite to still be
-    // 'pending', so it must run BEFORE the status flip below. It derives email and
-    // businessId server-side; only the invite id and fingerprint inputs go up.
-    // Idempotent — if it fails here, the invite stays pending and a retry is safe.
+    // Server-side fingerprint AND users-doc write. The callable requires the invite
+    // to still be 'pending', so it must run BEFORE the status flip below — and the
+    // status flip's rule reads users/{uid} (myBusinessId()), so the users doc this
+    // callable creates must exist before the flip. It derives email and businessId
+    // server-side; only the invite id and fingerprint inputs go up. Idempotent — if
+    // it fails here, the invite stays pending and a retry is safe.
     try {
       const functions = getFunctions(app);
       const registerInviteSignup = httpsCallable(functions, 'registerInviteSignup');
