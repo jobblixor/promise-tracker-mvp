@@ -8,23 +8,35 @@ service cloud.firestore {
     }
 
     // Users: can create only their own doc; any authenticated user can read (needed for team queries)
-    // Update own doc (businessId immutable); business owner can update role of team members
+    // Update own doc (businessId and role immutable); business owner can update role of team members
     match /users/{userId} {
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null;
-      allow delete: if request.auth != null && (
-        request.auth.uid == userId ||
-        // Business owner can remove team members from their business
-        (resource.data.businessId != null &&
-         get(/databases/$(database)/documents/businesses/$(resource.data.businessId)).data.ownerId == request.auth.uid)
+      allow create: if false; // users docs are created only by the createBusinessForSignup and registerInviteSignup Cloud Functions (Admin SDK, which bypasses rules); no client creates a users doc
+      // Self-read FIRST and independent of myBusinessId(): during signup the users doc doesn't exist yet
+      // (onAuthStateChanged fires before the server creates it), and dereferencing a missing doc in rules
+      // errors (= deny), so the self clause must short-circuit before any myBusinessId() call.
+      allow get: if request.auth != null && (
+        request.auth.uid == userId
+        || request.auth.token.email == "promisetrackermvp@gmail.com"
+        || resource.data.businessId == myBusinessId()
       );
+      allow list: if request.auth != null && (
+        request.auth.token.email == "promisetrackermvp@gmail.com"
+        || resource.data.businessId == myBusinessId()
+      );
+      // Owner-removes-member only; self-delete goes through the deleteAccount Cloud Function (Admin SDK)
+      allow delete: if request.auth != null
+        && resource.data.businessId != null
+        && get(/databases/$(database)/documents/businesses/$(resource.data.businessId)).data.ownerId == request.auth.uid;
       allow update: if request.auth != null && (
-        // Self-update: businessId is immutable
+        // Self-update: businessId, role, and emailVerified are immutable
         (request.auth.uid == userId &&
-         request.resource.data.businessId == resource.data.businessId) ||
-        // Business owner can update only the role field for members in their business
+         request.resource.data.businessId == resource.data.businessId &&
+         request.resource.data.role == resource.data.role &&
+         request.resource.data.get('emailVerified', null) == resource.data.get('emailVerified', null)) ||
+        // Business owner can update only the role field for members in their business (cannot assign 'owner')
         (resource.data.businessId != null &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']) &&
+         request.resource.data.role in ['manager','receptionist','tech'] &&
          get(/databases/$(database)/documents/businesses/$(resource.data.businessId)).data.ownerId == request.auth.uid)
       );
     }
@@ -59,33 +71,35 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.businessId == myBusinessId();
     }
 
-    // Invites: authenticated users can create and read
+    // Invites: get-by-ID stays open (invitee reads the invite while unauthenticated before signup);
+    // list/create scoped to the requester's business; update is only the invitee's status flip
     match /invites/{inviteId} {
-      allow read: if true; // need to read invite details during signup
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow get: if true; // by-ID only; invite IDs are unguessable auto-IDs (link secrecy). Needed because the invitee reads the invite while UNAUTHENTICATED before signup.
+      allow list: if request.auth != null && resource.data.businessId == myBusinessId();
+      allow create: if request.auth != null && request.resource.data.businessId == myBusinessId();
+      allow update: if request.auth != null
+                    && resource.data.businessId == myBusinessId()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                    && request.resource.data.status == 'accepted';
+      allow delete: if false; // no client code deletes invites
     }
 
-    // Fingerprints: only Cloud Functions should write, but allow create from client during signup
+    // Fingerprints: fully server-only — all access via Cloud Functions (Admin SDK); no client reads or writes
     match /fingerprints/{docId} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null;
+      allow create: if false; // created only by createBusinessForSignup / registerInviteSignup Cloud Functions (Admin SDK)
+      allow read: if false; // read only by Cloud Functions (Admin SDK); no client path reads this collection
       allow update, delete: if false;
     }
 
     // Registered phones: same as fingerprints
     match /registeredPhones/{docId} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null;
+      allow create: if false; // created only by createBusinessForSignup Cloud Function (Admin SDK)
+      allow read: if false; // read only by Cloud Functions (Admin SDK); no client path reads this collection
       allow update, delete: if false;
     }
 
-    // Verification codes: allow create and read for auth users
     match /verificationCodes/{docId} {
-      allow create, read: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if false;
+      allow read, create, update, delete: if false; // server-only: sendVerificationCode writes, verifyEmailCode reads/deletes (both Admin SDK)
     }
 
     // Affiliates: read-only from client (docs created manually in Firebase console)
