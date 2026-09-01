@@ -1209,8 +1209,14 @@ exports.onEmailVerified = onDocumentUpdated({
   const welcomeMsg = "Welcome to Promise Tracker! You can now log promises by texting this number anytime. Try it — text something like 'Quote for John by Friday' and I'll track it with reminders. Reply HELP for all commands.";
 
   try {
-    await sendSMS(after.phone, welcomeMsg);
-    console.log(`[onEmailVerified] Welcome SMS sent to ${after.phone}`);
+    // sendSMS swallows errors and returns false on failure, so the result must
+    // be checked — otherwise a failed send would still burn the one-time flag.
+    const smsSent = await sendSMS(after.phone, welcomeMsg);
+    if (smsSent) {
+      console.log(`[onEmailVerified] Welcome SMS sent to ${after.phone}`);
+    } else {
+      console.error(`[onEmailVerified] Welcome SMS failed for ${after.phone}; leaving welcomeSmsSent unset so a later attempt can retry`);
+    }
 
     // Send welcome email
     try {
@@ -1293,11 +1299,15 @@ exports.onEmailVerified = onDocumentUpdated({
       }
     } catch (emailError) {
       console.error('Error sending welcome email:', emailError);
-      // Don't fail the whole function if email fails — SMS already sent
+      // Don't fail the whole function if email fails — the SMS result is
+      // tracked separately via smsSent
     }
 
-    // Mark sent so this never fires again for this user
-    await event.data.after.ref.update({ welcomeSmsSent: true });
+    // Mark sent so this never fires again for this user — but only when the
+    // send actually succeeded, so a failed send stays retryable.
+    if (smsSent) {
+      await event.data.after.ref.update({ welcomeSmsSent: true });
+    }
   } catch (error) {
     console.error('[onEmailVerified] Error sending welcome SMS:', error);
   }
@@ -3739,12 +3749,56 @@ async function fingerprintHasUsedTrial(field, value) {
 }
 
 /**
+ * Create the owner users/{uid} doc if it does not already exist — the
+ * server-side counterpart of the client signup()'s setDoc, writing the same
+ * field shape. Create-if-missing: an existing doc (written by the client,
+ * which still writes it this stage, or by a prior retry) is never touched —
+ * the pre-read skips it, and the .create() (not .set()) loses cleanly to a
+ * concurrent writer. Failures are logged but never thrown: the business was
+ * already created, and the client's own users-doc write (or the next signup
+ * retry, which re-enters via the idempotency branch) covers a miss.
+ */
+async function ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId, referralCode, hearAboutUs }) {
+  try {
+    const userRef = db.collection("users").doc(uid);
+    const userSnap = await userRef.get();
+    if (userSnap.exists) {
+      console.log(`[createBusinessForSignup] users/${uid} already exists — skipping users-doc create`);
+      return;
+    }
+    const userData = {
+      uid,
+      email,
+      phone,
+      businessName,
+      businessId,
+      role: "owner",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    if (referralCode) {
+      userData.referralCode = referralCode;
+      userData.referredAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+    if (hearAboutUs) {
+      userData.hearAboutUs = hearAboutUs;
+    }
+    await userRef.create(userData);
+    console.log(`[createBusinessForSignup] Created users/${uid} (businessId: ${businessId})`);
+  } catch (err) {
+    console.error(`[createBusinessForSignup] users-doc create failed for ${uid}:`, err.message);
+  }
+}
+
+/**
  * Callable function: creates the businesses doc for a new signup, deciding
  * trial eligibility server-side with the same fingerprint checks the client's
  * runAbuseChecks performs today (phone, phoneNormalized, browserFingerprint,
  * ipAddress, visitorId, email) plus a canonicalized-email check. The plan
- * value is never accepted from the client. Idempotent: if the caller already
- * owns a business, returns it untouched so client retries are safe.
+ * value is never accepted from the client. Also creates the users doc
+ * (create-if-missing) — the client still writes it too this stage, and
+ * whichever lands first wins. Idempotent: if the caller already owns a
+ * business, returns it untouched (still ensuring the users doc exists) so
+ * client retries are safe.
  *
  * Called by the client's signup() in src/context/AuthContext.jsx.
  */
@@ -3754,8 +3808,6 @@ exports.createBusinessForSignup = onCall(async (request) => {
   }
 
   const uid = request.auth.uid;
-  // hearAboutUs is accepted now so the client payload doesn't change in Stage 2,
-  // but it belongs to the users doc, which stays client-written in this stage.
   const { businessName, phone, timezone, referralCode, hearAboutUs, browserFingerprint, visitorId, ipAddress } = request.data || {};
 
   if (!businessName) {
@@ -3763,20 +3815,25 @@ exports.createBusinessForSignup = onCall(async (request) => {
   }
 
   try {
-    // Idempotency first: if this user already owns a business, return it and
-    // do nothing else.
-    const existingSnap = await db.collection("businesses").where("ownerId", "==", uid).limit(1).get();
-    if (!existingSnap.empty) {
-      console.log(`[createBusinessForSignup] Business already exists for ${uid}: ${existingSnap.docs[0].id}`);
-      return { businessId: existingSnap.docs[0].id, alreadyExisted: true };
-    }
-
     // The signup email comes from the verified auth token, never the payload.
+    // Resolved before the idempotency check so the users-doc create has it on
+    // both the fresh and retry paths.
     let email = request.auth.token.email || null;
     if (!email) {
       const authUser = await admin.auth().getUser(uid);
       email = authUser.email || null;
     }
+
+    // Idempotency: if this user already owns a business, return it untouched —
+    // but still ensure the users doc exists, since a prior partial signup may
+    // have created the business and died before the users doc was written.
+    const existingSnap = await db.collection("businesses").where("ownerId", "==", uid).limit(1).get();
+    if (!existingSnap.empty) {
+      console.log(`[createBusinessForSignup] Business already exists for ${uid}: ${existingSnap.docs[0].id}`);
+      await ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId: existingSnap.docs[0].id, referralCode, hearAboutUs });
+      return { businessId: existingSnap.docs[0].id, alreadyExisted: true };
+    }
+
     const normalizedEmail = email ? email.trim().toLowerCase() : null;
     const emailCanonical = canonicalizeEmail(email);
     const phoneNormalized = phone ? phone.replace(/\D/g, "").slice(-10) : null;
@@ -3849,6 +3906,11 @@ exports.createBusinessForSignup = onCall(async (request) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    // Users doc last, mirroring the client's signup order (business →
+    // fingerprints → users doc). Create-if-missing and never throws — the
+    // client still writes this doc itself this stage.
+    await ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId: businessRef.id, referralCode, hearAboutUs });
+
     return {
       businessId: businessRef.id,
       plan: businessData.plan,
@@ -3859,5 +3921,273 @@ exports.createBusinessForSignup = onCall(async (request) => {
     if (err instanceof HttpsError) throw err;
     console.error(`[createBusinessForSignup] Failed for ${uid}:`, err.message);
     throw new HttpsError("internal", "Failed to create business");
+  }
+});
+
+/**
+ * Create the invited member's users/{uid} doc if it does not already exist —
+ * the invite-path counterpart of ensureOwnerUsersDoc, writing the same field
+ * shape as the client inviteSignup()'s setDoc. The tenancy fields
+ * (businessName, businessId, role) come from the server-loaded invite doc,
+ * never the payload. Create-if-missing: an existing doc is never touched —
+ * the pre-read skips it, and the .create() (not .set()) loses cleanly to a
+ * concurrent writer. Failures are logged but never thrown: a miss is
+ * recovered on the client's retry via registerInviteSignup's idempotency
+ * branch, which re-ensures this doc.
+ */
+async function ensureInviteUsersDoc({ uid, email, phone, businessName, businessId, role }) {
+  try {
+    const userRef = db.collection("users").doc(uid);
+    const userSnap = await userRef.get();
+    if (userSnap.exists) {
+      console.log(`[registerInviteSignup] users/${uid} already exists — skipping users-doc create`);
+      return;
+    }
+    await userRef.create({
+      uid,
+      email,
+      phone,
+      businessName,
+      businessId,
+      role,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`[registerInviteSignup] Created users/${uid} (businessId: ${businessId}, role: ${role})`);
+  } catch (err) {
+    console.error(`[registerInviteSignup] users-doc create failed for ${uid}:`, err.message);
+  }
+}
+
+/**
+ * Callable function: writes the fingerprints doc for an invite signup
+ * server-side — the invite-signup counterpart of createBusinessForSignup's
+ * fingerprint write, replacing the client's storeFingerprint on this path.
+ * businessId comes from the invite doc and email from the verified auth
+ * token, never the payload. trialUsed is hard-coded false: an invited
+ * member never consumes a trial. registeredPhones is intentionally not
+ * written on this path (nothing reads it). Also creates the users doc
+ * (create-if-missing) with businessName/businessId/role sourced from the
+ * server-loaded invite — this callable is the sole writer of that doc; the
+ * client no longer writes it. Does NOT touch the invite status — the client
+ * still does that. Idempotent: if the caller already has a fingerprints doc,
+ * the fingerprint write is skipped, but the users doc is still ensured
+ * (tolerating a non-pending invite) so a retry can recover a missed create.
+ *
+ * Called by the client's inviteSignup() in src/context/AuthContext.jsx.
+ */
+exports.registerInviteSignup = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required");
+  }
+
+  const uid = request.auth.uid;
+  const { inviteId, phone, browserFingerprint, visitorId, ipAddress } = request.data || {};
+
+  if (!inviteId) {
+    throw new HttpsError("invalid-argument", "Missing inviteId");
+  }
+
+  try {
+    // Idempotency first: if this user already has a fingerprints doc, this is
+    // a retry. The client no longer writes the users doc, so before returning,
+    // recover a users doc the first attempt may have failed to create: if it
+    // is missing, load the invite and ensure the doc via ensureInviteUsersDoc
+    // (create-if-missing — an existing doc is never overwritten). This branch
+    // deliberately does NOT require status === 'pending': a prior partial run
+    // may already have flipped the invite to 'accepted', and the retry must
+    // still be able to create the users doc.
+    const existingSnap = await db.collection("fingerprints").where("userId", "==", uid).limit(1).get();
+    if (!existingSnap.empty) {
+      console.log(`[registerInviteSignup] Fingerprint already exists for ${uid}: ${existingSnap.docs[0].id}`);
+      const userSnap = await db.collection("users").doc(uid).get();
+      if (!userSnap.exists) {
+        const inviteSnap = await db.collection("invites").doc(inviteId).get();
+        if (inviteSnap.exists && inviteSnap.data().businessId) {
+          let email = request.auth.token.email || null;
+          if (!email) {
+            const authUser = await admin.auth().getUser(uid);
+            email = authUser.email || null;
+          }
+          await ensureInviteUsersDoc({
+            uid,
+            email,
+            phone,
+            businessName: inviteSnap.data().businessName,
+            businessId: inviteSnap.data().businessId,
+            role: inviteSnap.data().role,
+          });
+        } else {
+          console.error(`[registerInviteSignup] Retry for ${uid}: users doc missing but invite ${inviteId} not found or has no businessId — cannot recover users doc`);
+        }
+      }
+      return { alreadyExisted: true };
+    }
+
+    // The invite is loaded server-side; businessId comes from it, never the payload.
+    const inviteSnap = await db.collection("invites").doc(inviteId).get();
+    if (!inviteSnap.exists || inviteSnap.data().status !== "pending" || !inviteSnap.data().businessId) {
+      throw new HttpsError("failed-precondition", "Invite not found or not pending");
+    }
+    const businessId = inviteSnap.data().businessId;
+
+    // The signup email comes from the verified auth token, never the payload.
+    let email = request.auth.token.email || null;
+    if (!email) {
+      const authUser = await admin.auth().getUser(uid);
+      email = authUser.email || null;
+    }
+    const normalizedEmail = email ? email.trim().toLowerCase() : null;
+    const emailCanonical = canonicalizeEmail(email);
+    const phoneNormalized = phone ? phone.replace(/\D/g, "").slice(-10) : null;
+
+    // Same field shape as createBusinessForSignup's fingerprints write.
+    await db.collection("fingerprints").add({
+      visitorId: visitorId || null,
+      browserFingerprint: browserFingerprint || null,
+      ipAddress: ipAddress || null,
+      phone: phone || null,
+      phoneNormalized,
+      email: normalizedEmail,
+      emailCanonical,
+      userId: uid,
+      businessId,
+      trialUsed: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[registerInviteSignup] Stored fingerprint for ${uid} (business ${businessId})`);
+
+    // Users doc — businessName/businessId/role sourced from the server-loaded
+    // invite, never the payload. Runs while the invite is still pending
+    // (validated above). Create-if-missing and never throws — a miss here is
+    // recovered by the idempotency branch above on the client's retry.
+    await ensureInviteUsersDoc({
+      uid,
+      email,
+      phone,
+      businessName: inviteSnap.data().businessName,
+      businessId,
+      role: inviteSnap.data().role,
+    });
+
+    return { success: true, alreadyExisted: false };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    console.error(`[registerInviteSignup] Failed for ${uid}:`, err.message);
+    throw new HttpsError("internal", "Failed to register invite signup");
+  }
+});
+
+// ─── Server-Side Email Verification ──────────────────────────────────
+
+/**
+ * Callable function: checks an email verification code server-side and marks
+ * the caller's users doc emailVerified. Replicates the check that
+ * VerifyEmailPage.jsx currently performs in the browser (latest code wins,
+ * expiry check, exact match), but reads verificationCodes and writes users via
+ * the Admin SDK so the code never has to be client-readable. The userId always
+ * comes from request.auth, never from the payload. Not called by any client yet.
+ */
+exports.verifyEmailCode = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required");
+  }
+
+  const uid = request.auth.uid;
+  const { code } = request.data || {};
+  const submittedCode = typeof code === "string" ? code.trim() : "";
+
+  if (!submittedCode) {
+    throw new HttpsError("invalid-argument", "Missing code");
+  }
+
+  try {
+    // Same query the client runs today: filter by userId only (no orderBy, so
+    // no composite index needed) and sort by createdAt in memory, newest first.
+    const snap = await db.collection("verificationCodes").where("userId", "==", uid).get();
+    if (snap.empty) {
+      throw new HttpsError("not-found", "No verification code found");
+    }
+
+    const sorted = snap.docs
+      .map((d) => d.data())
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    const latest = sorted[0];
+
+    const expiresAt = latest.expiresAt?.toDate ? latest.expiresAt.toDate() : new Date(latest.expiresAt);
+    if (new Date() > expiresAt) {
+      throw new HttpsError("deadline-exceeded", "Code expired");
+    }
+
+    if (latest.code !== submittedCode) {
+      throw new HttpsError("invalid-argument", "Incorrect code");
+    }
+
+    await db.collection("users").doc(uid).update({ emailVerified: true });
+    console.log(`[verifyEmailCode] Email verified for ${uid}`);
+
+    // Cleanup the client flow never did: delete this uid's code docs so a used
+    // code can't be replayed. Failures are logged and swallowed so cleanup can
+    // never undo a successful verification.
+    try {
+      await Promise.all(snap.docs.map((d) => d.ref.delete()));
+      console.log(`[verifyEmailCode] Deleted ${snap.size} code doc(s) for ${uid}`);
+    } catch (cleanupErr) {
+      console.error(`[verifyEmailCode] Cleanup failed for ${uid}:`, cleanupErr.message);
+    }
+
+    return { success: true };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    console.error(`[verifyEmailCode] Failed for ${uid}:`, err.message);
+    throw new HttpsError("internal", "Verification failed");
+  }
+});
+
+/**
+ * Server-side duplicate phone check — same contract as the client version:
+ * normalize to last 10 digits, anything shorter is never a duplicate, and the
+ * caller's own doc never counts as a match. The excluded uid comes from the
+ * verified auth token, never the payload, so a caller cannot exempt an
+ * arbitrary account from the check. Only VERIFIED accounts reserve a phone:
+ * an unverified users doc is an abandoned signup (e.g. a typo'd email whose
+ * verification code went to an inbox the person doesn't own, so it can never
+ * verify), and its phone must not block the same person's re-signup with the
+ * corrected email.
+ */
+exports.checkDuplicatePhone = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required");
+  }
+
+  const uid = request.auth.uid;
+  const { phone } = request.data || {};
+
+  const normalized = normalizeLast10(phone);
+  if (normalized.length < 10) {
+    return { isDuplicate: false };
+  }
+
+  try {
+    // findUserByPhone has no uid exclusion and would match the caller's own
+    // doc, so this runs the same scan with the exclusion added.
+    const usersSnap = await db.collection("users").get();
+    const isDuplicate = usersSnap.docs.some((docSnap) => {
+      if (docSnap.id === uid) return false;
+      const data = docSnap.data();
+      // emailVerified is absent until verifyEmailCode writes it, so the strict
+      // === true check treats both false and missing as unverified — orphan
+      // docs are skipped whichever shape they have.
+      if (data.emailVerified !== true) return false;
+      const stored = data.phone;
+      return stored && normalizeLast10(stored) === normalized;
+    });
+    return { isDuplicate };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    console.error(`[checkDuplicatePhone] Failed for ${uid}:`, err.message);
+    // Fail closed: surface the error rather than silently approving a phone
+    // that may be a duplicate.
+    throw new HttpsError("internal", "Duplicate phone check failed");
   }
 });
