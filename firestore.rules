@@ -43,7 +43,12 @@ service cloud.firestore {
 
     // Business docs: only members of that business can read/write
     match /businesses/{businessId} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid
+        || request.auth.token.email == "promisetrackermvp@gmail.com"
+        || businessId == myBusinessId()
+      );
+      allow list: if false;
       allow create: if false; // created only by createBusinessForSignup Cloud Function (Admin SDK)
       allow update: if request.auth != null
         && resource.data.ownerId == request.auth.uid
@@ -104,13 +109,13 @@ service cloud.firestore {
 
     // Affiliates: read-only from client (docs created manually in Firebase console)
     match /affiliates/{affiliateId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && request.auth.token.email == "promisetrackermvp@gmail.com";
       allow write: if false;
     }
 
     // Commission events: created by Cloud Functions (bypasses rules); admin can update to mark as paid
     match /commissionEvents/{eventId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && request.auth.token.email == "promisetrackermvp@gmail.com";
       allow create: if false;
       allow update: if request.auth != null && request.auth.token.email == "promisetrackermvp@gmail.com";
       allow delete: if false;
