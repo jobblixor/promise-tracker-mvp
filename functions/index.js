@@ -4,6 +4,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 // SMS provider: Vonage Messages API
 
 admin.initializeApp();
@@ -18,6 +19,253 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP2GO_PASSWORD,
   },
 });
+
+// Outbound SMS profanity mask. Carriers reject messages containing certain words
+// (confirmed: Verizon rejects "shit" with Vonage error 1030), and PT must not relay
+// slurs over SMS even when a carrier allows them. The mask applies only to the body
+// sent to Vonage; Firestore and logs keep the verbatim text. Word-boundary matching
+// only, so words like "Scunthorpe" and "assessment" are never touched; compounds and
+// inflections are listed explicitly because word boundaries do not catch them.
+const PROFANITY_WORDS = [
+  '2 girls 1 cup', '2g1c', '4r5e', '5h1t', '5hit', 'a55', 'a_s_s', 'acrotomophilia',
+  'alabama hot pocket', 'alaskan pipeline', 'anal', 'anilingus', 'anus', 'apeshit', 'ar5e', 'arrse',
+  'arse', 'arsehole', 'ass', 'ass-fucker', 'ass-hat', 'ass-pirate', 'assbag', 'assbandit',
+  'assbanger', 'assbite', 'assclown', 'asscock', 'asscracker', 'asses', 'assface', 'assfucker',
+  'assfukka', 'assgoblin', 'asshat', 'asshead', 'asshole', 'assholes', 'asshopper', 'assjacker',
+  'asslick', 'asslicker', 'assmonkey', 'assmunch', 'assmuncher', 'asspirate', 'assshole',
+  'asssucker', 'asswad', 'asswhole', 'asswipe', 'auto erotic', 'autoerotic', 'b!tch', 'b00bs',
+  'b17ch', 'b1tch', 'babeland', 'baby batter', 'baby juice', 'ball gag', 'ball gravy',
+  'ball kicking', 'ball licking', 'ball sack', 'ball sucking', 'ballbag', 'ballsack',
+  'bampot', 'bangbros', 'bareback', 'barely legal', 'barenaked', 'bastardo', 'bastinado',
+  'bbw', 'bdsm', 'beaner', 'beaners', 'beastial', 'beastiality', 'beastility', 'beaver cleaver',
+  'beaver lips', 'bellend', 'bestial', 'bestiality', 'bi+ch', 'biatch', 'big breasts',
+  'big knockers', 'big tits', 'bimbos', 'birdlock', 'bitcher', 'bitchers',
+  'bitchin', 'bitching', 'black cock', 'blonde action', 'blonde on blonde action', 'blow job',
+  'blow your load', 'blowjob', 'blowjobs', 'blue waffle', 'blumpkin', 'boiolas', 'bollock',
+  'bollocks', 'bollok', 'bollox', 'bondage', 'boner', 'boob', 'boobie', 'boobs', 'booobs',
+  'boooobs', 'booooobs', 'booooooobs', 'booty call', 'breasts', 'brown showers', 'brunette action',
+  'buceta', 'bugger', 'bukkake', 'bulldyke', 'bullet vibe', 'bullshit', 'bung hole', 'bunghole',
+  'bunny fucker', 'busty', 'butt-pirate', 'buttcheeks', 'butthole', 'buttmunch', 'buttplug',
+  'c0ck', 'c0cksucker', 'camel toe', 'camgirl', 'camslut', 'camwhore', 'carpet muncher',
+  'carpetmuncher', 'cawk', 'chinc', 'chink', 'choad', 'chocolate rosebuds', 'chode', 'cipa',
+  'circlejerk', 'cl1t', 'cleveland steamer', 'clit', 'clitface', 'clitoris', 'clits',
+  'clover clamps', 'clusterfuck', 'cnut', 'cock', 'cock-sucker', 'cockbite', 'cockburger',
+  'cockface', 'cockhead', 'cockjockey', 'cockknoker', 'cockmaster', 'cockmongler', 'cockmongruel',
+  'cockmonkey', 'cockmunch', 'cockmuncher', 'cocknose', 'cocknugget', 'cocks', 'cockshit',
+  'cocksmith', 'cocksmoker', 'cocksuck', 'cocksucked', 'cocksucker', 'cocksucking', 'cocksucks',
+  'cocksuka', 'cocksukka', 'cok', 'cokmuncher', 'coksucka', 'coochie', 'coochy', 'coon', 'coons',
+  'cooter', 'coprolagnia', 'coprophilia', 'cornhole', 'creampie', 'cum', 'cumbubble',
+  'cumdumpster', 'cumguzzler', 'cumjockey', 'cummer', 'cums', 'cumshot', 'cumslut',
+  'cumtart', 'cunilingus', 'cunillingus', 'cunnie', 'cunnilingus', 'cunt', 'cuntface', 'cunthole',
+  'cuntlick', 'cuntlicker', 'cuntlicking', 'cuntrag', 'cunts', 'cyalis', 'cyberfuc', 'cyberfuck',
+  'cyberfucked', 'cyberfucker', 'cyberfuckers', 'cyberfucking', 'd1ck', 'darkie', 'date rape',
+  'daterape', 'deep throat', 'deepthroat', 'dendrophilia', 'dickbag', 'dickbeater',
+  'dickface', 'dickhead', 'dickhole', 'dickjuice', 'dickmilk', 'dickmonger', 'dickslap',
+  'dicksucker', 'dickwad', 'dickweasel', 'dickweed', 'dickwod', 'dildos',
+  'dingleberries', 'dingleberry', 'dinks', 'dipshit', 'dirsa', 'dirty pillows',
+  'dirty sanchez', 'dlck', 'dog style', 'dog-fucker', 'doggie style', 'doggiestyle', 'doggin',
+  'dogging', 'doggy style', 'doggystyle', 'dolcett', 'domination', 'dominatrix', 'dommes',
+  'donkey punch', 'donkeyribber', 'doochbag', 'dookie', 'doosh', 'double dong',
+  'double penetration', 'douche', 'douchebag', 'dp action', 'dry hump', 'duche', 'dumbshit',
+  'dumshit', 'dvda', 'eat my ass', 'ecchi', 'ejaculate', 'ejaculated', 'ejaculates',
+  'ejaculating', 'ejaculatings', 'ejaculation', 'ejakulate', 'erotic', 'erotism',
+  'eunuch', 'f u c k', 'f u c k e r', 'f4nny', 'f_u_c_k', 'fag', 'fagbag', 'fagg', 'fagging',
+  'faggit', 'faggitt', 'faggot', 'faggots', 'faggs', 'fagot', 'fagots', 'fags', 'fagtard',
+  'fannyflaps', 'fannyfucker', 'fanyy', 'farted', 'farty', 'fatass',
+  'fcuker', 'fcuking', 'fecal', 'feck', 'fecker', 'felatio', 'felching', 'fellate',
+  'fellatio', 'feltch', 'female squirting', 'femdom', 'figging', 'fingerbang', 'fingerfuck',
+  'fingerfucked', 'fingerfucker', 'fingerfuckers', 'fingerfucking', 'fingerfucks', 'fingering',
+  'fistfuck', 'fistfucked', 'fistfucker', 'fistfuckers', 'fistfucking', 'fistfuckings', 'fistfucks',
+  'fisting', 'fook', 'fooker', 'foot fetish', 'footjob', 'frotting', 'fuck',
+  'fuck buttons', 'fucka', 'fucked', 'fucker', 'fuckers', 'fuckhead', 'fuckheads', 'fuckin',
+  'fucking', 'fuckings', 'fuckingshitmotherfucker', 'fuckme', 'fucks', 'fucktards', 'fuckwhit',
+  'fuckwit', 'fudge packer', 'fudgepacker', 'fuk', 'fuker', 'fukker', 'fukkin', 'fuks', 'fukwhit',
+  'fukwit', 'futanari', 'fux', 'fux0r', 'g-spot', 'gang bang', 'gangbang', 'gangbanged',
+  'gangbangs', 'gay sex', 'gayass', 'gaybob', 'gaydo', 'gaysex', 'gaytard', 'gaywad',
+  'genitals', 'giant cock', 'girl on', 'girl on top', 'girls gone wild', 'goatcx', 'goatse',
+  'golden shower', 'goo girl', 'gooch', 'goodpoop', 'gook', 'goregasm', 'gringo', 'grope',
+  'group sex', 'guro', 'hand job', 'handjob', 'hardcoresex',
+  'heeb', 'hentai', 'heshe', 'hoar', 'hoare', 'hoer', 'homoerotic', 'honkey',
+  'honky', 'hore', 'horniest', 'horny', 'hot carl', 'hot chick', 'hotsex',
+  'how to murder', 'huge fat', 'humping', 'incest', 'jack off', 'jack-off',
+  'jackass', 'jackoff', 'jail bait', 'jailbait', 'jap', 'jelly donut', 'jerk off', 'jerk-off',
+  'jigaboo', 'jiggaboo', 'jiggerboo', 'jism', 'jiz', 'jizm', 'jizz', 'juggs', 'kawk', 'kike',
+  'kinbaku', 'kinkster', 'kinky', 'kiunt', 'knobbing', 'knobead', 'knobed', 'knobend',
+  'knobhead', 'knobjocky', 'knobjokey', 'kock', 'kondum', 'kondums', 'kooch', 'kootch', 'kum',
+  'kumer', 'kummer', 'kumming', 'kums', 'kunilingus', 'kunt', 'kyke', 'l3i+ch', 'l3itch', 'labia',
+  'leather restraint', 'leather straight jacket', 'lemon party', 'lesbo', 'lezzie', 'lmfao',
+  'lolita', 'lovemaking', 'lust', 'lusting', 'm0f0', 'm0fo', 'm45terbate', 'ma5terb8', 'ma5terbate',
+  'make me come', 'male squirting', 'masochist', 'master-bate', 'masterb8', 'masterbat3',
+  'masterbate', 'masterbation', 'masterbations', 'masturbate', 'menage a trois', 'milf',
+  'missionary position', 'mo-fo', 'mof0', 'mofo', 'mothafuck', 'mothafucka', 'mothafuckas',
+  'mothafuckaz', 'mothafucked', 'mothafucker', 'mothafuckers', 'mothafuckin', 'mothafucking',
+  'mothafuckings', 'mothafucks', 'mother fucker', 'motherfuck', 'motherfucked', 'motherfucker',
+  'motherfuckers', 'motherfuckin', 'motherfucking', 'motherfuckings', 'motherfuckka', 'motherfucks',
+  'mound of venus', 'mr hands', 'muff diver', 'muffdiver', 'muffdiving', 'mutha',
+  'muthafecker', 'muthafuckker', 'muther', 'mutherfucker', 'n1gga', 'n1gger', 'nambla', 'nawashi',
+  'nazi', 'negro', 'neonazi', 'nig nog', 'nigg3r', 'nigg4h', 'nigga', 'niggah', 'niggas', 'niggaz',
+  'nigger', 'niggers', 'niglet', 'nimphomania', 'nob jokey', 'nobhead',
+  'nobjocky', 'nobjokey', 'nsfw images', 'nudity', 'numbnuts', 'nutsack', 'nympho',
+  'nymphomania', 'octopussy', 'omorashi', 'one cup two girls', 'one guy one jar', 'orgasim',
+  'orgasims', 'orgasm', 'orgasms', 'orgy', 'p0rn', 'paedophile', 'paki', 'panooch', 'panties',
+  'panty', 'pecker', 'pedobear', 'pedophile', 'pegging', 'penis', 'penisfucker',
+  'phone sex', 'phonesex', 'phuck', 'phuk', 'phuked', 'phuking', 'phukked', 'phukking', 'phuks',
+  'phuq', 'piece of shit', 'pigfucker', 'pimpis', 'pis', 'pises', 'pisin', 'pising', 'pisof',
+  'piss pig', 'pisser', 'pissers', 'pisses', 'pissflap', 'pissflaps', 'pissin',
+  'pissoff', 'pisspig', 'playboy', 'pleasure chest', 'pole smoker', 'polesmoker',
+  'ponyplay', 'poof', 'poon', 'poonani', 'poonany', 'poontang',
+  'poop chute', 'poopchute', 'porn', 'porno', 'pornography', 'pornos', 'pricks',
+  'prince albert piercing', 'pron', 'pthc', 'pube', 'pubes', 'punanny', 'punany', 'pusies',
+  'pusse', 'pussi', 'pussies', 'pussy', 'pussylicking', 'pussys', 'pusy', 'puto', 'queaf', 'queef',
+  'queerbait', 'queerhole', 'quim', 'raghead', 'raging boner', 'rape', 'raping', 'rapist', 'rectum',
+  'renob', 'retard', 'reverse cowgirl', 'rimjaw', 'rimjob', 'rimming', 'rosy palm',
+  'rosy palm and her 5 sisters', 'ruski', 'rusty trombone', 's hit', 's&m', 's.o.b.', 's_h_i_t',
+  'sadism', 'sadist', 'schlong', 'scissoring', 'scroat', 'scrote',
+  'scrotum', 'semen', 'sex', 'sexo', 'sexy', 'sh!+', 'sh!t', 'sh1t', 'shagger', 'shaggin',
+  'shagging', 'shaved beaver', 'shaved pussy', 'shemale', 'shi+', 'shibari', 'shit', 'shit-ass',
+  'shit-bag', 'shit-bagger', 'shit-brain', 'shit-breath', 'shit-cunt', 'shit-dick', 'shit-eating',
+  'shit-face', 'shit-faced', 'shit-fit', 'shit-head', 'shit-heel', 'shit-hole', 'shit-house',
+  'shit-load', 'shit-pot', 'shit-spitter', 'shit-stain', 'shitass', 'shitbag', 'shitbagger',
+  'shitblimp', 'shitbrain', 'shitbreath', 'shitcunt', 'shitdick', 'shite', 'shiteating', 'shited',
+  'shitey', 'shitface', 'shitfaced', 'shitfit', 'shitfuck', 'shitfull', 'shithead', 'shitheel',
+  'shithole', 'shithouse', 'shiting', 'shitings', 'shitload', 'shitpot', 'shits', 'shitspitter',
+  'shitstain', 'shitted', 'shitter', 'shitters', 'shittiest', 'shitting', 'shittings', 'shitty',
+  'shity', 'shiz', 'shiznit', 'shota', 'shrimping', 'skank', 'slanteye', 'slut', 'slutbag',
+  'sluts', 'smegma', 'smut', 'snowballing', 'sodomize', 'sodomy',
+  'son-of-a-bitch', 'spac', 'spic', 'spick', 'splooge', 'splooge moose', 'spooge', 'spread legs',
+  'spunk', 'strap on', 'strapon', 'strappado', 'strip club', 'style doggy',
+  'suicide girls', 'sultry women', 'swastika', 'swinger', 't1tt1e5', 't1tties',
+  'tainted love', 'tard', 'taste my', 'tea bagging', 'teets', 'teez', 'testical', 'testicle',
+  'throating', 'thundercunt', 'tight white', 'tit', 'titfuck', 'tits',
+  'titt', 'tittie5', 'tittiefucker', 'titties', 'titty', 'tittyfuck', 'tittywank', 'titwank',
+  'tongue in a', 'topless', 'tosser', 'towelhead', 'tribadism', 'tub girl', 'tubgirl',
+  'tw4t', 'twat', 'twathead', 'twatlips', 'twatty', 'twink', 'twinkie',
+  'two girls one cup', 'twunt', 'twunter', 'undressing', 'upskirt', 'urethra play', 'urophilia',
+  'v14gra', 'v1gra', 'va-j-j', 'vag', 'vagina', 'venus mound', 'viagra', 'violet wand',
+  'vjayjay', 'vorarephilia', 'voyeur', 'vulva', 'w00se', 'wank', 'wanker', 'wanky',
+  'wet dream', 'wetback', 'white power', 'whoar', 'whore', 'wrapping men',
+  'wrinkled starfish', 'xrated', 'xx', 'xxx', 'yaoi', 'yellow showers', 'yiffy', 'zoophilia',
+];
+const MASK_RE = new RegExp(
+  '\\b(' + PROFANITY_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b',
+  'gi'
+);
+// Keeps the first character (preserving case) and replaces the rest with "*",
+// which is GSM-7 so the segment count is unchanged. Never throws: non-string
+// or empty input is returned unchanged.
+const maskProfanity = (text) =>
+  (typeof text === 'string' && text) ? text.replace(MASK_RE, (w) => w[0] + '*'.repeat(w.length - 1)) : text;
+
+// Carrier-safe word swaps: ordinary English words Vonage's carrier-side filter
+// deterministically rejects with code 1030 (each tested ~20/20 failures).
+// Swapped to a safe synonym at parse time so the stored promise text delivers.
+// Word-boundary matched: "escorted" and "scrap" are untouched. Never throws.
+const CARRIER_SAFE_SWAPS = { escort: 'accompany', crap: 'junk' };
+const applyCarrierSafeSwaps = (text) => {
+  if (typeof text !== 'string' || !text) return text;
+  try {
+    let out = text;
+    for (const [word, safe] of Object.entries(CARRIER_SAFE_SWAPS)) {
+      const re = new RegExp('\\b' + word + '\\b', 'gi');
+      out = out.replace(re, (m) =>
+        /[A-Z]/.test(m[0]) ? safe.charAt(0).toUpperCase() + safe.slice(1) : safe
+      );
+    }
+    return out;
+  } catch (swapErr) {
+    return text;
+  }
+};
+
+// Suspected-blocked-word detection (status webhook): tokens worth counting from
+// a twice-failed message body. Stopwords cover common English plus words that
+// appear in nearly every PT reminder template, so two unrelated failures do not
+// push template words over the alert threshold.
+const SUSPECT_STOPWORDS = new Set([
+  'the', 'and', 'for', 'you', 'your', 'yours', 'with', 'that', 'this', 'these',
+  'those', 'have', 'has', 'had', 'will', 'was', 'were', 'are', 'not', 'but',
+  'all', 'any', 'can', 'get', 'got', 'our', 'out', 'off', 'from', 'they',
+  'them', 'their', 'then', 'than', 'she', 'her', 'him', 'his', 'who', 'what',
+  'when', 'where', 'why', 'how', 'about', 'just', 'also', 'been', 'being',
+  'into', 'over', 'under', 'again', 'still', 'back', 'don', 'dont', 'its',
+  'isnt', 'cant', 'wont', 'didnt', 'doesnt', 'youre', 'youll', 'ive', 'weve',
+  'lets', 'thats', 'whats', 'youd',
+  'please', 'reply', 'text', 'texts', 'see', 'check', 'due', 'list', 'yes',
+  'help', 'promise', 'promises', 'promised', 'promising', 'reminder',
+  'reminders', 'tracker', 'app',
+  'today', 'tomorrow', 'tonight', 'monday', 'tuesday', 'wednesday', 'thursday',
+  'friday', 'saturday', 'sunday',
+  'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct',
+  'nov', 'dec',
+]);
+// Lowercase, strip punctuation to spaces, split on whitespace, drop tokens
+// under 3 chars, pure digits, and stopwords; dedupe; cap at 50. The surviving
+// alphabet [a-z0-9]{3,} makes every token a valid Firestore doc ID. Never
+// throws; non-string input yields [].
+function tokenizeForBlockedWordDetection(text) {
+  if (typeof text !== 'string' || !text) return [];
+  try {
+    return [...new Set(
+      text.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !SUSPECT_STOPWORDS.has(w))
+    )].slice(0, 50);
+  } catch (tokErr) {
+    return [];
+  }
+}
+
+// Normalized fingerprint of a message body: whitespace collapsed, lowercased,
+// sha256 truncated to 16 hex chars. Used to tell DIFFERING failed texts apart
+// from identical re-fires: identical texts are one piece of evidence, however
+// many times they fail. Never throws.
+function hashMessageText(text) {
+  try {
+    const normalized = String(text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    return crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
+  } catch (hashErr) {
+    return 'hash-error';
+  }
+}
+
+// Evidence update for one suspectedBlockedWords/{token} doc, pure so it can be
+// unit-tested. prevData is the existing doc data (or null for a new doc).
+// count tracks DISTINCT failed message texts (via textHashes, capped at 10);
+// an identical re-failed text refreshes metadata but adds no evidence. Beyond
+// 10 stored hashes novelty cannot be proven, so counting continues; that only
+// affects the informational count, since the alert fires at 2. coOccurringWords
+// accumulates the other tokens seen alongside this one (capped at 50) so review
+// can tell a real trigger from a coincidental co-occurring word. Returns
+// { fields, crossed }: fields omits lastSeen (the transaction stamps that);
+// crossed is true exactly on the 1->2 distinct-text transition (alert once).
+function buildSuspectWordUpdate(prevData, msgHash, msgUuid, coTokens, messageText) {
+  const data = prevData || {};
+  const hashes = Array.isArray(data.textHashes) ? data.textHashes.slice(0, 10) : [];
+  const isNewText = !hashes.includes(msgHash);
+  if (isNewText && hashes.length < 10) hashes.push(msgHash);
+  const prevCount = typeof data.count === 'number' ? data.count : 0;
+  const newCount = isNewText ? prevCount + 1 : prevCount;
+  const samples = Array.isArray(data.sampleUuids) ? data.sampleUuids.slice(0, 5) : [];
+  if (samples.length < 5 && typeof msgUuid === 'string' && msgUuid && !samples.includes(msgUuid)) {
+    samples.push(msgUuid);
+  }
+  const co = new Set(Array.isArray(data.coOccurringWords) ? data.coOccurringWords.slice(0, 50) : []);
+  for (const t of (Array.isArray(coTokens) ? coTokens : [])) {
+    if (co.size >= 50) break;
+    co.add(t);
+  }
+  return {
+    fields: {
+      count: newCount,
+      textHashes: hashes,
+      sampleUuids: samples,
+      coOccurringWords: [...co],
+      lastMessageText: String(messageText || '').slice(0, 500),
+    },
+    crossed: isNewText && newCount === 2,
+  };
+}
 
 /**
  * Format a phone number to E.164-ish format required by Vonage: "1XXXXXXXXXX"
@@ -34,7 +282,7 @@ function formatPhoneForVonage(phone) {
  * Send an SMS via Vonage Messages API. Logs and swallows errors so one failure
  * doesn't stop processing the remaining promises.
  */
-async function sendSMS(to, message) {
+async function sendSMS(to, message, opts = {}) {
   try {
     const formattedTo = formatPhoneForVonage(to);
     console.log(`Sending SMS via Vonage to ${formattedTo}: ${message}`);
@@ -42,6 +290,10 @@ async function sendSMS(to, message) {
     const credentials = Buffer.from(
       `${process.env.VONAGE_API_KEY}:${process.env.VONAGE_API_SECRET}`
     ).toString('base64');
+
+    // Mask flagged words only in the body sent to Vonage; logs and the
+    // outboundMessages record keep the verbatim text.
+    const maskedMessage = maskProfanity(message);
 
     const response = await fetch('https://api.nexmo.com/v1/messages', {
       method: 'POST',
@@ -54,13 +306,38 @@ async function sendSMS(to, message) {
         from: process.env.VONAGE_FROM_NUMBER,
         channel: 'sms',
         message_type: 'text',
-        text: message
+        text: maskedMessage
       })
     });
 
     const result = await response.json();
     if (response.ok) {
       console.log(`SMS sent successfully via Vonage. message_uuid: ${result.message_uuid}`);
+      // Best-effort record so the status webhook can look up the body by message_uuid and resend.
+      // Never throws and never changes the return value. A missed record only means that one
+      // message cannot be auto-resent.
+      if (typeof result.message_uuid === 'string' && result.message_uuid) {
+        try {
+          const docData = {
+            messageUuid: result.message_uuid,
+            to: formattedTo,
+            text: message,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          };
+          // Whitelist only known flags from opts (never spread opts). A doc carrying
+          // resendOf is itself a resend and can never be claimed for another resend
+          // (structural cap). isSystemAlert / isStage3Notification mark PT's own
+          // notification sends so a failed notification can never trigger a
+          // Stage 3 notification about itself (loop prevention).
+          if (typeof opts.resendOf === 'string' && opts.resendOf) docData.resendOf = opts.resendOf;
+          if (opts.isSystemAlert === true) docData.isSystemAlert = true;
+          if (opts.isStage3Notification === true) docData.isStage3Notification = true;
+          await db.collection('outboundMessages').doc(result.message_uuid).set(docData);
+        } catch (persistErr) {
+          console.error(`[SMS OUTBOUND] failed to persist outboundMessages record for uuid=${result.message_uuid}: ${persistErr.message}`);
+        }
+      }
       return true;
     } else {
       console.log(`Vonage SMS failed:`, JSON.stringify(result));
@@ -1837,6 +2114,9 @@ async function parsePromiseText(messageText, timezone = 'America/New_York') {
         parsed.promise_text += ' (call ' + phoneList + ')';
       }
     }
+    // Swap deterministically carrier-blocked words for safe synonyms so the
+    // stored description and the SMS bodies built from it can deliver.
+    parsed.promise_text = applyCarrierSafeSwaps(parsed.promise_text);
     if (parsed.customer_name) {
       parsed.customer_name = parsed.customer_name
         .split(' ')
@@ -3208,6 +3488,248 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
   }
   // ALWAYS send 200 at the very end so Vonage doesn't retry
   res.status(200).send('OK');
+});
+
+/**
+ * HTTP endpoint: receives Vonage message-status (delivery receipt) callbacks.
+ * Stage 2b: on a rejected receipt with error code 1030 (Vonage content
+ * filter), resends the stored message ONCE via sendSMS (which masks it).
+ * The claim is transactional so duplicate/concurrent receipts cannot
+ * double-send, and a doc that is itself a resend (resendOf set) is never
+ * claimed, so at most one resend per original message.
+ * Exists because Vonage returns HTTP 202 at send time and reports the real
+ * delivery outcome (e.g. rejected, code 1030) asynchronously via this webhook.
+ */
+exports.handleMessageStatus = onRequest(async (req, res) => {
+  try {
+    // Log the entire raw payload verbatim. We do not yet know whether this
+    // account sends the Messages API format (message_uuid, nested error
+    // object) or the legacy DLR format (messageId, flat err-code); logging
+    // the whole body captures whichever arrives.
+    console.log('[MSG STATUS] raw payload:', JSON.stringify(req.body));
+
+    // Structured line: read both possible key names, log whatever is present.
+    const uuid = req.body?.message_uuid || req.body?.messageId || null;
+    const status = req.body?.status || null;
+    const errTitle = req.body?.error?.title ?? null;
+    const errDetail = req.body?.error?.detail ?? null;
+    const errCodeLegacy = req.body?.['err-code'] ?? null;
+    console.log(`[MSG STATUS] uuid=${uuid} status=${status} errTitle=${errTitle} errCodeLegacy=${errCodeLegacy} errDetail=${errDetail}`);
+
+    // Stage 2b: one-shot resend of messages Vonage rejected with code 1030
+    // (word-list content filter). Runs BEFORE the 200 because gen-2 functions
+    // throttle CPU after the response is sent. Any throw here lands in the
+    // outer catch, which still returns 200.
+    if (req.body?.status === 'rejected' && req.body?.error?.code === 1030 &&
+        typeof uuid === 'string' && uuid) {
+      const ref = db.collection('outboundMessages').doc(uuid);
+      let resendAction = null;
+      let resendTo = null;
+      let resendText = null;
+      let resendIsSystemAlert = false;
+      let resendIsStage3 = false;
+      let stage3To = null;
+      let stage3Text = null;
+
+      // The transaction only reads and claims; the send happens after commit.
+      // Concurrent deliveries of the same receipt serialize here: only one
+      // commits the claim, so only one sends. Do NOT use get-then-set here
+      // (non-atomic; would double-send).
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) {
+          // No stored record: the body is unrecoverable, cannot resend.
+          resendAction = 'skip-missing';
+          return;
+        }
+        const d = snap.data();
+        if (d.resendOf) {
+          // This doc is ITSELF a resend that got rejected. Structural cap:
+          // never claim it, so a resend-of-a-resend is impossible.
+          // Stage 3 (contractor notification) attaches here.
+          if (d.isStage3Notification === true || d.isSystemAlert === true) {
+            // Loop prevention: a failed PT notification must never trigger
+            // another Stage 3 notification about itself.
+            resendAction = 'skip-chain-capped-notification';
+            return;
+          }
+          if (d.stage3HandledAt) {
+            // Duplicate receipt: Stage 3 already fired for this doc.
+            resendAction = 'skip-chain-capped-duplicate';
+            return;
+          }
+          // One-shot marker, same pattern as the resend claim: commits before
+          // any send, so duplicate or concurrent receipts cannot double-notify.
+          tx.update(ref, { stage3HandledAt: admin.firestore.FieldValue.serverTimestamp() });
+          stage3To = d.to;
+          stage3Text = typeof d.text === 'string' ? d.text : '';
+          resendAction = 'skip-chain-capped';
+          return;
+        }
+        if (d.resendClaimedAt) {
+          // Duplicate receipt or concurrent invocation already claimed it.
+          resendAction = 'skip-already-claimed';
+          return;
+        }
+        if (d.expiresAt && d.expiresAt.toMillis && d.expiresAt.toMillis() < Date.now()) {
+          resendAction = 'skip-expired';
+          return;
+        }
+        tx.update(ref, {
+          resendClaimedAt: admin.firestore.FieldValue.serverTimestamp(),
+          resendStatus: 'claimed',
+        });
+        resendTo = d.to;
+        resendText = d.text;
+        // Carry the notification flags onto the resend so that if the resend
+        // also fails, the chain-capped doc still identifies as a notification
+        // and cannot trigger Stage 3 (the whitelist would otherwise strip them).
+        resendIsSystemAlert = d.isSystemAlert === true;
+        resendIsStage3 = d.isStage3Notification === true;
+        resendAction = 'claim';
+      });
+
+      console.log(`[MSG RESEND] uuid=${uuid} action=${resendAction}`);
+
+      if (resendAction === 'claim') {
+        // Claim already committed: a crash mid-send fails toward NO resend,
+        // never a double. Never roll the claim back on send failure.
+        // Routing through sendSMS applies the profanity mask to the body.
+        const resendOpts = { resendOf: uuid };
+        if (resendIsSystemAlert) resendOpts.isSystemAlert = true;
+        if (resendIsStage3) resendOpts.isStage3Notification = true;
+        const ok = await sendSMS(resendTo, resendText, resendOpts);
+        try {
+          await ref.update({ resendStatus: ok ? 'resent' : 'resend-failed' });
+        } catch (markErr) {
+          console.error(`[MSG RESEND] failed to mark resendStatus for uuid=${uuid}: ${markErr.message}`);
+        }
+        console.log(`[MSG RESEND] uuid=${uuid} outcome=${ok ? 'resent' : 'resend-failed'}`);
+      } else if (resendAction === 'skip-chain-capped') {
+        // The one allowed resend was itself rejected: both the original and
+        // its resend failed. Stage 3: notify the contractor truthfully, with
+        // a 24h rolling escalation cap. Entirely best-effort; never throws
+        // out of the webhook. Word-detection runs below in this same branch.
+        console.log(`[MSG RESEND] chain-capped uuid=${uuid}`);
+        try {
+          const user = await findUserByPhone(stage3To);
+          if (!user) {
+            console.log(`[STAGE3] uuid=${uuid} no user matches to=${stage3To}, skipping notification`);
+          } else {
+            // Failure counter with a 24h rolling window, one doc per user.
+            // Transactional so two failures landing at once both count and
+            // only one of them fires the Level 2 escalation.
+            const failRef = db.collection('deliveryFailures').doc(user.uid);
+            const level = await db.runTransaction(async (tx) => {
+              const snap = await tx.get(failRef);
+              const data = snap.exists ? snap.data() : null;
+              const windowFresh = data && data.windowStart && data.windowStart.toMillis &&
+                (Date.now() - data.windowStart.toMillis()) < 24 * 60 * 60 * 1000;
+              if (!windowFresh) {
+                // First failure of a new window: Level 1.
+                tx.set(failRef, {
+                  count: 1,
+                  windowStart: admin.firestore.FieldValue.serverTimestamp(),
+                  lastLevel: 1,
+                });
+                return 1;
+              }
+              const newCount = (data.count || 0) + 1;
+              if (newCount === 2) {
+                // Second failure in the window: Level 2.
+                tx.update(failRef, { count: newCount, lastLevel: 2 });
+                return 2;
+              }
+              // Third or later failure in the window: already escalated,
+              // record the increment and stay silent.
+              tx.update(failRef, { count: newCount });
+              return 0;
+            });
+            console.log(`[STAGE3] uuid=${uuid} user=${user.uid} level=${level}`);
+            if (level === 1) {
+              // Level 1: SMS only. Generic and truthful; the failed message
+              // may have been an automated reminder the user never triggered,
+              // so never say "try sending it again".
+              await sendSMS(user.phone,
+                "We're having trouble delivering texts to your number right now. Your promises are safe in the Promise Tracker app. We'll keep trying.",
+                { isStage3Notification: true });
+            } else if (level === 2) {
+              // Level 2: SMS and email.
+              await sendSMS(user.phone,
+                "We're still having trouble delivering texts to your number. Your data is safe in the Promise Tracker app. Please contact support@promisetracker.app so we can help fix your notifications.",
+                { isStage3Notification: true });
+              if (user.email) {
+                const subject = 'Trouble delivering your Promise Tracker messages';
+                const html = buildEmailHTML(subject, [
+                  'Hi, this is Promise Tracker. We wanted to let you know we are having ongoing trouble delivering text messages to your phone number.',
+                  'All of your promises and reminders are safe in the Promise Tracker app. Nothing has been lost.',
+                  'This is often a temporary issue on the carrier side and may clear up on its own. If it keeps happening, just reply to this email or contact us at <a href="mailto:support@promisetracker.app" style="color:#16a34a;text-decoration:none;">support@promisetracker.app</a> and we will help get your notifications working again.',
+                ], 'Open Promise Tracker');
+                await sendEmail(user.email, subject, html);
+              } else {
+                console.log(`[STAGE3] user=${user.uid} has no email, SMS only for Level 2`);
+              }
+            }
+          }
+        } catch (stage3Err) {
+          // Best-effort by design: if the notification pipe is down there is
+          // nothing more to do. Never block the 200.
+          console.error(`[STAGE3] notification failed for uuid=${uuid}: ${stage3Err.message}`);
+        }
+        // Suspected-blocked-word detection (additive to Stage 3, best-effort).
+        // Runs only under the same one-shot stage3HandledAt claim, so each
+        // twice-failed message is counted at most once. Docs flagged
+        // isSystemAlert / isStage3Notification never reach this branch (they
+        // take skip-chain-capped-notification above), so PT's own alerts are
+        // never counted and can never re-trigger an alert (loop prevention).
+        // Evidence is per DISTINCT message text: identical repeated texts count
+        // once (buildSuspectWordUpdate), and the owner alert fires exactly when
+        // a token reaches 2 differing failed texts.
+        try {
+          const tokens = tokenizeForBlockedWordDetection(stage3Text);
+          if (tokens.length > 0) {
+            const msgHash = hashMessageText(stage3Text);
+            const refs = tokens.map((t) => db.collection('suspectedBlockedWords').doc(t));
+            const crossed = await db.runTransaction(async (tx) => {
+              const snaps = await tx.getAll(...refs);
+              const crossedTokens = [];
+              snaps.forEach((snap, i) => {
+                const coTokens = tokens.filter((t) => t !== tokens[i]);
+                const upd = buildSuspectWordUpdate(
+                  snap.exists ? snap.data() : null,
+                  msgHash, uuid, coTokens, stage3Text
+                );
+                tx.set(refs[i], {
+                  ...upd.fields,
+                  lastSeen: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                if (upd.crossed) crossedTokens.push(tokens[i]);
+              });
+              return crossedTokens;
+            });
+            if (crossed.length > 0) {
+              const encoded = crossed.map((w) => w.split('').join('-')).join(', ');
+              await sendSMS('13525758360',
+                `PT alert: msg failed 2x. Suspect word(s): ${encoded}. ID: ${uuid}. Check suspectedBlockedWords in Firestore.`,
+                { isSystemAlert: true });
+              console.log(`[WORD DETECT] uuid=${uuid} alerted on: ${crossed.join(',')}`);
+            } else {
+              console.log(`[WORD DETECT] uuid=${uuid} counted ${tokens.length} tokens, no threshold crossing`);
+            }
+          }
+        } catch (detectErr) {
+          // Best-effort by design; never block the 200 and never disturb Stage 3.
+          console.error(`[WORD DETECT] failed for uuid=${uuid}: ${detectErr.message}`);
+        }
+      }
+    }
+
+    // ALWAYS 200 on every exit path so Vonage does not retry-storm us.
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('[MSG STATUS] error:', err.message);
+    res.status(200).send('OK');
+  }
 });
 
 // ─── Scheduled function: morning daily briefing at 7 AM ─────────────────────

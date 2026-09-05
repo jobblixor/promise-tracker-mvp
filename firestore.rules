@@ -81,7 +81,7 @@ service cloud.firestore {
     match /invites/{inviteId} {
       allow get: if true; // by-ID only; invite IDs are unguessable auto-IDs (link secrecy). Needed because the invitee reads the invite while UNAUTHENTICATED before signup.
       allow list: if request.auth != null && resource.data.businessId == myBusinessId();
-      allow create: if request.auth != null && request.resource.data.businessId == myBusinessId();
+      allow create: if request.auth != null && request.resource.data.businessId == myBusinessId() && request.resource.data.role in ['manager','receptionist','tech'];
       allow update: if request.auth != null
                     && resource.data.businessId == myBusinessId()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
