@@ -4453,11 +4453,24 @@ exports.createBusinessForSignup = onCall(async (request) => {
  * (businessName, businessId, role) come from the server-loaded invite doc,
  * never the payload. Create-if-missing: an existing doc is never touched —
  * the pre-read skips it, and the .create() (not .set()) loses cleanly to a
- * concurrent writer. Failures are logged but never thrown: a miss is
+ * concurrent writer. Create failures are logged but never thrown: a miss is
  * recovered on the client's retry via registerInviteSignup's idempotency
- * branch, which re-ensures this doc.
+ * branch, which re-ensures this doc. The one exception is the invite-role
+ * allowlist backstop below, which throws before any write: a role outside
+ * ['manager','receptionist','tech'] must never reach a users doc, matching
+ * the invites-create Firestore rule (Stage 1). Both call sites (main path
+ * and retry branch) funnel through this single choke point.
  */
 async function ensureInviteUsersDoc({ uid, email, phone, businessName, businessId, role }) {
+  // Stage 2 invite-role backstop: refuse to copy a non-allowlisted role from
+  // the invite doc into the users doc. Placed BEFORE the try so the throw is
+  // not swallowed by the catch below; registerInviteSignup's outer catch
+  // rethrows HttpsError unchanged, so the client sees permission-denied.
+  const allowedInviteRoles = ["manager", "receptionist", "tech"];
+  if (!allowedInviteRoles.includes(role)) {
+    console.error(`[registerInviteSignup] Blocked users-doc create for ${uid}: invite role ${JSON.stringify(role)} is not in the allowlist`);
+    throw new HttpsError("permission-denied", "Invalid invite role");
+  }
   try {
     const userRef = db.collection("users").doc(uid);
     const userSnap = await userRef.get();
