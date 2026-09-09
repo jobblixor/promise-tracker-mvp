@@ -3083,7 +3083,7 @@ Return ONLY valid JSON, no explanation.`;
     // Merge changes into original parse
     const updatedParse = { ...originalParse };
     if (changes.customer_name !== undefined) updatedParse.customer_name = changes.customer_name;
-    if (changes.promise_text !== undefined) updatedParse.promise_text = changes.promise_text;
+    if (changes.promise_text !== undefined) updatedParse.promise_text = applyCarrierSafeSwaps(changes.promise_text);
     if (changes.due_date !== undefined) updatedParse.due_date = changes.due_date;
     if (changes.due_date !== undefined) updatedParse._dueDateChanged = true;
     // Ensure the timezone offset from the original parse is preserved
@@ -3708,7 +3708,11 @@ exports.handleMessageStatus = onRequest(async (req, res) => {
               return crossedTokens;
             });
             if (crossed.length > 0) {
-              const encoded = crossed.map((w) => w.split('').join('-')).join(', ');
+              // Cap words shown so the alert itself stays under SMS length
+              // limits; the full list lives in suspectedBlockedWords.
+              const shown = crossed.slice(0, 8);
+              const encoded = shown.map((w) => w.slice(0, 20).split('').join('-')).join(', ') +
+                (crossed.length > shown.length ? ` +${crossed.length - shown.length} more` : '');
               await sendSMS('13525758360',
                 `PT alert: msg failed 2x. Suspect word(s): ${encoded}. ID: ${uuid}. Check suspectedBlockedWords in Firestore.`,
                 { isSystemAlert: true });
