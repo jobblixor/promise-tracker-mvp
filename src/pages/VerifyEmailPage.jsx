@@ -42,6 +42,8 @@ export default function VerifyEmailPage() {
         setError('This code has expired. Please request a new one.');
       } else if (errCode === 'invalid-argument') {
         setError('Incorrect code. Please try again.');
+      } else if (errCode === 'resource-exhausted') {
+        setError('Too many incorrect attempts. Please request a new code.');
       } else {
         setError('Verification failed. Please try again.');
       }

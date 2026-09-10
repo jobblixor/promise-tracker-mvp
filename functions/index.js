@@ -1,5 +1,5 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onCall } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
@@ -915,20 +915,32 @@ function getStripe() {
 
 /**
  * Callable function: creates a Stripe Checkout Session for subscription.
+ * Requires auth. The user is the caller (request.auth.uid; any payload userId is
+ * ignored) and the caller's users doc must belong to the requested businessId:
+ * membership, not ownership, because /pricing itself has no owner gate.
  */
 exports.createCheckoutSession = onCall(async (request) => {
-  const { businessId, userId } = request.data;
-
-  if (!businessId || !userId) {
-    throw new Error("Missing businessId or userId");
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required");
   }
 
-  // Look up the user's email
+  const userId = request.auth.uid;
+  const { businessId } = request.data || {};
+
+  if (!businessId || typeof businessId !== "string") {
+    throw new HttpsError("invalid-argument", "Missing businessId");
+  }
+
+  // Look up the caller's users doc: it supplies the email and proves membership
   const userDoc = await db.collection("users").doc(userId).get();
   if (!userDoc.exists) {
-    throw new Error("User not found");
+    throw new HttpsError("not-found", "User not found");
   }
-  const email = userDoc.data().email;
+  const userData = userDoc.data();
+  if (userData.businessId !== businessId) {
+    throw new HttpsError("permission-denied", "You are not a member of this business");
+  }
+  const email = userData.email;
 
   const stripe = getStripe();
 
@@ -1321,13 +1333,25 @@ exports.reactivateSubscription = onCall(async (request) => {
 
 /**
  * Callable function: generates a 6-digit verification code, stores it in Firestore,
- * and sends it to the user's email via Gmail SMTP.
+ * and sends it to the caller's email via SMTP.
+ * Requires auth. Both userId and email come from the verified token (payload
+ * equivalents are ignored), so a code can only be issued for, and mailed to, the
+ * signed-in account's own address.
  */
 exports.sendVerificationCode = onCall(async (request) => {
-  const { email, userId } = request.data;
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required");
+  }
 
-  if (!email || !userId) {
-    throw new Error("Missing email or userId");
+  const userId = request.auth.uid;
+  // Same derivation as createBusinessForSignup: token email, Admin SDK fallback.
+  let email = request.auth.token.email || null;
+  if (!email) {
+    const authUser = await admin.auth().getUser(userId);
+    email = authUser.email || null;
+  }
+  if (!email) {
+    throw new HttpsError("failed-precondition", "No email address on this account");
   }
 
   // Generate a random 6-digit code
@@ -1336,11 +1360,13 @@ exports.sendVerificationCode = onCall(async (request) => {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
 
-  // Store the code in Firestore
+  // Store the code in Firestore. `attempts` is the wrong-guess counter that
+  // verifyEmailCode increments; every new code starts at 0.
   await db.collection("verificationCodes").add({
     code,
     email,
     userId,
+    attempts: 0,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
   });
@@ -4235,8 +4261,6 @@ exports.trialEndingNudge = onSchedule({
 
 // ─── Server-Side Signup: Business Creation ───────────────────────────
 
-const { HttpsError } = require("firebase-functions/v2/https");
-
 /**
  * Canonicalize an email for abuse checks: lowercase/trim, strip anything from
  * a '+' onward in the local part, and for Gmail domains (which ignore dots)
@@ -4619,13 +4643,19 @@ exports.registerInviteSignup = onCall(async (request) => {
 
 // ─── Server-Side Email Verification ──────────────────────────────────
 
+const MAX_VERIFY_ATTEMPTS = 5;
+
 /**
  * Callable function: checks an email verification code server-side and marks
- * the caller's users doc emailVerified. Replicates the check that
- * VerifyEmailPage.jsx currently performs in the browser (latest code wins,
- * expiry check, exact match), but reads verificationCodes and writes users via
- * the Admin SDK so the code never has to be client-readable. The userId always
- * comes from request.auth, never from the payload. Not called by any client yet.
+ * the caller's users doc emailVerified. Reads verificationCodes and writes users
+ * via the Admin SDK so the code never has to be client-readable (latest code
+ * wins, expiry check, exact match). The userId always comes from request.auth,
+ * never from the payload. Called by VerifyEmailPage.jsx.
+ *
+ * Brute-force cap: every wrong guess increments `attempts` on the latest code doc
+ * inside a transaction. Once it reaches MAX_VERIFY_ATTEMPTS the code is dead
+ * (even the right value is rejected) and the caller must request a new one,
+ * which sendVerificationCode issues as a fresh doc with attempts 0.
  */
 exports.verifyEmailCode = onCall(async (request) => {
   if (!request.auth) {
@@ -4641,24 +4671,58 @@ exports.verifyEmailCode = onCall(async (request) => {
   }
 
   try {
-    // Same query the client runs today: filter by userId only (no orderBy, so
-    // no composite index needed) and sort by createdAt in memory, newest first.
+    // Filter by userId only (no orderBy, so no composite index needed) and sort
+    // by createdAt in memory, newest first. Sort the snapshots rather than their
+    // data so the latest doc's ref is available for the attempts update.
     const snap = await db.collection("verificationCodes").where("userId", "==", uid).get();
     if (snap.empty) {
       throw new HttpsError("not-found", "No verification code found");
     }
 
-    const sorted = snap.docs
-      .map((d) => d.data())
-      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    const latest = sorted[0];
+    const sortedDocs = [...snap.docs].sort(
+      (a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0)
+    );
+    const latestRef = sortedDocs[0].ref;
 
-    const expiresAt = latest.expiresAt?.toDate ? latest.expiresAt.toDate() : new Date(latest.expiresAt);
-    if (new Date() > expiresAt) {
+    // Check and count atomically: concurrent wrong guesses serialize on the doc,
+    // so the cap cannot be raced past by submitting in parallel. Nothing throws
+    // inside the transaction (that would roll back the increment); it returns a
+    // status and the throw happens after commit.
+    const result = await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(latestRef);
+      if (!fresh.exists) return { status: "missing", attempts: 0 };
+      const latest = fresh.data();
+      const attempts = latest.attempts || 0;
+
+      const expiresAt = latest.expiresAt?.toDate ? latest.expiresAt.toDate() : new Date(latest.expiresAt);
+      if (new Date() > expiresAt) return { status: "expired", attempts };
+
+      if (attempts >= MAX_VERIFY_ATTEMPTS) return { status: "locked", attempts };
+
+      if (latest.code !== submittedCode) {
+        const next = attempts + 1;
+        tx.update(latestRef, {
+          attempts: next,
+          lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return { status: next >= MAX_VERIFY_ATTEMPTS ? "locked" : "wrong", attempts: next };
+      }
+
+      return { status: "match", attempts };
+    });
+
+    if (result.status === "missing") {
+      throw new HttpsError("not-found", "No verification code found");
+    }
+    if (result.status === "expired") {
       throw new HttpsError("deadline-exceeded", "Code expired");
     }
-
-    if (latest.code !== submittedCode) {
+    if (result.status === "locked") {
+      console.warn(`[verifyEmailCode] Code locked for ${uid} after ${result.attempts} wrong attempt(s)`);
+      throw new HttpsError("resource-exhausted", "Too many incorrect attempts. Request a new code.");
+    }
+    if (result.status === "wrong") {
+      console.log(`[verifyEmailCode] Wrong code for ${uid} (attempt ${result.attempts}/${MAX_VERIFY_ATTEMPTS})`);
       throw new HttpsError("invalid-argument", "Incorrect code");
     }
 
