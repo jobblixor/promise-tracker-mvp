@@ -388,15 +388,16 @@ async function getBusinessOwnerPhone(businessId) {
 
 /**
  * Look up the phone number of the user who created the promise.
- * createdBy is an email address, so we query by the email field.
+ * createdBy is an email address, so we query by the email field, scoped to the
+ * promise's businessId so a crafted createdBy can never resolve to another tenant's user.
  */
-async function getCreatorPhone(createdBy) {
+async function getCreatorPhone(createdBy, businessId) {
   try {
-    console.log(`[getCreatorPhone] Querying users collection where email == "${createdBy}"`);
-    const userSnap = await db.collection("users").where("email", "==", createdBy).limit(1).get();
-    console.log(`[getCreatorPhone] Query returned ${userSnap.size} doc(s) for email "${createdBy}"`);
+    console.log(`[getCreatorPhone] Querying users collection where email == "${createdBy}" AND businessId == "${businessId}"`);
+    const userSnap = await db.collection("users").where("email", "==", createdBy).where("businessId", "==", businessId).limit(1).get();
+    console.log(`[getCreatorPhone] Query returned ${userSnap.size} doc(s) for email "${createdBy}" in business "${businessId}"`);
     if (userSnap.empty) {
-      console.warn(`Creator user with email ${createdBy} not found`);
+      console.warn(`Creator user with email ${createdBy} not found in business ${businessId}`);
       return null;
     }
     if (userSnap.docs[0].data().smsEnabled === false) {
@@ -417,15 +418,16 @@ async function getCreatorPhone(createdBy) {
 
 /**
  * Look up the email address of the user who created the promise.
- * createdBy is an email address, so we query by the email field.
+ * createdBy is an email address, so we query by the email field, scoped to the
+ * promise's businessId so a crafted createdBy can never resolve to another tenant's user.
  */
-async function getCreatorEmail(createdBy) {
+async function getCreatorEmail(createdBy, businessId) {
   try {
-    console.log(`[getCreatorEmail] Querying users collection where email == "${createdBy}"`);
-    const userSnap = await db.collection("users").where("email", "==", createdBy).limit(1).get();
-    console.log(`[getCreatorEmail] Query returned ${userSnap.size} doc(s) for email "${createdBy}"`);
+    console.log(`[getCreatorEmail] Querying users collection where email == "${createdBy}" AND businessId == "${businessId}"`);
+    const userSnap = await db.collection("users").where("email", "==", createdBy).where("businessId", "==", businessId).limit(1).get();
+    console.log(`[getCreatorEmail] Query returned ${userSnap.size} doc(s) for email "${createdBy}" in business "${businessId}"`);
     if (userSnap.empty) {
-      console.warn(`Creator user with email ${createdBy} not found`);
+      console.warn(`Creator user with email ${createdBy} not found in business ${businessId}`);
       return null;
     }
     const email = userSnap.docs[0].data().email;
@@ -820,14 +822,14 @@ exports.checkPromises = onSchedule("every 5 minutes", async (event) => {
         ) {
           console.log(`[Promise ${promiseId}] ✓ PASSED 2-hour early reminder check (${minutesUntilDue.toFixed(2)} min until due)`);
 
-          const earlyCreatorPhone = await getCreatorPhone(promise.createdBy);
+          const earlyCreatorPhone = await getCreatorPhone(promise.createdBy, promise.businessId);
           if (earlyCreatorPhone) {
             const msg = `Reminder: You promised ${customerName} you'd ${description}. Due in about 2 hours (${formattedDue}). Text LIST to see all promises.`;
             await sendSMS(earlyCreatorPhone, msg);
           }
 
           if (!promise.earlyReminderEmailSent) {
-            const earlyCreatorEmail = await getCreatorEmail(promise.createdBy);
+            const earlyCreatorEmail = await getCreatorEmail(promise.createdBy, promise.businessId);
             if (earlyCreatorEmail) {
               const subject = `Upcoming: ${customerName} promise due in 2 hours`;
               const html = buildEmailHTML(
@@ -856,7 +858,7 @@ exports.checkPromises = onSchedule("every 5 minutes", async (event) => {
           console.log(`[Promise ${promiseId}] ✓ PASSED 30-min reminder check (${minutesUntilDue.toFixed(2)} min until due)`);
 
           // SMS to creator with reminder message (BUG FIX 3)
-          const creatorPhone = await getCreatorPhone(promise.createdBy);
+          const creatorPhone = await getCreatorPhone(promise.createdBy, promise.businessId);
           if (creatorPhone) {
             const msg = `Reminder: The promise for ${customerName} to ${description} is due in 30 minutes. Please check Promise Tracker.`;
             await sendSMS(creatorPhone, msg);
@@ -864,7 +866,7 @@ exports.checkPromises = onSchedule("every 5 minutes", async (event) => {
 
           // Email to creator
           if (!promise.reminderEmailSent) {
-            const creatorEmail = await getCreatorEmail(promise.createdBy);
+            const creatorEmail = await getCreatorEmail(promise.createdBy, promise.businessId);
             if (creatorEmail) {
               const subject = `Reminder: Follow up with ${customerName}`;
               const html = buildEmailHTML(

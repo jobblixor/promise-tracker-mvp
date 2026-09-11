@@ -56,13 +56,19 @@ service cloud.firestore {
       allow delete: if false; // never delete businesses from client
     }
 
-    // Promises: only members of the same business can read/write; businessId is immutable
+    // Promises: only members of the same business can read/write; businessId is immutable;
+    // createdBy must be the caller's own token email (case-insensitive) and is immutable after create
     match /promises/{promiseId} {
       allow read:   if request.auth != null && resource.data.businessId == myBusinessId();
-      allow create: if request.auth != null && request.resource.data.businessId == myBusinessId();
+      allow create: if request.auth != null
+                    && request.resource.data.businessId == myBusinessId()
+                    && request.auth.token.email != null
+                    && request.resource.data.createdBy is string
+                    && request.resource.data.createdBy.lower() == request.auth.token.email.lower();
       allow update: if request.auth != null
                     && resource.data.businessId == myBusinessId()
-                    && request.resource.data.businessId == resource.data.businessId;
+                    && request.resource.data.businessId == resource.data.businessId
+                    && request.resource.data.get('createdBy', null) == resource.data.get('createdBy', null);
       allow delete: if request.auth != null && resource.data.businessId == myBusinessId();
     }
 
