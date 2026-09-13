@@ -5,11 +5,90 @@ const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const { isIP } = require("node:net");
 // SMS provider: Vonage Messages API
 
 admin.initializeApp();
 const db = admin.firestore();
+
+// Shared Messages API webhook verification. Never log credentials or raw bytes.
+// iat is diagnostic only; no new age/replay policy is applied in this batch.
+function verifyVonageWebhook(req) {
+  let iatAgeSeconds = null;
+  try {
+    const authorization = req?.headers?.authorization;
+    if (authorization === undefined || authorization === null || authorization === '') {
+      return { ok: false, reason: 'missing_authorization', iatAgeSeconds };
+    }
+    const match = typeof authorization === 'string' &&
+      /^Bearer[ \t]+([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i.exec(authorization);
+    if (!match) return { ok: false, reason: 'malformed_authorization', iatAgeSeconds };
+
+    const secret = process.env.VONAGE_SIGNATURE_SECRET;
+    if (!secret) return { ok: false, reason: 'missing_signature_secret', iatAgeSeconds };
+    let claims;
+    try {
+      claims = jwt.verify(match[1], secret, { algorithms: ["HS256"] });
+    } catch (err) {
+      const reason = err?.name === 'TokenExpiredError' ? 'token_expired' :
+        err?.name === 'NotBeforeError' ? 'token_not_active' : 'signature';
+      return { ok: false, reason, iatAgeSeconds };
+    }
+    if (!claims || typeof claims !== 'object' || Array.isArray(claims)) {
+      return { ok: false, reason: 'malformed_claims', iatAgeSeconds };
+    }
+    if (typeof claims.iat === 'number' && Number.isFinite(claims.iat)) {
+      iatAgeSeconds = Math.floor(Date.now() / 1000) - claims.iat;
+    }
+
+    if (!Buffer.isBuffer(req?.rawBody)) {
+      return { ok: false, reason: 'missing_raw_body', iatAgeSeconds };
+    }
+    if (typeof claims.payload_hash !== 'string' || !/^[a-fA-F0-9]{64}$/.test(claims.payload_hash)) {
+      return { ok: false, reason: 'payload_hash_format', iatAgeSeconds };
+    }
+    const payloadHash = Buffer.from(claims.payload_hash, 'hex');
+    const rawBodyHash = crypto.createHash('sha256').update(req.rawBody).digest();
+    if (!crypto.timingSafeEqual(payloadHash, rawBodyHash)) {
+      return { ok: false, reason: 'payload_hash_mismatch', iatAgeSeconds };
+    }
+
+    const accountApiKey = process.env.VONAGE_API_KEY;
+    if (accountApiKey) {
+      if (typeof claims.api_key !== 'string') {
+        return { ok: false, reason: 'api_key_missing_or_malformed', iatAgeSeconds };
+      }
+      const claimedKey = Buffer.from(claims.api_key, 'utf8');
+      const expectedKey = Buffer.from(accountApiKey, 'utf8');
+      if (claimedKey.length !== expectedKey.length || !crypto.timingSafeEqual(claimedKey, expectedKey)) {
+        return { ok: false, reason: 'api_key_mismatch', iatAgeSeconds };
+      }
+      return { ok: true, reason: 'verified', iatAgeSeconds };
+    }
+    const reason = Object.prototype.hasOwnProperty.call(claims, 'api_key') ?
+      'verified_api_key_present_unchecked' : 'verified_api_key_absent_unchecked';
+    return { ok: true, reason, iatAgeSeconds };
+  } catch {
+    return { ok: false, reason: 'verification_error', iatAgeSeconds };
+  }
+}
+
+function logVonageSignature(handler, req, verification) {
+  // Only a canonical UUID may enter the log, never arbitrary body content.
+  let uuid = '-';
+  try {
+    const value = req?.body?.message_uuid;
+    if (typeof value === 'string' && /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/.test(value)) {
+      uuid = value;
+    }
+  } catch {
+    // Logging must not change the handler's treatment of an unreadable body.
+  }
+  const result = verification.ok ? 'valid' :
+    verification.reason === 'missing_authorization' ? 'missing' : 'invalid';
+  console.log(`[VONAGE SIG] handler=${handler} uuid=${uuid} result=${result} reason=${verification.reason} iatAge=${verification.iatAgeSeconds ?? '-'}`);
+}
 
 // Initialize SMTP2GO transporter
 const transporter = nodemailer.createTransport({
@@ -3160,6 +3239,8 @@ Return ONLY valid JSON, no explanation.`;
 // ─── Main Inbound SMS Handler ─────────────────────────────────────────
 
 exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
+  const signature = verifyVonageWebhook(req);
+  logVonageSignature('handleInboundSMS', req, signature);
   try {
     const senderPhone = req.body && req.body.from;
     const messageText = ((req.body && req.body.text) || '').trim();
@@ -3530,6 +3611,8 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
  * delivery outcome (e.g. rejected, code 1030) asynchronously via this webhook.
  */
 exports.handleMessageStatus = onRequest(async (req, res) => {
+  const signature = verifyVonageWebhook(req);
+  logVonageSignature('handleMessageStatus', req, signature);
   try {
     // Log the entire raw payload verbatim. We do not yet know whether this
     // account sends the Messages API format (message_uuid, nested error
