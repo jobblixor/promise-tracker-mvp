@@ -5,6 +5,7 @@ const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const { isIP } = require("node:net");
 // SMS provider: Vonage Messages API
 
 admin.initializeApp();
@@ -4296,6 +4297,7 @@ async function fingerprintHasUsedTrial(field, value) {
     return snap.docs.some((d) => d.data().trialUsed === true);
   } catch (err) {
     console.error(`[createBusinessForSignup] fingerprint check by ${field} failed:`, err.message);
+    console.error(`[createBusinessForSignup] FAILED OPEN: fingerprint check for field=${field}; treating this check as unused.`);
     return false;
   }
 }
@@ -4360,7 +4362,13 @@ exports.createBusinessForSignup = onCall(async (request) => {
   }
 
   const uid = request.auth.uid;
-  const { businessName, phone, timezone, referralCode, hearAboutUs, browserFingerprint, visitorId, ipAddress } = request.data || {};
+  const { businessName, phone, timezone, referralCode, hearAboutUs, browserFingerprint, visitorId } = request.data || {};
+
+  // On the direct gen-2 endpoint, use the terminal IP appended by Google ingress.
+  // Earlier X-Forwarded-For entries (and rawRequest.ip) can come from the caller.
+  const forwardedFor = request.rawRequest?.headers?.["x-forwarded-for"];
+  const forwardedIp = typeof forwardedFor === "string" ? forwardedFor.split(",").pop().trim() : "";
+  const ipAddress = forwardedIp && !forwardedIp.includes("%") && isIP(forwardedIp) ? forwardedIp : null;
 
   if (!businessName) {
     throw new HttpsError("invalid-argument", "Missing businessName");
@@ -4393,15 +4401,25 @@ exports.createBusinessForSignup = onCall(async (request) => {
     // Same sequential checks as the client's runAbuseChecks, plus emailCanonical.
     // A trialUsed:true match on ANY signal means no free trial.
     let eligibleForTrial = true;
-    if (await fingerprintHasUsedTrial("phone", phone)) eligibleForTrial = false;
-    if (eligibleForTrial && await fingerprintHasUsedTrial("phoneNormalized", phoneNormalized)) eligibleForTrial = false;
-    if (eligibleForTrial && await fingerprintHasUsedTrial("browserFingerprint", browserFingerprint)) eligibleForTrial = false;
-    if (eligibleForTrial && await fingerprintHasUsedTrial("ipAddress", ipAddress)) eligibleForTrial = false;
-    if (eligibleForTrial && await fingerprintHasUsedTrial("visitorId", visitorId)) eligibleForTrial = false;
-    if (eligibleForTrial && await fingerprintHasUsedTrial("email", normalizedEmail)) eligibleForTrial = false;
-    if (eligibleForTrial && await fingerprintHasUsedTrial("emailCanonical", emailCanonical)) eligibleForTrial = false;
+    const trialSignals = [
+      ["phone", phone],
+      ["phoneNormalized", phoneNormalized],
+      ["browserFingerprint", browserFingerprint],
+      ["ipAddress", ipAddress],
+      ["visitorId", visitorId],
+      ["email", normalizedEmail],
+      ["emailCanonical", emailCanonical],
+    ];
+    for (const [field, value] of trialSignals) {
+      if (await fingerprintHasUsedTrial(field, value)) {
+        eligibleForTrial = false;
+        console.log(`[createBusinessForSignup] uid=${uid} deniedBy=${field}`);
+        break;
+      }
+    }
 
     console.log(`[createBusinessForSignup] uid=${uid} eligibleForTrial=${eligibleForTrial}`);
+    console.log(`[createBusinessForSignup] uid=${uid} derivedIp=${ipAddress}`);
 
     // Same business doc shape the client's signup() writes today.
     const businessData = {
@@ -4433,8 +4451,8 @@ exports.createBusinessForSignup = onCall(async (request) => {
     // Fingerprint doc — same fields the client's storeFingerprint writes today,
     // plus emailCanonical. Written AFTER the business doc so a failed signup
     // retry re-runs eligibility without seeing its own fingerprint.
-    // trialUsed = !eligibleForTrial: a denied signup arms the guard on every
-    // key it exposed; a granted trial records false.
+    // A granted owner trial consumes the trial on every supplied key;
+    // denied owner signups keep those keys armed too.
     await db.collection("fingerprints").add({
       visitorId: visitorId || null,
       browserFingerprint: browserFingerprint || null,
@@ -4445,7 +4463,7 @@ exports.createBusinessForSignup = onCall(async (request) => {
       emailCanonical,
       userId: uid,
       businessId: businessRef.id,
-      trialUsed: !eligibleForTrial,
+      trialUsed: true,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -4466,7 +4484,6 @@ exports.createBusinessForSignup = onCall(async (request) => {
     return {
       businessId: businessRef.id,
       plan: businessData.plan,
-      eligibleForTrial,
       alreadyExisted: false,
     };
   } catch (err) {
