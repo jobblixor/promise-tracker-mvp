@@ -253,9 +253,10 @@ export default function TeamPage() {
     return unsubscribe;
   }, [user?.businessId]);
 
-  // Subscribe to pending invites
+  // Subscribe to pending invites — owner-only. The invites list rule is owner-scoped,
+  // so a non-owner listener would only ever get permission-denied.
   useEffect(() => {
-    if (!user?.businessId) return;
+    if (!user?.businessId || !isOwner) return;
     const q = query(
       collection(db, 'invites'),
       where('businessId', '==', user.businessId),
@@ -265,7 +266,7 @@ export default function TeamPage() {
       setInvites(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsubscribe;
-  }, [user?.businessId]);
+  }, [user?.businessId, isOwner]);
 
   const handleInvite = async (e) => {
     e.preventDefault();
@@ -404,8 +405,8 @@ export default function TeamPage() {
           </div>
         )}
 
-        {/* Pending Invites */}
-        {invites.length > 0 && (
+        {/* Pending Invites — owner-only, like the invite / remove / role controls */}
+        {isOwner && invites.length > 0 && (
           <div className="mb-8">
             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Pending Invites</h3>
             <p className="text-xs text-text-muted mb-3">Invites aren't emailed automatically. Copy the link and send it to your team member so they can join.</p>

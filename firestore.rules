@@ -86,8 +86,14 @@ service cloud.firestore {
     // list/create scoped to the requester's business; update is only the invitee's status flip
     match /invites/{inviteId} {
       allow get: if true; // by-ID only; invite IDs are unguessable auto-IDs (link secrecy). Needed because the invitee reads the invite while UNAUTHENTICATED before signup.
-      allow list: if request.auth != null && resource.data.businessId == myBusinessId();
-      allow create: if request.auth != null && request.resource.data.businessId == myBusinessId() && request.resource.data.role in ['manager','receptionist','tech'];
+      // list/create are owner-only (same businesses.ownerId check as the users delete rule); get stays open by id for the signup link
+      allow list: if request.auth != null
+                  && resource.data.businessId == myBusinessId()
+                  && get(/databases/$(database)/documents/businesses/$(resource.data.businessId)).data.ownerId == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.businessId == myBusinessId()
+                    && request.resource.data.role in ['manager','receptionist','tech']
+                    && get(/databases/$(database)/documents/businesses/$(request.resource.data.businessId)).data.ownerId == request.auth.uid;
       allow update: if request.auth != null
                     && resource.data.businessId == myBusinessId()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
