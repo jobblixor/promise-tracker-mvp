@@ -3241,6 +3241,7 @@ Return ONLY valid JSON, no explanation.`;
 exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
   const signature = verifyVonageWebhook(req);
   logVonageSignature('handleInboundSMS', req, signature);
+  if (!signature.ok) return res.status(401).send("unauthorized");
   try {
     const senderPhone = req.body && req.body.from;
     const messageText = ((req.body && req.body.text) || '').trim();
@@ -3613,6 +3614,7 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
 exports.handleMessageStatus = onRequest(async (req, res) => {
   const signature = verifyVonageWebhook(req);
   logVonageSignature('handleMessageStatus', req, signature);
+  if (!signature.ok) return res.status(401).send("unauthorized");
   try {
     // Log the entire raw payload verbatim. We do not yet know whether this
     // account sends the Messages API format (message_uuid, nested error
