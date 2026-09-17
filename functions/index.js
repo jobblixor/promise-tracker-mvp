@@ -3520,11 +3520,23 @@ exports.handleInboundSMS = onRequest({ minInstances: 1 }, async (req, res) => {
     } else if (keyword === 'DELETE') {
       await handleDeleteCommand(userId, senderPhone, user, messageText);
     } else if (fullTextUpper === 'SET TIME OFF' || fullTextUpper === 'RECAP OFF' || fullTextUpper === 'EOD OFF') {
+      // Recap settings live on the business doc: owner-only, like the businesses update rule
+      if (user.role !== 'owner') {
+        console.log(`[SMS] recap command denied uid=${userId} role=${user.role}`);
+        await sendSMS(senderPhone, 'Only the account owner can change the daily recap. Ask them to text SET TIME.');
+        return res.status(200).send('OK');
+      }
       await admin.firestore().collection('businesses').doc(user.businessId).update({
         endOfDayEnabled: false,
       });
       await sendSMS(senderPhone, 'End-of-day recap disabled. Text SET TIME 6PM to re-enable.');
     } else if (fullTextUpper.startsWith('SET TIME ') || fullTextUpper.startsWith('SET EOD ') || fullTextUpper.startsWith('RECAP ')) {
+      // Owner-only, same gate as SET TIME OFF above (runs before the time is parsed or anything is written)
+      if (user.role !== 'owner') {
+        console.log(`[SMS] recap command denied uid=${userId} role=${user.role}`);
+        await sendSMS(senderPhone, 'Only the account owner can change the daily recap. Ask them to text SET TIME.');
+        return res.status(200).send('OK');
+      }
       const timeStr = messageText.trim().substring(messageText.trim().indexOf(' ', messageText.trim().indexOf(' ') + 1) + 1).trim();
 
       // Parse the time — accept formats like "6PM", "6:00PM", "18:00", "6 PM", "630pm", "6:30 pm"
