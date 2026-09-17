@@ -171,6 +171,7 @@ export default function SettingsPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const functions = getFunctions(app);
+  const isOwner = user?.role === 'owner';
 
   // Business info
   const [businessName, setBusinessName] = useState('');
@@ -484,67 +485,71 @@ export default function SettingsPage() {
           <p className="text-sm text-text-secondary mt-1">Manage your business, profile, and preferences</p>
         </div>
 
-        {/* SECTION 1: Business Info */}
-        <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
-          <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-            </svg>
-            Business Info
-          </h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1.5">Business Name</label>
-              <input
-                type="text"
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
-                placeholder="Your business name"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+        {/* SECTION 1: Business Info — owner-only (the businesses update rule is owner-only) */}
+        {isOwner ? (
+          <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
+            <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+              </svg>
+              Business Info
+            </h2>
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-text-muted mb-1.5">Business ID</label>
-                <div className="px-3.5 py-2.5 rounded-xl bg-bg-card-hover border border-border/30 text-sm text-text-muted font-mono truncate">
-                  {businessId || '—'}
+                <label className="block text-xs font-medium text-text-muted mb-1.5">Business Name</label>
+                <input
+                  type="text"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+                  placeholder="Your business name"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-text-muted mb-1.5">Business ID</label>
+                  <div className="px-3.5 py-2.5 rounded-xl bg-bg-card-hover border border-border/30 text-sm text-text-muted font-mono truncate">
+                    {businessId || '—'}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-text-muted mb-1.5">Plan</label>
+                  <div className="px-3.5 py-2.5 rounded-xl bg-bg-card-hover border border-border/30 text-sm text-text-muted capitalize flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                    {plan}
+                  </div>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-text-muted mb-1.5">Plan</label>
-                <div className="px-3.5 py-2.5 rounded-xl bg-bg-card-hover border border-border/30 text-sm text-text-muted capitalize flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                  {plan}
-                </div>
+                <label className="block text-xs font-medium text-text-muted mb-1.5">Timezone</label>
+                <select
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
+                >
+                  <option value="" className="bg-bg-card text-text-primary">Select timezone...</option>
+                  {getTimezoneOptions().map((tz) => (
+                    <option key={tz.value} value={tz.value} className="bg-bg-card text-text-primary">{tz.label}</option>
+                  ))}
+                </select>
               </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1.5">Timezone</label>
-              <select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-bg-card border border-border/40 text-sm text-text-primary focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all duration-200"
-              >
-                <option value="" className="bg-bg-card text-text-primary">Select timezone...</option>
-                {getTimezoneOptions().map((tz) => (
-                  <option key={tz.value} value={tz.value} className="bg-bg-card text-text-primary">{tz.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-end pt-1">
-              <button
-                onClick={handleSaveBusiness}
-                disabled={savingBusiness}
-                className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
-              >
-                {savingBusiness && (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                )}
-                {savingBusiness ? 'Saving...' : 'Save Changes'}
-              </button>
+              <div className="flex justify-end pt-1">
+                <button
+                  onClick={handleSaveBusiness}
+                  disabled={savingBusiness}
+                  className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {savingBusiness && (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  )}
+                  {savingBusiness ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <p className="text-sm text-text-muted">Business settings are managed by the account owner.</p>
+        )}
 
         {/* SECTION 2: Personal Profile */}
         <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
@@ -624,140 +629,142 @@ export default function SettingsPage() {
           <p className="text-[11px] text-text-muted mt-3">Changes are saved automatically.</p>
         </div>
 
-        {/* SECTION: Daily Recap */}
-        <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
-          <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Daily Recap
-          </h2>
-          <p className="text-xs text-text-muted mb-4">
-            Get a daily SMS check-in asking about any promises you made today. You can also set this by texting SET TIME to your PT number.
-          </p>
-          <div className="space-y-4">
-            <Toggle
-              label="Enable daily recap"
-              enabled={recapEnabled}
-              onChange={(val) => setRecapEnabled(val)}
-            />
-            <Toggle
-              label="24-hour (military) time"
-              enabled={timeFormat === '24h'}
-              onChange={(val) => setTimeFormat(val ? '24h' : '12h')}
-            />
-            {recapEnabled && (
-              <div>
-                <label className="block text-xs font-medium text-text-muted mb-1.5">Recap Time</label>
-                <div ref={timePickerRef} className="relative">
-                  <button
-                    type="button"
-                    ref={triggerButtonRef}
-                    onClick={() => {
-                      if (!timePickerOpen && triggerButtonRef.current) {
-                        const rect = triggerButtonRef.current.getBoundingClientRect();
-                        setPickerStyle({ top: rect.bottom + 8, left: rect.left, width: rect.width });
-                      }
-                      setTimePickerOpen(prev => !prev);
-                    }}
-                    className={`w-full px-3.5 py-2.5 rounded-xl bg-bg-card border text-sm text-text-primary text-left flex items-center justify-between transition-all duration-200 ${timePickerOpen ? 'border-accent/50 ring-1 ring-accent/25' : 'border-border/40 hover:border-border/70'}`}
-                  >
-                    <span>{formatRecapTime(recapTime)}</span>
-                    <svg className={`w-4 h-4 shrink-0 transition-colors ${timePickerOpen ? 'text-accent' : 'text-text-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                  {timePickerOpen && createPortal(
-                    <div ref={pickerDropdownRef} style={{ position: 'fixed', ...pickerStyle, zIndex: 9999 }} className="bg-bg-card border border-border/40 rounded-2xl shadow-2xl shadow-black/15">
-                      <div className={`grid border-b border-border/20 ${timeFormat === '12h' ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                        {['Hour', 'Min', ...(timeFormat === '12h' ? ['—'] : [])].map(label => (
-                          <div key={label} className="py-2 text-center text-[10px] font-semibold uppercase tracking-widest text-text-muted">{label}</div>
-                        ))}
-                      </div>
-                      <div className={`grid ${timeFormat === '12h' ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                        <div ref={hourColRef} className="h-96 overflow-y-auto pt-1.5 pb-6 border-r border-border/20 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                          {(timeFormat === '24h'
-                            ? Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
-                            : [12, ...Array.from({ length: 11 }, (_, i) => i + 1)].map(String)
-                          ).map(val => {
-                            const h = parseInt(recapTime.split(':')[0]);
-                            const cur = timeFormat === '24h' ? h.toString().padStart(2, '0') : (h === 0 ? '12' : h > 12 ? (h - 12).toString() : h.toString());
-                            const selected = val === cur;
-                            return (
-                              <button key={val} data-selected={selected}
-                                onClick={() => {
-                                  const mStr = recapTime.split(':')[1];
-                                  if (timeFormat === '24h') { setRecapTime(`${val}:${mStr}`); }
-                                  else {
-                                    const h12 = parseInt(val);
-                                    const isPM = parseInt(recapTime.split(':')[0]) >= 12;
-                                    const h24 = isPM ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
-                                    setRecapTime(`${h24.toString().padStart(2, '0')}:${mStr}`);
-                                  }
-                                }}
-                                className="w-full px-2 py-0.5 focus:outline-none"
-                              >
-                                <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{val}</span>
-                              </button>
-                            );
-                          })}
+        {/* SECTION: Daily Recap — owner-only (saves to the business doc) */}
+        {isOwner && (
+          <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
+            <h2 className="text-base font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <svg className="w-4.5 h-4.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Daily Recap
+            </h2>
+            <p className="text-xs text-text-muted mb-4">
+              Get a daily SMS check-in asking about any promises you made today. You can also set this by texting SET TIME to your PT number.
+            </p>
+            <div className="space-y-4">
+              <Toggle
+                label="Enable daily recap"
+                enabled={recapEnabled}
+                onChange={(val) => setRecapEnabled(val)}
+              />
+              <Toggle
+                label="24-hour (military) time"
+                enabled={timeFormat === '24h'}
+                onChange={(val) => setTimeFormat(val ? '24h' : '12h')}
+              />
+              {recapEnabled && (
+                <div>
+                  <label className="block text-xs font-medium text-text-muted mb-1.5">Recap Time</label>
+                  <div ref={timePickerRef} className="relative">
+                    <button
+                      type="button"
+                      ref={triggerButtonRef}
+                      onClick={() => {
+                        if (!timePickerOpen && triggerButtonRef.current) {
+                          const rect = triggerButtonRef.current.getBoundingClientRect();
+                          setPickerStyle({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+                        }
+                        setTimePickerOpen(prev => !prev);
+                      }}
+                      className={`w-full px-3.5 py-2.5 rounded-xl bg-bg-card border text-sm text-text-primary text-left flex items-center justify-between transition-all duration-200 ${timePickerOpen ? 'border-accent/50 ring-1 ring-accent/25' : 'border-border/40 hover:border-border/70'}`}
+                    >
+                      <span>{formatRecapTime(recapTime)}</span>
+                      <svg className={`w-4 h-4 shrink-0 transition-colors ${timePickerOpen ? 'text-accent' : 'text-text-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                    {timePickerOpen && createPortal(
+                      <div ref={pickerDropdownRef} style={{ position: 'fixed', ...pickerStyle, zIndex: 9999 }} className="bg-bg-card border border-border/40 rounded-2xl shadow-2xl shadow-black/15">
+                        <div className={`grid border-b border-border/20 ${timeFormat === '12h' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                          {['Hour', 'Min', ...(timeFormat === '12h' ? ['—'] : [])].map(label => (
+                            <div key={label} className="py-2 text-center text-[10px] font-semibold uppercase tracking-widest text-text-muted">{label}</div>
+                          ))}
                         </div>
-                        <div ref={minuteColRef} className={`h-96 overflow-y-auto pt-1.5 pb-6 [&::-webkit-scrollbar]:hidden ${timeFormat === '12h' ? 'border-r border-border/20' : ''}`} style={{ scrollbarWidth: 'none' }}>
-                          {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(val => {
-                            const selected = val === recapTime.split(':')[1];
-                            return (
-                              <button key={val} data-selected={selected}
-                                onClick={() => setRecapTime(`${recapTime.split(':')[0]}:${val}`)}
-                                className="w-full px-2 py-0.5 focus:outline-none"
-                              >
-                                <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{val}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {timeFormat === '12h' && (
-                          <div ref={ampmColRef} className="h-96 overflow-y-auto pt-1.5 pb-6 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                            {['AM', 'PM'].map(period => {
-                              const selected = (period === 'PM') === (parseInt(recapTime.split(':')[0]) >= 12);
+                        <div className={`grid ${timeFormat === '12h' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                          <div ref={hourColRef} className="h-96 overflow-y-auto pt-1.5 pb-6 border-r border-border/20 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                            {(timeFormat === '24h'
+                              ? Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
+                              : [12, ...Array.from({ length: 11 }, (_, i) => i + 1)].map(String)
+                            ).map(val => {
+                              const h = parseInt(recapTime.split(':')[0]);
+                              const cur = timeFormat === '24h' ? h.toString().padStart(2, '0') : (h === 0 ? '12' : h > 12 ? (h - 12).toString() : h.toString());
+                              const selected = val === cur;
                               return (
-                                <button key={period} data-selected={selected}
+                                <button key={val} data-selected={selected}
                                   onClick={() => {
-                                    const h = parseInt(recapTime.split(':')[0]);
-                                    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                                    const newH24 = period === 'PM' ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
-                                    setRecapTime(`${newH24.toString().padStart(2, '0')}:${recapTime.split(':')[1]}`);
+                                    const mStr = recapTime.split(':')[1];
+                                    if (timeFormat === '24h') { setRecapTime(`${val}:${mStr}`); }
+                                    else {
+                                      const h12 = parseInt(val);
+                                      const isPM = parseInt(recapTime.split(':')[0]) >= 12;
+                                      const h24 = isPM ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+                                      setRecapTime(`${h24.toString().padStart(2, '0')}:${mStr}`);
+                                    }
                                   }}
                                   className="w-full px-2 py-0.5 focus:outline-none"
                                 >
-                                  <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{period}</span>
+                                  <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{val}</span>
                                 </button>
                               );
                             })}
                           </div>
-                        )}
+                          <div ref={minuteColRef} className={`h-96 overflow-y-auto pt-1.5 pb-6 [&::-webkit-scrollbar]:hidden ${timeFormat === '12h' ? 'border-r border-border/20' : ''}`} style={{ scrollbarWidth: 'none' }}>
+                            {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(val => {
+                              const selected = val === recapTime.split(':')[1];
+                              return (
+                                <button key={val} data-selected={selected}
+                                  onClick={() => setRecapTime(`${recapTime.split(':')[0]}:${val}`)}
+                                  className="w-full px-2 py-0.5 focus:outline-none"
+                                >
+                                  <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{val}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {timeFormat === '12h' && (
+                            <div ref={ampmColRef} className="h-96 overflow-y-auto pt-1.5 pb-6 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                              {['AM', 'PM'].map(period => {
+                                const selected = (period === 'PM') === (parseInt(recapTime.split(':')[0]) >= 12);
+                                return (
+                                  <button key={period} data-selected={selected}
+                                    onClick={() => {
+                                      const h = parseInt(recapTime.split(':')[0]);
+                                      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                                      const newH24 = period === 'PM' ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+                                      setRecapTime(`${newH24.toString().padStart(2, '0')}:${recapTime.split(':')[1]}`);
+                                    }}
+                                    className="w-full px-2 py-0.5 focus:outline-none"
+                                  >
+                                    <span className={`block w-full py-1.5 rounded-lg text-sm text-center transition-all duration-150 ${selected ? 'bg-accent text-white font-semibold shadow-sm' : 'text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'}`}>{period}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  , document.body)}
+                    , document.body)}
+                  </div>
+                  <p className="text-[11px] text-text-muted mt-1.5">
+                    Currently set to {formatRecapTime(recapTime)} in your business timezone.
+                  </p>
                 </div>
-                <p className="text-[11px] text-text-muted mt-1.5">
-                  Currently set to {formatRecapTime(recapTime)} in your business timezone.
-                </p>
+              )}
+              <div className="flex justify-end pt-1">
+                <button
+                  onClick={handleSaveRecap}
+                  disabled={savingRecap}
+                  className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {savingRecap && (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  )}
+                  {savingRecap ? 'Saving...' : 'Save Changes'}
+                </button>
               </div>
-            )}
-            <div className="flex justify-end pt-1">
-              <button
-                onClick={handleSaveRecap}
-                disabled={savingRecap}
-                className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
-              >
-                {savingRecap && (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                )}
-                {savingRecap ? 'Saving...' : 'Save Changes'}
-              </button>
             </div>
           </div>
-        </div>
+        )}
 
         {/* SECTION 4: Theme */}
         <div className="bg-bg-card border border-border/40 shadow-sm rounded-2xl p-6 animate-fade-in-up">
