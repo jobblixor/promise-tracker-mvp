@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
     const refMatch = document.cookie.match(/(?:^|;\s*)pt_ref=([^;]+)/);
     const referralCode = urlRef || (refMatch ? decodeURIComponent(refMatch[1]) : null);
     if (referralCode) {
-      console.log('[SIGNUP DEBUG] Referral code found in cookie:', referralCode);
+      console.log('[SIGNUP DEBUG] Referral code (URL param first, cookie fallback):', referralCode);
     }
     
     // Create auth account FIRST so we're authenticated for Firestore queries.

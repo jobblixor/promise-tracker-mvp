@@ -4400,14 +4400,12 @@ async function fingerprintHasUsedTrial(field, value) {
 }
 
 /**
- * Create the owner users/{uid} doc if it does not already exist — the
- * server-side counterpart of the client signup()'s setDoc, writing the same
- * field shape. Create-if-missing: an existing doc (written by the client,
- * which still writes it this stage, or by a prior retry) is never touched —
- * the pre-read skips it, and the .create() (not .set()) loses cleanly to a
- * concurrent writer. Failures are logged but never thrown: the business was
- * already created, and the client's own users-doc write (or the next signup
- * retry, which re-enters via the idempotency branch) covers a miss.
+ * Create the owner users/{uid} doc for createBusinessForSignup if missing.
+ * The client does not create this doc. Existing docs are never touched:
+ * the pre-read skips them, and .create() (not .set()) loses cleanly to a
+ * concurrent writer. Failures are logged but never thrown: the business
+ * already exists, and a signup retry re-enters the idempotency branch to
+ * recover a missing users doc.
  */
 async function ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId, referralCode, hearAboutUs }) {
   try {
@@ -4449,10 +4447,9 @@ const REFERRAL_CODE_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
  * runAbuseChecks performs today (phone, phoneNormalized, browserFingerprint,
  * ipAddress, visitorId, email) plus a canonicalized-email check. The plan
  * value is never accepted from the client. Also creates the users doc
- * (create-if-missing) — the client still writes it too this stage, and
- * whichever lands first wins. Idempotent: if the caller already owns a
- * business, returns it untouched (still ensuring the users doc exists) so
- * client retries are safe.
+ * (create-if-missing); the client does not create it. Idempotent: if the
+ * caller already owns a business, returns it untouched while still ensuring
+ * the users doc exists, so client retries are safe.
  *
  * Called by the client's signup() in src/context/AuthContext.jsx.
  */
@@ -4587,9 +4584,9 @@ exports.createBusinessForSignup = onCall(async (request) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Users doc last, mirroring the client's signup order (business →
-    // fingerprints → users doc). Create-if-missing and never throws — the
-    // client still writes this doc itself this stage.
+    // createBusinessForSignup creates the users doc after the business,
+    // fingerprint, and phone registration docs. The client does not create it.
+    // The helper creates only if missing and logs failures without throwing.
     await ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId: businessRef.id, referralCode: safeReferralCode, hearAboutUs: safeHearAboutUs });
 
     return {
