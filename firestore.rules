@@ -32,7 +32,10 @@ service cloud.firestore {
         (request.auth.uid == userId &&
          request.resource.data.businessId == resource.data.businessId &&
          request.resource.data.role == resource.data.role &&
-         request.resource.data.get('emailVerified', null) == resource.data.get('emailVerified', null)) ||
+         request.resource.data.get('emailVerified', null) == resource.data.get('emailVerified', null) &&
+         request.resource.data.get('referralCode', null) == resource.data.get('referralCode', null) &&
+         request.resource.data.get('referredAt', null) == resource.data.get('referredAt', null) &&
+         request.resource.data.get('hearAboutUs', null) == resource.data.get('hearAboutUs', null)) ||
         // Business owner can update only the role field for members in their business (cannot assign 'owner')
         (resource.data.businessId != null &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']) &&
