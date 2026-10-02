@@ -4440,6 +4440,9 @@ async function ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId
   }
 }
 
+const HEAR_ABOUT_US_OPTIONS = ["Facebook", "Reddit", "A friend", "The calculator", "Other"];
+const REFERRAL_CODE_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
+
 /**
  * Callable function: creates the businesses doc for a new signup, deciding
  * trial eligibility server-side with the same fingerprint checks the client's
@@ -4460,6 +4463,17 @@ exports.createBusinessForSignup = onCall(async (request) => {
 
   const uid = request.auth.uid;
   const { businessName, phone, timezone, referralCode, hearAboutUs, browserFingerprint, visitorId } = request.data || {};
+
+  const trimmedHearAboutUs = typeof hearAboutUs === "string" ? hearAboutUs.trim() : "";
+  const safeHearAboutUs = HEAR_ABOUT_US_OPTIONS.includes(trimmedHearAboutUs) ? trimmedHearAboutUs : null;
+  const trimmedReferralCode = typeof referralCode === "string" ? referralCode.trim() : "";
+  const safeReferralCode = REFERRAL_CODE_PATTERN.test(trimmedReferralCode) ? trimmedReferralCode : null;
+  if (hearAboutUs != null && !safeHearAboutUs) {
+    console.warn(`[createBusinessForSignup] uid=${uid} dropped invalid hearAboutUs`);
+  }
+  if (referralCode != null && !safeReferralCode) {
+    console.warn(`[createBusinessForSignup] uid=${uid} dropped invalid referralCode`);
+  }
 
   // On the direct gen-2 endpoint, use the terminal IP appended by Google ingress.
   // Earlier X-Forwarded-For entries (and rawRequest.ip) can come from the caller.
@@ -4487,7 +4501,7 @@ exports.createBusinessForSignup = onCall(async (request) => {
     const existingSnap = await db.collection("businesses").where("ownerId", "==", uid).limit(1).get();
     if (!existingSnap.empty) {
       console.log(`[createBusinessForSignup] Business already exists for ${uid}: ${existingSnap.docs[0].id}`);
-      await ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId: existingSnap.docs[0].id, referralCode, hearAboutUs });
+      await ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId: existingSnap.docs[0].id, referralCode: safeReferralCode, hearAboutUs: safeHearAboutUs });
       return { businessId: existingSnap.docs[0].id, alreadyExisted: true };
     }
 
@@ -4538,8 +4552,8 @@ exports.createBusinessForSignup = onCall(async (request) => {
       businessData.trialStartDate = null;
       businessData.trialEndDate = null;
     }
-    if (referralCode) {
-      businessData.referralCode = referralCode;
+    if (safeReferralCode) {
+      businessData.referralCode = safeReferralCode;
     }
 
     const businessRef = await db.collection("businesses").add(businessData);
@@ -4576,7 +4590,7 @@ exports.createBusinessForSignup = onCall(async (request) => {
     // Users doc last, mirroring the client's signup order (business →
     // fingerprints → users doc). Create-if-missing and never throws — the
     // client still writes this doc itself this stage.
-    await ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId: businessRef.id, referralCode, hearAboutUs });
+    await ensureOwnerUsersDoc({ uid, email, phone, businessName, businessId: businessRef.id, referralCode: safeReferralCode, hearAboutUs: safeHearAboutUs });
 
     return {
       businessId: businessRef.id,
